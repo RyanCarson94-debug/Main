@@ -1,0 +1,38 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        brand: {
+          primary: '#7C3AED',
+          secondary: '#EC4899',
+          accent: '#F59E0B',
+          success: '#10B981',
+          danger: '#EF4444',
+          dark: '#0F0A1E',
+          card: '#1A1035',
+          border: '#2D1F5E',
+        }
+      },
+      animation: {
+        'slide-in': 'slideIn 0.2s ease-out',
+        'fade-in': 'fadeIn 0.15s ease-out',
+      },
+      keyframes: {
+        slideIn: {
+          '0%': { transform: 'translateY(-8px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+      },
+    },
+  },
+  plugins: [],
+}
