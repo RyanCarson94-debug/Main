@@ -119,6 +119,35 @@ export function useAppStore() {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, quadrant } : t));
   };
 
+  const markDelegated = (
+    id: string,
+    delegatedTo: string,
+    followUpDate?: string,
+    emailDraft?: string,
+  ) => {
+    setTasks(prev => prev.map(t =>
+      t.id === id
+        ? {
+            ...t,
+            delegatedTo,
+            delegatedAt: new Date().toISOString(),
+            followUpDate,
+            followUpDone: false,
+            quadrant: 'delegate' as QuadrantId,
+            ...(emailDraft ? { delegationEmailDraft: emailDraft } : {}),
+          }
+        : t
+    ));
+  };
+
+  const markFollowUpDone = (id: string) => {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, followUpDone: true } : t));
+  };
+
+  const saveDelegationEmail = (id: string, email: string) => {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, delegationEmailDraft: email } : t));
+  };
+
   const addOKR = (okr: Omit<OKR, 'id'>) => {
     setOkrs(prev => [...prev, { ...okr, id: crypto.randomUUID() }]);
   };
@@ -161,6 +190,9 @@ export function useAppStore() {
     deleteTask,
     moveTaskColumn,
     moveTaskQuadrant,
+    markDelegated,
+    markFollowUpDone,
+    saveDelegationEmail,
     addOKR,
     updateOKR,
     deleteOKR,

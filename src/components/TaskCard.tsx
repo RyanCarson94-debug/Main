@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2, ChevronRight, CheckCircle2, Tag, Calendar } from 'lucide-react';
+import { Trash2, ChevronRight, CheckCircle2, Tag, Calendar, UserCheck, AlertTriangle } from 'lucide-react';
 import type { Task, KanbanColumnId } from '../types';
 import { QUADRANTS, PRIORITY_CONFIG } from '../types';
 
@@ -8,14 +8,18 @@ interface TaskCardProps {
   onDelete: (id: string) => void;
   onMoveColumn?: (id: string, col: KanbanColumnId) => void;
   onEdit: (task: Task) => void;
+  onDelegate?: (task: Task) => void;
   compact?: boolean;
 }
 
-export function TaskCard({ task, onDelete, onMoveColumn, onEdit, compact }: TaskCardProps) {
+export function TaskCard({ task, onDelete, onMoveColumn, onEdit, onDelegate, compact }: TaskCardProps) {
   const [showActions, setShowActions] = useState(false);
   const q = QUADRANTS[task.quadrant];
   const p = PRIORITY_CONFIG[task.priority];
   const isDone = task.column === 'done';
+
+  const followUpOverdue = task.delegatedTo && !task.followUpDone && task.followUpDate
+    && new Date(task.followUpDate) < new Date();
 
   return (
     <div
@@ -60,8 +64,25 @@ export function TaskCard({ task, onDelete, onMoveColumn, onEdit, compact }: Task
         </p>
       )}
 
+      {/* Delegation badge */}
+      {task.delegatedTo && (
+        <div className={`flex items-center gap-1.5 mb-2 px-2 py-1 rounded-lg border text-[10px] font-semibold
+          ${followUpOverdue
+            ? 'bg-red-500/10 border-red-500/30 text-red-300'
+            : task.followUpDone
+              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+              : 'bg-amber-500/10 border-amber-500/20 text-amber-300'
+          }`}
+        >
+          {followUpOverdue ? <AlertTriangle size={10} /> : <UserCheck size={10} />}
+          <span>
+            {task.followUpDone ? '✓ Followed up' : followUpOverdue ? '⚠ Follow-up overdue' : '→'} {task.delegatedTo}
+          </span>
+        </div>
+      )}
+
       {/* Commitment note */}
-      {task.commitmentNote && (
+      {task.commitmentNote && !task.delegatedTo && (
         <div className="flex items-start gap-1.5 mb-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
           <ChevronRight size={12} className="text-amber-400 mt-0.5 shrink-0" />
           <p className="text-xs text-amber-300 leading-relaxed">{task.commitmentNote}</p>
@@ -84,6 +105,20 @@ export function TaskCard({ task, onDelete, onMoveColumn, onEdit, compact }: Task
               <Calendar size={9} />
               {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </span>
+          )}
+          {onDelegate && (task.quadrant === 'delegate' || task.delegatedTo) && (
+            <button
+              onClick={e => { e.stopPropagation(); onDelegate(task); }}
+              className={`flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors
+                ${task.delegatedTo
+                  ? 'text-amber-400 hover:text-amber-300'
+                  : 'text-amber-500 hover:text-amber-300 bg-amber-500/10 border border-amber-500/20 hover:border-amber-400/30'
+                }`}
+              title={task.delegatedTo ? 'Update delegation' : 'Delegate this task'}
+            >
+              <UserCheck size={10} />
+              {task.delegatedTo ? 'Update' : 'Delegate'}
+            </button>
           )}
           {onMoveColumn && !isDone && (
             <button

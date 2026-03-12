@@ -10,9 +10,10 @@ interface KanbanBoardProps {
   onEditTask: (task: Task) => void;
   onDeleteTask: (id: string) => void;
   onMoveColumn: (id: string, col: KanbanColumnId) => void;
+  onDelegateTask?: (task: Task) => void;
 }
 
-export function KanbanBoard({ tasks, onAddTask, onEditTask, onDeleteTask, onMoveColumn }: KanbanBoardProps) {
+export function KanbanBoard({ tasks, onAddTask, onEditTask, onDeleteTask, onMoveColumn, onDelegateTask }: KanbanBoardProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<KanbanColumnId | null>(null);
 
@@ -126,6 +127,7 @@ export function KanbanBoard({ tasks, onAddTask, onEditTask, onDeleteTask, onMove
                         onDelete={onDeleteTask}
                         onMoveColumn={onMoveColumn}
                         onEdit={onEditTask}
+                        onDelegate={onDelegateTask}
                       />
                     </div>
                   ))

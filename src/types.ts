@@ -1,7 +1,7 @@
 export type QuadrantId = 'do-now' | 'schedule' | 'delegate' | 'drop';
 export type KanbanColumnId = 'backlog' | 'in-progress' | 'done';
 export type Priority = 'critical' | 'high' | 'medium' | 'low';
-export type View = 'kanban' | 'eisenhower' | 'okrs' | 'swot' | 'first-team';
+export type View = 'kanban' | 'eisenhower' | 'okrs' | 'swot' | 'first-team' | 'delegations';
 
 export interface Task {
   id: string;
@@ -15,6 +15,12 @@ export interface Task {
   commitmentNote?: string;
   createdAt: string;
   completedAt?: string;
+  // Delegation tracking
+  delegatedTo?: string;
+  delegatedAt?: string;
+  followUpDate?: string;
+  followUpDone?: boolean;
+  delegationEmailDraft?: string;
 }
 
 export interface OKR {

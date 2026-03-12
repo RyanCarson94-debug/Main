@@ -1,4 +1,4 @@
-import { LayoutDashboard, Grid2x2, Target, BarChart2, Users, Zap } from 'lucide-react';
+import { LayoutDashboard, Grid2x2, Target, BarChart2, Users, Zap, UserCheck } from 'lucide-react';
 import type { View } from '../types';
 
 interface SidebarProps {
@@ -7,12 +7,14 @@ interface SidebarProps {
   taskCounts: {
     doNow: number;
     inProgress: number;
+    delegationAlerts: number;
   };
 }
 
-const NAV: { id: View; label: string; icon: React.ReactNode; badge?: string }[] = [
+const NAV: { id: View; label: string; icon: React.ReactNode }[] = [
   { id: 'kanban', label: 'Task Board', icon: <LayoutDashboard size={18} /> },
   { id: 'eisenhower', label: 'Eisenhower', icon: <Grid2x2 size={18} /> },
+  { id: 'delegations', label: 'Delegations', icon: <UserCheck size={18} /> },
   { id: 'okrs', label: 'OKRs', icon: <Target size={18} /> },
   { id: 'swot', label: 'SWOT', icon: <BarChart2 size={18} /> },
   { id: 'first-team', label: 'First Team', icon: <Users size={18} /> },
@@ -56,6 +58,7 @@ export function Sidebar({ view, onViewChange, taskCounts }: SidebarProps) {
         <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest px-2 mb-2">Views</p>
         {NAV.map(item => {
           const active = view === item.id;
+          const showBadge = item.id === 'delegations' && taskCounts.delegationAlerts > 0;
           return (
             <button
               key={item.id}
@@ -69,7 +72,12 @@ export function Sidebar({ view, onViewChange, taskCounts }: SidebarProps) {
               `}
             >
               <span className={active ? 'text-purple-400' : ''}>{item.icon}</span>
-              {item.label}
+              <span className="flex-1 text-left">{item.label}</span>
+              {showBadge && (
+                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                  {taskCounts.delegationAlerts}
+                </span>
+              )}
             </button>
           );
         })}

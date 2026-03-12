@@ -9,6 +9,7 @@ interface EisenhowerMatrixProps {
   onEditTask: (task: Task) => void;
   onDeleteTask: (id: string) => void;
   onMoveQuadrant: (id: string, quadrant: QuadrantId) => void;
+  onDelegateTask: (task: Task) => void;
 }
 
 const QUADRANT_LAYOUT: { id: QuadrantId; emoji: string }[] = [
@@ -24,6 +25,7 @@ export function EisenhowerMatrix({
   onEditTask,
   onDeleteTask,
   onMoveQuadrant,
+  onDelegateTask,
 }: EisenhowerMatrixProps) {
   const quadrantTasks = (qId: QuadrantId) =>
     tasks.filter(t => t.quadrant === qId && t.column !== 'done');
@@ -129,6 +131,7 @@ export function EisenhowerMatrix({
                           task={task}
                           onDelete={onDeleteTask}
                           onEdit={onEditTask}
+                          onDelegate={onDelegateTask}
                           compact
                         />
                       </div>

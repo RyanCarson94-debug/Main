@@ -6,26 +6,33 @@ import { OKRView } from './components/OKRView';
 import { SwotView } from './components/SwotView';
 import { FirstTeamView } from './components/FirstTeamView';
 import { TaskModal } from './components/TaskModal';
+import { DelegationModal } from './components/DelegationModal';
+import { DelegationsView } from './components/DelegationsView';
 import { useAppStore } from './store';
 import type { View, Task, QuadrantId } from './types';
 
 export default function App() {
   const [view, setView] = useState<View>('kanban');
-  const [showModal, setShowModal] = useState(false);
+  const [showTaskModal, setShowTaskModal] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [defaultQuadrant, setDefaultQuadrant] = useState<QuadrantId>('do-now');
+  const [delegatingTask, setDelegatingTask] = useState<Task | null>(null);
 
   const store = useAppStore();
 
   const openAddTask = (quadrant?: QuadrantId) => {
     setEditTask(null);
     setDefaultQuadrant(quadrant ?? 'do-now');
-    setShowModal(true);
+    setShowTaskModal(true);
   };
 
   const openEditTask = (task: Task) => {
     setEditTask(task);
-    setShowModal(true);
+    setShowTaskModal(true);
+  };
+
+  const openDelegateTask = (task: Task) => {
+    setDelegatingTask(task);
   };
 
   const handleSaveTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
@@ -36,9 +43,23 @@ export default function App() {
     }
   };
 
+  const handleDelegate = (delegatedTo: string, followUpDate?: string, emailDraft?: string) => {
+    if (!delegatingTask) return;
+    store.markDelegated(delegatingTask.id, delegatedTo, followUpDate, emailDraft);
+  };
+
+  // Delegation alerts: overdue or due-today follow-ups
+  const delegationAlerts = store.tasks.filter(t => {
+    if (!t.delegatedTo || t.followUpDone || !t.followUpDate) return false;
+    const followUp = new Date(t.followUpDate);
+    followUp.setHours(23, 59, 59, 999);
+    return followUp <= new Date();
+  }).length;
+
   const taskCounts = {
     doNow: store.tasks.filter(t => t.quadrant === 'do-now' && t.column !== 'done').length,
     inProgress: store.tasks.filter(t => t.column === 'in-progress').length,
+    delegationAlerts,
   };
 
   return (
@@ -53,6 +74,7 @@ export default function App() {
             onEditTask={openEditTask}
             onDeleteTask={store.deleteTask}
             onMoveColumn={store.moveTaskColumn}
+            onDelegateTask={openDelegateTask}
           />
         )}
         {view === 'eisenhower' && (
@@ -62,6 +84,15 @@ export default function App() {
             onEditTask={openEditTask}
             onDeleteTask={store.deleteTask}
             onMoveQuadrant={store.moveTaskQuadrant}
+            onDelegateTask={openDelegateTask}
+          />
+        )}
+        {view === 'delegations' && (
+          <DelegationsView
+            tasks={store.tasks}
+            onOpenDelegationModal={openDelegateTask}
+            onMarkFollowUpDone={store.markFollowUpDone}
+            onDeleteTask={store.deleteTask}
           />
         )}
         {view === 'okrs' && (
@@ -89,11 +120,19 @@ export default function App() {
         )}
       </main>
 
-      {showModal && (
+      {showTaskModal && (
         <TaskModal
           task={editTask}
           onSave={handleSaveTask}
-          onClose={() => { setShowModal(false); setEditTask(null); }}
+          onClose={() => { setShowTaskModal(false); setEditTask(null); }}
+        />
+      )}
+
+      {delegatingTask && (
+        <DelegationModal
+          task={delegatingTask}
+          onDelegate={handleDelegate}
+          onClose={() => setDelegatingTask(null)}
         />
       )}
     </div>
