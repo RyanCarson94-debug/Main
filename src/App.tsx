@@ -9,6 +9,7 @@ import { TaskModal } from './components/TaskModal';
 import { DelegationModal } from './components/DelegationModal';
 import { DelegationsView } from './components/DelegationsView';
 import { FrameworksLibrary } from './components/FrameworksLibrary';
+import { UpdatesView } from './components/UpdatesView';
 import { useAppStore } from './store';
 import type { View, Task, QuadrantId } from './types';
 
@@ -57,10 +58,16 @@ export default function App() {
     return followUp <= new Date();
   }).length;
 
+  const pendingUpdates = store.updates.reduce((sum, u) => {
+    const hasPending = u.recipientIds.some(id => !u.discussedWith.includes(id));
+    return sum + (hasPending ? 1 : 0);
+  }, 0);
+
   const taskCounts = {
     doNow: store.tasks.filter(t => t.quadrant === 'do-now' && t.column !== 'done').length,
     inProgress: store.tasks.filter(t => t.column === 'in-progress').length,
     delegationAlerts,
+    pendingUpdates,
   };
 
   return (
@@ -120,6 +127,18 @@ export default function App() {
           />
         )}
         {view === 'frameworks' && <FrameworksLibrary />}
+        {view === 'updates' && (
+          <UpdatesView
+            people={store.updatePeople}
+            updates={store.updates}
+            onAddPerson={store.addUpdatePerson}
+            onDeletePerson={store.deleteUpdatePerson}
+            onAddUpdate={store.addUpdate}
+            onDeleteUpdate={store.deleteUpdate}
+            onMarkDiscussed={store.markDiscussed}
+            onMarkAllDiscussed={store.markAllDiscussed}
+          />
+        )}
       </main>
 
       {showTaskModal && (

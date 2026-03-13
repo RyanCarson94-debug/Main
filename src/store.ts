@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import type { Task, OKR, SwotItem, FirstTeamMember, KanbanColumnId, QuadrantId } from './types';
+import type { Task, OKR, SwotItem, FirstTeamMember, KanbanColumnId, QuadrantId, Update, UpdatePerson } from './types';
 
 const STORAGE_KEYS = {
   tasks: 'adhd-leader-tasks',
   okrs: 'adhd-leader-okrs',
   swot: 'adhd-leader-swot',
   team: 'adhd-leader-team',
+  updatePeople: 'adhd-leader-update-people',
+  updates: 'adhd-leader-updates',
 };
 
 function loadFromStorage<T>(key: string, fallback: T): T {
@@ -83,11 +85,19 @@ export function useAppStore() {
   const [teamMembers, setTeamMembers] = useState<FirstTeamMember[]>(() =>
     loadFromStorage(STORAGE_KEYS.team, [])
   );
+  const [updatePeople, setUpdatePeople] = useState<UpdatePerson[]>(() =>
+    loadFromStorage(STORAGE_KEYS.updatePeople, [])
+  );
+  const [updates, setUpdates] = useState<Update[]>(() =>
+    loadFromStorage(STORAGE_KEYS.updates, [])
+  );
 
   useEffect(() => { saveToStorage(STORAGE_KEYS.tasks, tasks); }, [tasks]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.okrs, okrs); }, [okrs]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.swot, swotItems); }, [swotItems]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.team, teamMembers); }, [teamMembers]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.updatePeople, updatePeople); }, [updatePeople]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.updates, updates); }, [updates]);
 
   const addTask = (task: Omit<Task, 'id' | 'createdAt'>) => {
     const newTask: Task = {
@@ -180,11 +190,56 @@ export function useAppStore() {
     setTeamMembers(prev => prev.filter(m => m.id !== id));
   };
 
+  const addUpdatePerson = (person: Omit<UpdatePerson, 'id'>) => {
+    setUpdatePeople(prev => [...prev, { ...person, id: crypto.randomUUID() }]);
+  };
+
+  const deleteUpdatePerson = (id: string) => {
+    setUpdatePeople(prev => prev.filter(p => p.id !== id));
+    // Remove person from all updates
+    setUpdates(prev => prev.map(u => ({
+      ...u,
+      recipientIds: u.recipientIds.filter(r => r !== id),
+      discussedWith: u.discussedWith.filter(d => d !== id),
+    })));
+  };
+
+  const addUpdate = (update: Omit<Update, 'id' | 'createdAt' | 'discussedWith'>) => {
+    setUpdates(prev => [{
+      ...update,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      discussedWith: [],
+    }, ...prev]);
+  };
+
+  const deleteUpdate = (id: string) => {
+    setUpdates(prev => prev.filter(u => u.id !== id));
+  };
+
+  const markDiscussed = (updateId: string, personId: string) => {
+    setUpdates(prev => prev.map(u =>
+      u.id === updateId && !u.discussedWith.includes(personId)
+        ? { ...u, discussedWith: [...u.discussedWith, personId] }
+        : u
+    ));
+  };
+
+  const markAllDiscussed = (personId: string) => {
+    setUpdates(prev => prev.map(u =>
+      u.recipientIds.includes(personId) && !u.discussedWith.includes(personId)
+        ? { ...u, discussedWith: [...u.discussedWith, personId] }
+        : u
+    ));
+  };
+
   return {
     tasks,
     okrs,
     swotItems,
     teamMembers,
+    updatePeople,
+    updates,
     addTask,
     updateTask,
     deleteTask,
@@ -201,5 +256,11 @@ export function useAppStore() {
     addTeamMember,
     updateTeamMember,
     deleteTeamMember,
+    addUpdatePerson,
+    deleteUpdatePerson,
+    addUpdate,
+    deleteUpdate,
+    markDiscussed,
+    markAllDiscussed,
   };
 }

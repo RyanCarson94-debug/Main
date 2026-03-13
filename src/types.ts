@@ -1,7 +1,25 @@
 export type QuadrantId = 'do-now' | 'schedule' | 'delegate' | 'drop';
 export type KanbanColumnId = 'backlog' | 'in-progress' | 'done';
 export type Priority = 'critical' | 'high' | 'medium' | 'low';
-export type View = 'kanban' | 'eisenhower' | 'okrs' | 'swot' | 'first-team' | 'delegations' | 'frameworks';
+export type View = 'kanban' | 'eisenhower' | 'okrs' | 'swot' | 'first-team' | 'delegations' | 'frameworks' | 'updates';
+
+export type UpdateType = 'fyi' | 'action' | 'decision' | 'blocker';
+export type PersonRelationship = 'manager' | 'direct-report' | 'peer' | 'stakeholder';
+
+export interface UpdatePerson {
+  id: string;
+  name: string;
+  relationship: PersonRelationship;
+}
+
+export interface Update {
+  id: string;
+  content: string;
+  type: UpdateType;
+  createdAt: string;
+  recipientIds: string[];
+  discussedWith: string[]; // person IDs who have been told
+}
 
 export interface Task {
   id: string;

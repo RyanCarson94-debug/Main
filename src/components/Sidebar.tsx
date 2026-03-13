@@ -1,4 +1,4 @@
-import { LayoutDashboard, Grid2x2, Target, BarChart2, Users, Zap, UserCheck, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Grid2x2, Target, BarChart2, Users, Zap, UserCheck, BookOpen, Bell } from 'lucide-react';
 import type { View } from '../types';
 
 interface SidebarProps {
@@ -8,6 +8,7 @@ interface SidebarProps {
     doNow: number;
     inProgress: number;
     delegationAlerts: number;
+    pendingUpdates: number;
   };
 }
 
@@ -19,6 +20,7 @@ const NAV: { id: View; label: string; icon: React.ReactNode }[] = [
   { id: 'swot', label: 'SWOT', icon: <BarChart2 size={18} /> },
   { id: 'first-team', label: 'First Team', icon: <Users size={18} /> },
   { id: 'frameworks', label: 'Frameworks', icon: <BookOpen size={18} /> },
+  { id: 'updates', label: '1:1 Briefings', icon: <Bell size={18} /> },
 ];
 
 export function Sidebar({ view, onViewChange, taskCounts }: SidebarProps) {
@@ -59,7 +61,10 @@ export function Sidebar({ view, onViewChange, taskCounts }: SidebarProps) {
         <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest px-2 mb-2">Views</p>
         {NAV.map(item => {
           const active = view === item.id;
-          const showBadge = item.id === 'delegations' && taskCounts.delegationAlerts > 0;
+          const showBadge =
+            (item.id === 'delegations' && taskCounts.delegationAlerts > 0) ||
+            (item.id === 'updates' && taskCounts.pendingUpdates > 0);
+          const badgeCount = item.id === 'delegations' ? taskCounts.delegationAlerts : taskCounts.pendingUpdates;
           return (
             <button
               key={item.id}
@@ -75,8 +80,8 @@ export function Sidebar({ view, onViewChange, taskCounts }: SidebarProps) {
               <span className={active ? 'text-purple-400' : ''}>{item.icon}</span>
               <span className="flex-1 text-left">{item.label}</span>
               {showBadge && (
-                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
-                  {taskCounts.delegationAlerts}
+                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  {badgeCount}
                 </span>
               )}
             </button>
