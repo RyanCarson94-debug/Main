@@ -13,6 +13,7 @@ interface SidebarProps {
 }
 
 const NAV: { id: View; label: string; icon: React.ReactNode }[] = [
+  { id: 'focus', label: 'Focus Mode', icon: <Zap size={18} /> },
   { id: 'kanban', label: 'Task Board', icon: <LayoutDashboard size={18} /> },
   { id: 'eisenhower', label: 'Eisenhower', icon: <Grid2x2 size={18} /> },
   { id: 'delegations', label: 'Delegations', icon: <UserCheck size={18} /> },

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Task, OKR, SwotItem, FirstTeamMember, KanbanColumnId, QuadrantId, Update, UpdatePerson } from './types';
+import type { Task, OKR, SwotItem, FirstTeamMember, KanbanColumnId, QuadrantId, Update, UpdatePerson, TaskFocus, FocusStep } from './types';
 
 const STORAGE_KEYS = {
   tasks: 'adhd-leader-tasks',
@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   team: 'adhd-leader-team',
   updatePeople: 'adhd-leader-update-people',
   updates: 'adhd-leader-updates',
+  focusMap: 'adhd-leader-focus-map',
 };
 
 function loadFromStorage<T>(key: string, fallback: T): T {
@@ -91,6 +92,9 @@ export function useAppStore() {
   const [updates, setUpdates] = useState<Update[]>(() =>
     loadFromStorage(STORAGE_KEYS.updates, [])
   );
+  const [focusMap, setFocusMap] = useState<Record<string, TaskFocus>>(() =>
+    loadFromStorage(STORAGE_KEYS.focusMap, {})
+  );
 
   useEffect(() => { saveToStorage(STORAGE_KEYS.tasks, tasks); }, [tasks]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.okrs, okrs); }, [okrs]);
@@ -98,6 +102,7 @@ export function useAppStore() {
   useEffect(() => { saveToStorage(STORAGE_KEYS.team, teamMembers); }, [teamMembers]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.updatePeople, updatePeople); }, [updatePeople]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.updates, updates); }, [updates]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.focusMap, focusMap); }, [focusMap]);
 
   const addTask = (task: Omit<Task, 'id' | 'createdAt'>) => {
     const newTask: Task = {
@@ -190,6 +195,56 @@ export function useAppStore() {
     setTeamMembers(prev => prev.filter(m => m.id !== id));
   };
 
+  const setFocusSteps = (taskId: string, steps: FocusStep[]) => {
+    setFocusMap(prev => ({
+      ...prev,
+      [taskId]: { taskId, steps, updatedAt: new Date().toISOString() },
+    }));
+  };
+
+  const toggleFocusStep = (taskId: string, stepId: string) => {
+    setFocusMap(prev => {
+      const focus = prev[taskId];
+      if (!focus) return prev;
+      return {
+        ...prev,
+        [taskId]: {
+          ...focus,
+          steps: focus.steps.map(s => s.id === stepId ? { ...s, done: !s.done } : s),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    });
+  };
+
+  const addFocusStep = (taskId: string, text: string, estimateMinutes?: number) => {
+    const newStep: FocusStep = { id: crypto.randomUUID(), text, estimateMinutes, done: false };
+    setFocusMap(prev => {
+      const focus = prev[taskId];
+      const steps = focus ? [...focus.steps, newStep] : [newStep];
+      return { ...prev, [taskId]: { taskId, steps, updatedAt: new Date().toISOString() } };
+    });
+  };
+
+  const deleteFocusStep = (taskId: string, stepId: string) => {
+    setFocusMap(prev => {
+      const focus = prev[taskId];
+      if (!focus) return prev;
+      return {
+        ...prev,
+        [taskId]: { ...focus, steps: focus.steps.filter(s => s.id !== stepId), updatedAt: new Date().toISOString() },
+      };
+    });
+  };
+
+  const clearFocusSteps = (taskId: string) => {
+    setFocusMap(prev => {
+      const next = { ...prev };
+      delete next[taskId];
+      return next;
+    });
+  };
+
   const addUpdatePerson = (person: Omit<UpdatePerson, 'id'>) => {
     setUpdatePeople(prev => [...prev, { ...person, id: crypto.randomUUID() }]);
   };
@@ -240,6 +295,7 @@ export function useAppStore() {
     teamMembers,
     updatePeople,
     updates,
+    focusMap,
     addTask,
     updateTask,
     deleteTask,
@@ -256,6 +312,11 @@ export function useAppStore() {
     addTeamMember,
     updateTeamMember,
     deleteTeamMember,
+    setFocusSteps,
+    toggleFocusStep,
+    addFocusStep,
+    deleteFocusStep,
+    clearFocusSteps,
     addUpdatePerson,
     deleteUpdatePerson,
     addUpdate,

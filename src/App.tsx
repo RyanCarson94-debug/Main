@@ -10,6 +10,7 @@ import { DelegationModal } from './components/DelegationModal';
 import { DelegationsView } from './components/DelegationsView';
 import { FrameworksLibrary } from './components/FrameworksLibrary';
 import { UpdatesView } from './components/UpdatesView';
+import { FocusView } from './components/FocusView';
 import { useAppStore } from './store';
 import type { View, Task, QuadrantId } from './types';
 
@@ -127,6 +128,17 @@ export default function App() {
           />
         )}
         {view === 'frameworks' && <FrameworksLibrary />}
+        {view === 'focus' && (
+          <FocusView
+            tasks={store.tasks}
+            focusMap={store.focusMap}
+            onSetSteps={store.setFocusSteps}
+            onToggleStep={store.toggleFocusStep}
+            onAddStep={store.addFocusStep}
+            onDeleteStep={store.deleteFocusStep}
+            onClearSteps={store.clearFocusSteps}
+          />
+        )}
         {view === 'updates' && (
           <UpdatesView
             people={store.updatePeople}

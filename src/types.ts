@@ -1,7 +1,20 @@
 export type QuadrantId = 'do-now' | 'schedule' | 'delegate' | 'drop';
 export type KanbanColumnId = 'backlog' | 'in-progress' | 'done';
 export type Priority = 'critical' | 'high' | 'medium' | 'low';
-export type View = 'kanban' | 'eisenhower' | 'okrs' | 'swot' | 'first-team' | 'delegations' | 'frameworks' | 'updates';
+export type View = 'kanban' | 'eisenhower' | 'okrs' | 'swot' | 'first-team' | 'delegations' | 'frameworks' | 'updates' | 'focus';
+
+export interface FocusStep {
+  id: string;
+  text: string;
+  estimateMinutes?: number;
+  done: boolean;
+}
+
+export interface TaskFocus {
+  taskId: string;
+  steps: FocusStep[];
+  updatedAt: string;
+}
 
 export type UpdateType = 'fyi' | 'action' | 'decision' | 'blocker';
 export type PersonRelationship = 'manager' | 'direct-report' | 'peer' | 'stakeholder';

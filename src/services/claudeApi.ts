@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { Task } from '../types';
+import type { Task, FocusStep } from '../types';
 
 const client = new Anthropic({
   apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY ?? '',
@@ -14,6 +14,57 @@ const client = new Anthropic({
  *   - Expected outcome with measurable criteria
  *   - Deadline and check-in cadence
  */
+/**
+ * Breaks a task into concrete micro-steps using Claude.
+ * Returns an array of FocusStep objects with time estimates.
+ */
+export async function generateTaskBreakdown(
+  task: Task,
+  onDone: (steps: Omit<FocusStep, 'id' | 'done'>[]) => void,
+  onError: (err: string) => void,
+): Promise<void> {
+  const prompt = `You are an ADHD productivity coach helping a leader break down a task into clear, actionable micro-steps.
+
+Task: "${task.title}"
+${task.description ? `Context: ${task.description}` : ''}
+Priority: ${task.priority}
+Tags: ${task.tags.join(', ') || 'none'}
+${task.commitmentNote ? `Notes: ${task.commitmentNote}` : ''}
+
+Break this task into 4–7 concrete micro-steps. Each step should:
+- Start with a verb (Open, Write, Call, Review, etc.)
+- Be completable in under 25 minutes
+- Be specific enough that the person knows exactly what to do
+
+Respond ONLY with a JSON array, no explanation, no markdown. Example format:
+[
+  {"text": "Open the project folder and read the last email thread", "estimateMinutes": 5},
+  {"text": "Write bullet-point outline of key points", "estimateMinutes": 15}
+]`;
+
+  try {
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 512,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const raw = response.content[0].type === 'text' ? response.content[0].text : '';
+    const jsonMatch = raw.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error('No JSON array in response');
+    const parsed = JSON.parse(jsonMatch[0]) as { text: string; estimateMinutes?: number }[];
+    onDone(parsed.map(s => ({ text: s.text, estimateMinutes: s.estimateMinutes })));
+  } catch (err) {
+    if (err instanceof Anthropic.AuthenticationError) {
+      onError('Invalid API key. Add VITE_ANTHROPIC_API_KEY to your .env file.');
+    } else if (err instanceof Anthropic.RateLimitError) {
+      onError('Rate limited. Please wait a moment and try again.');
+    } else {
+      onError('Failed to generate breakdown. Check your API key and connection.');
+    }
+  }
+}
+
 export async function streamDelegationEmail(
   task: Task,
   delegatee: string,
