@@ -8,6 +8,7 @@ import { FirstTeamView } from './components/FirstTeamView';
 import { TaskModal } from './components/TaskModal';
 import { DelegationModal } from './components/DelegationModal';
 import { DelegationsView } from './components/DelegationsView';
+import { FrameworksLibrary } from './components/FrameworksLibrary';
 import { useAppStore } from './store';
 import type { View, Task, QuadrantId } from './types';
 
@@ -118,6 +119,7 @@ export default function App() {
             onDelete={store.deleteTeamMember}
           />
         )}
+        {view === 'frameworks' && <FrameworksLibrary />}
       </main>
 
       {showTaskModal && (

@@ -1,7 +1,7 @@
 export type QuadrantId = 'do-now' | 'schedule' | 'delegate' | 'drop';
 export type KanbanColumnId = 'backlog' | 'in-progress' | 'done';
 export type Priority = 'critical' | 'high' | 'medium' | 'low';
-export type View = 'kanban' | 'eisenhower' | 'okrs' | 'swot' | 'first-team' | 'delegations';
+export type View = 'kanban' | 'eisenhower' | 'okrs' | 'swot' | 'first-team' | 'delegations' | 'frameworks';
 
 export interface Task {
   id: string;

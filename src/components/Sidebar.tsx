@@ -1,4 +1,4 @@
-import { LayoutDashboard, Grid2x2, Target, BarChart2, Users, Zap, UserCheck } from 'lucide-react';
+import { LayoutDashboard, Grid2x2, Target, BarChart2, Users, Zap, UserCheck, BookOpen } from 'lucide-react';
 import type { View } from '../types';
 
 interface SidebarProps {
@@ -18,6 +18,7 @@ const NAV: { id: View; label: string; icon: React.ReactNode }[] = [
   { id: 'okrs', label: 'OKRs', icon: <Target size={18} /> },
   { id: 'swot', label: 'SWOT', icon: <BarChart2 size={18} /> },
   { id: 'first-team', label: 'First Team', icon: <Users size={18} /> },
+  { id: 'frameworks', label: 'Frameworks', icon: <BookOpen size={18} /> },
 ];
 
 export function Sidebar({ view, onViewChange, taskCounts }: SidebarProps) {
