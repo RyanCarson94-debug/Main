@@ -1,4 +1,4 @@
-import { LayoutDashboard, Grid2x2, Target, BarChart2, Users, Zap, UserCheck, BookOpen, Bell } from 'lucide-react';
+import { LayoutDashboard, Grid2x2, Target, BarChart2, Users, Zap, UserCheck, BookOpen, Bell, BrainCircuit } from 'lucide-react';
 import type { View } from '../types';
 
 interface SidebarProps {
@@ -9,10 +9,12 @@ interface SidebarProps {
     inProgress: number;
     delegationAlerts: number;
     pendingUpdates: number;
+    dumpInbox: number;
   };
 }
 
 const NAV: { id: View; label: string; icon: React.ReactNode }[] = [
+  { id: 'dump', label: 'Brain Dump', icon: <BrainCircuit size={18} /> },
   { id: 'focus', label: 'Focus Mode', icon: <Zap size={18} /> },
   { id: 'kanban', label: 'Task Board', icon: <LayoutDashboard size={18} /> },
   { id: 'eisenhower', label: 'Eisenhower', icon: <Grid2x2 size={18} /> },
@@ -64,8 +66,12 @@ export function Sidebar({ view, onViewChange, taskCounts }: SidebarProps) {
           const active = view === item.id;
           const showBadge =
             (item.id === 'delegations' && taskCounts.delegationAlerts > 0) ||
-            (item.id === 'updates' && taskCounts.pendingUpdates > 0);
-          const badgeCount = item.id === 'delegations' ? taskCounts.delegationAlerts : taskCounts.pendingUpdates;
+            (item.id === 'updates' && taskCounts.pendingUpdates > 0) ||
+            (item.id === 'dump' && taskCounts.dumpInbox > 0);
+          const badgeCount =
+            item.id === 'delegations' ? taskCounts.delegationAlerts :
+            item.id === 'dump' ? taskCounts.dumpInbox :
+            taskCounts.pendingUpdates;
           return (
             <button
               key={item.id}

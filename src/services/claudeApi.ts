@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { Task, FocusStep } from '../types';
+import type { Task, FocusStep, DumpItem } from '../types';
 
 const client = new Anthropic({
   apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY ?? '',
@@ -18,6 +18,57 @@ const client = new Anthropic({
  * Breaks a task into concrete micro-steps using Claude.
  * Returns an array of FocusStep objects with time estimates.
  */
+/**
+ * Triages a list of brain-dump items using Claude Haiku.
+ * Returns suggestions per item: task/idea/discard + quadrant + priority + reasoning.
+ */
+export async function triageDumpItems(
+  items: DumpItem[],
+  onDone: (suggestions: Record<string, DumpItem['aiSuggestion']>) => void,
+  onError: (err: string) => void,
+): Promise<void> {
+  const itemList = items.map((item, i) => `${i + 1}. [id:${item.id}] "${item.content}"`).join('\n');
+
+  const prompt = `You are an ADHD productivity coach helping a leader process their brain dump.
+
+For each item, decide:
+- type: "task" (needs doing), "idea" (worth keeping but not urgent), or "discard" (not actionable/relevant)
+- If "task": suggest quadrant ("do-now", "schedule", "delegate", or "drop") and priority ("critical", "high", "medium", or "low")
+- reasoning: one short sentence explaining why
+
+Items:
+${itemList}
+
+Respond ONLY with a JSON object keyed by item id. No markdown, no explanation. Example:
+{
+  "abc123": {"type": "task", "quadrant": "do-now", "priority": "high", "reasoning": "Time-sensitive action with clear owner."},
+  "def456": {"type": "idea", "reasoning": "Good concept but no immediate action required."},
+  "ghi789": {"type": "discard", "reasoning": "Too vague to act on."}
+}`;
+
+  try {
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const raw = response.content[0].type === 'text' ? response.content[0].text : '';
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON in response');
+    const parsed = JSON.parse(jsonMatch[0]) as Record<string, DumpItem['aiSuggestion']>;
+    onDone(parsed);
+  } catch (err) {
+    if (err instanceof Anthropic.AuthenticationError) {
+      onError('Invalid API key. Add VITE_ANTHROPIC_API_KEY to your .env file.');
+    } else if (err instanceof Anthropic.RateLimitError) {
+      onError('Rate limited. Please wait a moment and try again.');
+    } else {
+      onError('Failed to triage items. Check your API key and connection.');
+    }
+  }
+}
+
 export async function generateTaskBreakdown(
   task: Task,
   onDone: (steps: Omit<FocusStep, 'id' | 'done'>[]) => void,

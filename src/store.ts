@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Task, OKR, SwotItem, FirstTeamMember, KanbanColumnId, QuadrantId, Update, UpdatePerson, TaskFocus, FocusStep } from './types';
+import type { Task, OKR, SwotItem, FirstTeamMember, KanbanColumnId, QuadrantId, Update, UpdatePerson, TaskFocus, FocusStep, DumpItem, DumpItemStatus } from './types';
 
 const STORAGE_KEYS = {
   tasks: 'adhd-leader-tasks',
@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
   updatePeople: 'adhd-leader-update-people',
   updates: 'adhd-leader-updates',
   focusMap: 'adhd-leader-focus-map',
+  dump: 'adhd-leader-dump',
 };
 
 function loadFromStorage<T>(key: string, fallback: T): T {
@@ -95,6 +96,9 @@ export function useAppStore() {
   const [focusMap, setFocusMap] = useState<Record<string, TaskFocus>>(() =>
     loadFromStorage(STORAGE_KEYS.focusMap, {})
   );
+  const [dumpItems, setDumpItems] = useState<DumpItem[]>(() =>
+    loadFromStorage(STORAGE_KEYS.dump, [])
+  );
 
   useEffect(() => { saveToStorage(STORAGE_KEYS.tasks, tasks); }, [tasks]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.okrs, okrs); }, [okrs]);
@@ -103,6 +107,7 @@ export function useAppStore() {
   useEffect(() => { saveToStorage(STORAGE_KEYS.updatePeople, updatePeople); }, [updatePeople]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.updates, updates); }, [updates]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.focusMap, focusMap); }, [focusMap]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.dump, dumpItems); }, [dumpItems]);
 
   const addTask = (task: Omit<Task, 'id' | 'createdAt'>) => {
     const newTask: Task = {
@@ -193,6 +198,46 @@ export function useAppStore() {
 
   const deleteTeamMember = (id: string) => {
     setTeamMembers(prev => prev.filter(m => m.id !== id));
+  };
+
+  const addDumpItem = (content: string) => {
+    const item: DumpItem = {
+      id: crypto.randomUUID(),
+      content: content.trim(),
+      createdAt: new Date().toISOString(),
+      status: 'inbox',
+    };
+    setDumpItems(prev => [item, ...prev]);
+    return item.id;
+  };
+
+  const updateDumpItem = (id: string, updates: Partial<DumpItem>) => {
+    setDumpItems(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
+  };
+
+  const deleteDumpItem = (id: string) => {
+    setDumpItems(prev => prev.filter(d => d.id !== id));
+  };
+
+  const setDumpStatus = (id: string, status: DumpItemStatus) => {
+    setDumpItems(prev => prev.map(d => d.id === id ? { ...d, status } : d));
+  };
+
+  const convertDumpToTask = (dumpId: string, taskData: Omit<Task, 'id' | 'createdAt'>) => {
+    const newTask: Task = {
+      ...taskData,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    setTasks(prev => [newTask, ...prev]);
+    setDumpItems(prev => prev.map(d =>
+      d.id === dumpId ? { ...d, status: 'task' as DumpItemStatus, convertedTaskId: newTask.id } : d
+    ));
+    return newTask.id;
+  };
+
+  const clearDumpInbox = () => {
+    setDumpItems(prev => prev.filter(d => d.status !== 'inbox'));
   };
 
   const setFocusSteps = (taskId: string, steps: FocusStep[]) => {
@@ -296,6 +341,13 @@ export function useAppStore() {
     updatePeople,
     updates,
     focusMap,
+    dumpItems,
+    addDumpItem,
+    updateDumpItem,
+    deleteDumpItem,
+    setDumpStatus,
+    convertDumpToTask,
+    clearDumpInbox,
     addTask,
     updateTask,
     deleteTask,

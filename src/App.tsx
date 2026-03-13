@@ -11,6 +11,7 @@ import { DelegationsView } from './components/DelegationsView';
 import { FrameworksLibrary } from './components/FrameworksLibrary';
 import { UpdatesView } from './components/UpdatesView';
 import { FocusView } from './components/FocusView';
+import { BrainDumpView } from './components/BrainDumpView';
 import { useAppStore } from './store';
 import type { View, Task, QuadrantId } from './types';
 
@@ -69,6 +70,7 @@ export default function App() {
     inProgress: store.tasks.filter(t => t.column === 'in-progress').length,
     delegationAlerts,
     pendingUpdates,
+    dumpInbox: store.dumpItems.filter(d => d.status === 'inbox').length,
   };
 
   return (
@@ -125,6 +127,17 @@ export default function App() {
             onAdd={store.addTeamMember}
             onUpdate={store.updateTeamMember}
             onDelete={store.deleteTeamMember}
+          />
+        )}
+        {view === 'dump' && (
+          <BrainDumpView
+            items={store.dumpItems}
+            onAdd={store.addDumpItem}
+            onUpdate={store.updateDumpItem}
+            onDelete={store.deleteDumpItem}
+            onSetStatus={store.setDumpStatus}
+            onConvertToTask={store.convertDumpToTask}
+            onClearInbox={store.clearDumpInbox}
           />
         )}
         {view === 'frameworks' && <FrameworksLibrary />}

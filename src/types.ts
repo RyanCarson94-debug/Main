@@ -1,7 +1,23 @@
 export type QuadrantId = 'do-now' | 'schedule' | 'delegate' | 'drop';
 export type KanbanColumnId = 'backlog' | 'in-progress' | 'done';
 export type Priority = 'critical' | 'high' | 'medium' | 'low';
-export type View = 'kanban' | 'eisenhower' | 'okrs' | 'swot' | 'first-team' | 'delegations' | 'frameworks' | 'updates' | 'focus';
+export type View = 'kanban' | 'eisenhower' | 'okrs' | 'swot' | 'first-team' | 'delegations' | 'frameworks' | 'updates' | 'focus' | 'dump';
+
+export type DumpItemStatus = 'inbox' | 'task' | 'idea' | 'archived';
+
+export interface DumpItem {
+  id: string;
+  content: string;
+  createdAt: string;
+  status: DumpItemStatus;
+  convertedTaskId?: string; // set when converted to a task
+  aiSuggestion?: {
+    type: 'task' | 'idea' | 'discard';
+    quadrant?: QuadrantId;
+    priority?: Priority;
+    reasoning: string;
+  };
+}
 
 export interface FocusStep {
   id: string;
