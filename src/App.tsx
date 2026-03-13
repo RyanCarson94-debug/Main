@@ -13,6 +13,7 @@ import { UpdatesView } from './components/UpdatesView';
 import { FocusView } from './components/FocusView';
 import { BrainDumpView } from './components/BrainDumpView';
 import { LoginView } from './components/LoginView';
+import { DashboardView } from './components/DashboardView';
 import { useAppStore } from './store';
 import type { View, Task, QuadrantId } from './types';
 
@@ -20,7 +21,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return sessionStorage.getItem('adhd-leader-session') === '1';
   });
-  const [view, setView] = useState<View>('kanban');
+  const [view, setView] = useState<View>('dashboard');
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [defaultQuadrant, setDefaultQuadrant] = useState<QuadrantId>('do-now');
@@ -86,6 +87,18 @@ export default function App() {
       <Sidebar view={view} onViewChange={setView} taskCounts={taskCounts} />
 
       <main className="flex-1 overflow-hidden p-6">
+        {view === 'dashboard' && (
+          <DashboardView
+            tasks={store.tasks}
+            okrs={store.okrs}
+            updates={store.updates}
+            teamMembers={store.teamMembers}
+            dumpInboxCount={taskCounts.dumpInbox}
+            delegationAlerts={taskCounts.delegationAlerts}
+            onViewChange={setView}
+            onEditTask={openEditTask}
+          />
+        )}
         {view === 'kanban' && (
           <KanbanBoard
             tasks={store.tasks}

@@ -1,0 +1,456 @@
+import {
+  Zap,
+  Clock,
+  CheckCircle2,
+  AlertTriangle,
+  BrainCircuit,
+  Target,
+  Bell,
+  UserCheck,
+  TrendingUp,
+  ChevronRight,
+} from 'lucide-react';
+import type { Task, OKR, Update, FirstTeamMember } from '../types';
+import { QUADRANTS, PRIORITY_CONFIG } from '../types';
+import type { View } from '../types';
+
+interface DashboardViewProps {
+  tasks: Task[];
+  okrs: OKR[];
+  updates: Update[];
+  teamMembers: FirstTeamMember[];
+  dumpInboxCount: number;
+  delegationAlerts: number;
+  onViewChange: (view: View) => void;
+  onEditTask: (task: Task) => void;
+}
+
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+
+function StatCard({
+  label,
+  count,
+  sub,
+  colorClass,
+  icon,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  sub?: string;
+  colorClass: string;
+  icon: React.ReactNode;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`text-left p-4 rounded-2xl border transition-all hover:scale-[1.02] active:scale-[0.99] group ${colorClass}`}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <span className="opacity-70">{icon}</span>
+        {onClick && (
+          <ChevronRight size={13} className="opacity-0 group-hover:opacity-50 transition-opacity" />
+        )}
+      </div>
+      <p className="text-3xl font-black tabular-nums">{count}</p>
+      <p className="text-xs font-bold uppercase tracking-widest opacity-70 mt-0.5">{label}</p>
+      {sub && <p className="text-[11px] opacity-50 mt-0.5">{sub}</p>}
+    </button>
+  );
+}
+
+// ─── Section Header ───────────────────────────────────────────────────────────
+
+function SectionHeader({
+  icon,
+  title,
+  count,
+  onNavigate,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  count?: number;
+  onNavigate?: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center gap-1.5">
+        {icon}
+        <span className="text-xs font-black uppercase tracking-widest text-gray-400">{title}</span>
+        {count !== undefined && count > 0 && (
+          <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-white/5 text-gray-500">
+            {count}
+          </span>
+        )}
+      </div>
+      {onNavigate && (
+        <button
+          onClick={onNavigate}
+          className="text-[11px] text-gray-600 hover:text-purple-400 flex items-center gap-0.5 transition-colors"
+        >
+          See all <ChevronRight size={11} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Dashboard Task Card ──────────────────────────────────────────────────────
+
+function DashTaskCard({ task, onClick }: { task: Task; onClick: () => void }) {
+  const q = QUADRANTS[task.quadrant];
+  const p = PRIORITY_CONFIG[task.priority];
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left px-3.5 py-2.5 rounded-xl bg-[#16103A] border border-[#2D1F5E] hover:border-purple-500/40 hover:bg-[#1a1540] transition-all group"
+    >
+      <div className="flex items-center gap-2.5">
+        <span className={`w-2 h-2 rounded-full ${p.dot} shrink-0`} />
+        <p className="flex-1 text-sm text-gray-200 truncate group-hover:text-white transition-colors">
+          {task.title}
+        </p>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {task.column === 'in-progress' && (
+            <span className="text-[10px] font-bold text-purple-400 px-1.5 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/20">
+              active
+            </span>
+          )}
+          {task.dueDate && (
+            <span className="text-[10px] text-gray-600">
+              {new Date(task.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+            </span>
+          )}
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${q.bg} ${q.color} border ${q.border}`}>
+            {q.shortLabel}
+          </span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// ─── Alert Row ────────────────────────────────────────────────────────────────
+
+const ALERT_COLORS = {
+  amber: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+  blue: 'bg-blue-500/10 border-blue-500/20 text-blue-400',
+  purple: 'bg-purple-500/10 border-purple-500/20 text-purple-400',
+};
+
+function AlertRow({
+  label,
+  color,
+  onClick,
+}: {
+  label: string;
+  color: keyof typeof ALERT_COLORS;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all hover:opacity-90 ${ALERT_COLORS[color]}`}
+    >
+      <span>{label}</span>
+      <ChevronRight size={13} className="opacity-60" />
+    </button>
+  );
+}
+
+// ─── Quick Nav Tile ───────────────────────────────────────────────────────────
+
+function QuickNavTile({
+  icon,
+  label,
+  badge,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  badge?: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="relative flex flex-col items-start gap-2 p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.07] hover:border-purple-500/20 transition-all text-left"
+    >
+      <span className="text-gray-500">{icon}</span>
+      <span className="text-xs font-semibold text-gray-400">{label}</span>
+      {badge !== undefined && badge > 0 && (
+        <span className="absolute top-2 right-2 text-[10px] font-black px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+          {badge}
+        </span>
+      )}
+    </button>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export function DashboardView({
+  tasks,
+  okrs,
+  updates,
+  dumpInboxCount,
+  delegationAlerts,
+  onViewChange,
+  onEditTask,
+}: DashboardViewProps) {
+  const now = new Date();
+  const hour = now.getHours();
+  const greeting =
+    hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const dateStr = now.toLocaleDateString('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+
+  const doNowTasks = tasks.filter(t => t.quadrant === 'do-now' && t.column !== 'done');
+  const inProgressTasks = tasks.filter(t => t.column === 'in-progress');
+
+  const weekStart = new Date();
+  weekStart.setDate(now.getDate() - now.getDay());
+  weekStart.setHours(0, 0, 0, 0);
+  const doneThisWeek = tasks.filter(
+    t => t.column === 'done' && t.completedAt && new Date(t.completedAt) >= weekStart
+  ).length;
+
+  const pendingUpdatesCount = updates.reduce((sum, u) => {
+    return sum + (u.recipientIds.some(id => !u.discussedWith.includes(id)) ? 1 : 0);
+  }, 0);
+
+  const totalAlerts = delegationAlerts + pendingUpdatesCount + dumpInboxCount;
+
+  const okrSnapshot = okrs.slice(0, 3).map(okr => ({
+    ...okr,
+    avgProgress:
+      okr.keyResults.length > 0
+        ? Math.round(
+            okr.keyResults.reduce((s, kr) => s + kr.progress, 0) / okr.keyResults.length
+          )
+        : 0,
+  }));
+
+  return (
+    <div className="h-full overflow-y-auto space-y-6 pb-4">
+      {/* ── Header ── */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-2xl font-black text-white">{greeting}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{dateStr}</p>
+        </div>
+        {doneThisWeek > 0 && (
+          <button
+            onClick={() => onViewChange('kanban')}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/15 transition-colors"
+          >
+            <CheckCircle2 size={13} className="text-emerald-400" />
+            <span className="text-xs font-bold text-emerald-400">
+              {doneThisWeek} done this week
+            </span>
+          </button>
+        )}
+      </div>
+
+      {/* ── Stat Cards ── */}
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard
+          label="Do Now"
+          count={doNowTasks.length}
+          sub="urgent tasks"
+          colorClass="bg-red-500/10 border-red-500/20 text-red-400"
+          icon={<Zap size={16} />}
+          onClick={() => onViewChange('eisenhower')}
+        />
+        <StatCard
+          label="In Progress"
+          count={inProgressTasks.length}
+          sub="active tasks"
+          colorClass="bg-purple-500/10 border-purple-500/20 text-purple-400"
+          icon={<Clock size={16} />}
+          onClick={() => onViewChange('kanban')}
+        />
+        <StatCard
+          label="Done This Week"
+          count={doneThisWeek}
+          sub={doneThisWeek === 0 ? 'none yet — let\'s go' : 'great work'}
+          colorClass="bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+          icon={<CheckCircle2 size={16} />}
+        />
+      </div>
+
+      {/* ── Main Grid ── */}
+      <div className="grid grid-cols-5 gap-5">
+        {/* Left column: tasks */}
+        <div className="col-span-3 space-y-5">
+          {/* Do Now */}
+          <section>
+            <SectionHeader
+              icon={<Zap size={13} className="text-red-400" />}
+              title="Do Now"
+              count={doNowTasks.length}
+              onNavigate={() => onViewChange('eisenhower')}
+            />
+            {doNowTasks.length === 0 ? (
+              <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                <CheckCircle2 size={14} className="text-emerald-500" />
+                <p className="text-sm text-emerald-600 font-medium">
+                  No urgent tasks — you're clear
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {doNowTasks.slice(0, 5).map(task => (
+                  <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} />
+                ))}
+                {doNowTasks.length > 5 && (
+                  <button
+                    onClick={() => onViewChange('eisenhower')}
+                    className="w-full text-center text-xs text-gray-600 hover:text-purple-400 py-1.5 transition-colors"
+                  >
+                    +{doNowTasks.length - 5} more →
+                  </button>
+                )}
+              </div>
+            )}
+          </section>
+
+          {/* In Progress */}
+          <section>
+            <SectionHeader
+              icon={<Clock size={13} className="text-purple-400" />}
+              title="In Progress"
+              count={inProgressTasks.length}
+              onNavigate={() => onViewChange('kanban')}
+            />
+            {inProgressTasks.length === 0 ? (
+              <div className="px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5">
+                <p className="text-sm text-gray-600">Nothing active — pick a task to start</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {inProgressTasks.slice(0, 4).map(task => (
+                  <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} />
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* Right column: alerts + OKRs + quick nav */}
+        <div className="col-span-2 space-y-5">
+          {/* Needs Attention */}
+          {totalAlerts > 0 && (
+            <section>
+              <SectionHeader
+                icon={<AlertTriangle size={13} className="text-amber-400" />}
+                title="Needs Attention"
+              />
+              <div className="space-y-1.5">
+                {delegationAlerts > 0 && (
+                  <AlertRow
+                    label={`${delegationAlerts} delegation follow-up${delegationAlerts > 1 ? 's' : ''} overdue`}
+                    color="amber"
+                    onClick={() => onViewChange('delegations')}
+                  />
+                )}
+                {pendingUpdatesCount > 0 && (
+                  <AlertRow
+                    label={`${pendingUpdatesCount} pending 1:1 briefing${pendingUpdatesCount > 1 ? 's' : ''}`}
+                    color="blue"
+                    onClick={() => onViewChange('updates')}
+                  />
+                )}
+                {dumpInboxCount > 0 && (
+                  <AlertRow
+                    label={`${dumpInboxCount} item${dumpInboxCount > 1 ? 's' : ''} in brain dump`}
+                    color="purple"
+                    onClick={() => onViewChange('dump')}
+                  />
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* OKR Snapshot */}
+          {okrSnapshot.length > 0 && (
+            <section>
+              <SectionHeader
+                icon={<Target size={13} className="text-pink-400" />}
+                title="OKR Snapshot"
+                onNavigate={() => onViewChange('okrs')}
+              />
+              <div className="space-y-2">
+                {okrSnapshot.map(okr => (
+                  <button
+                    key={okr.id}
+                    onClick={() => onViewChange('okrs')}
+                    className="w-full text-left p-3 rounded-xl bg-[#16103A] border border-[#2D1F5E] hover:border-purple-500/30 transition-all"
+                  >
+                    <p className="text-xs font-semibold text-gray-300 truncate mb-2">
+                      {okr.objective}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all"
+                          style={{ width: `${okr.avgProgress}%` }}
+                        />
+                      </div>
+                      <span className="text-[11px] font-black text-purple-400 shrink-0 tabular-nums">
+                        {okr.avgProgress}%
+                      </span>
+                    </div>
+                    {okr.keyResults.length > 0 && (
+                      <p className="text-[10px] text-gray-600 mt-1.5">
+                        {okr.keyResults.length} key result{okr.keyResults.length > 1 ? 's' : ''}
+                      </p>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Quick Access */}
+          <section>
+            <SectionHeader
+              icon={<TrendingUp size={13} className="text-gray-500" />}
+              title="Quick Access"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <QuickNavTile
+                icon={<BrainCircuit size={15} />}
+                label="Brain Dump"
+                badge={dumpInboxCount || undefined}
+                onClick={() => onViewChange('dump')}
+              />
+              <QuickNavTile
+                icon={<Zap size={15} />}
+                label="Focus Mode"
+                onClick={() => onViewChange('focus')}
+              />
+              <QuickNavTile
+                icon={<UserCheck size={15} />}
+                label="Delegations"
+                badge={delegationAlerts || undefined}
+                onClick={() => onViewChange('delegations')}
+              />
+              <QuickNavTile
+                icon={<Bell size={15} />}
+                label="1:1 Briefings"
+                badge={pendingUpdatesCount || undefined}
+                onClick={() => onViewChange('updates')}
+              />
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
