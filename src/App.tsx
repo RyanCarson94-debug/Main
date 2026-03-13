@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { KanbanBoard } from './components/KanbanBoard';
 import { EisenhowerMatrix } from './components/EisenhowerMatrix';
@@ -14,6 +14,10 @@ import { FocusView } from './components/FocusView';
 import { BrainDumpView } from './components/BrainDumpView';
 import { LoginView } from './components/LoginView';
 import { DashboardView } from './components/DashboardView';
+import { NorthStarView } from './components/NorthStarView';
+import { DecisionLogView } from './components/DecisionLogView';
+import { WeeklyReviewView } from './components/WeeklyReviewView';
+import { QuickCapture, QuickCaptureButton } from './components/QuickCapture';
 import { useAppStore } from './store';
 import type { View, Task, QuadrantId } from './types';
 
@@ -26,8 +30,23 @@ export default function App() {
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [defaultQuadrant, setDefaultQuadrant] = useState<QuadrantId>('do-now');
   const [delegatingTask, setDelegatingTask] = useState<Task | null>(null);
+  const [showQuickCapture, setShowQuickCapture] = useState(false);
 
   const store = useAppStore();
+
+  // Global keyboard shortcut: N = quick capture
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') return;
+      if (e.key === 'n' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        setShowQuickCapture(true);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isLoggedIn]);
 
   const openAddTask = (quadrant?: QuadrantId) => {
     setEditTask(null);
@@ -57,7 +76,11 @@ export default function App() {
     store.markDelegated(delegatingTask.id, delegatedTo, followUpDate, emailDraft);
   };
 
-  // Delegation alerts: overdue or due-today follow-ups
+  const handleLogout = () => {
+    sessionStorage.removeItem('adhd-leader-session');
+    setIsLoggedIn(false);
+  };
+
   const delegationAlerts = store.tasks.filter(t => {
     if (!t.delegatedTo || t.followUpDone || !t.followUpDate) return false;
     const followUp = new Date(t.followUpDate);
@@ -70,12 +93,16 @@ export default function App() {
     return sum + (hasPending ? 1 : 0);
   }, 0);
 
+  const today = new Date().toISOString().split('T')[0];
+  const overdueCommitments = store.commitments.filter(c => !c.done && c.dueDate && c.dueDate < today).length;
+
   const taskCounts = {
-    doNow: store.tasks.filter(t => t.quadrant === 'do-now' && t.column !== 'done').length,
-    inProgress: store.tasks.filter(t => t.column === 'in-progress').length,
+    doNow:              store.tasks.filter(t => t.quadrant === 'do-now' && t.column !== 'done').length,
+    inProgress:         store.tasks.filter(t => t.column === 'in-progress').length,
     delegationAlerts,
     pendingUpdates,
-    dumpInbox: store.dumpItems.filter(d => d.status === 'inbox').length,
+    dumpInbox:          store.dumpItems.filter(d => d.status === 'inbox').length,
+    overdueCommitments,
   };
 
   if (!isLoggedIn) {
@@ -84,7 +111,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#0F0A1E]">
-      <Sidebar view={view} onViewChange={setView} taskCounts={taskCounts} />
+      <Sidebar view={view} onViewChange={setView} onLogout={handleLogout} taskCounts={taskCounts} />
 
       <main className="flex-1 overflow-hidden p-6">
         {view === 'dashboard' && (
@@ -92,7 +119,6 @@ export default function App() {
             tasks={store.tasks}
             okrs={store.okrs}
             updates={store.updates}
-            teamMembers={store.teamMembers}
             dumpInboxCount={taskCounts.dumpInbox}
             delegationAlerts={taskCounts.delegationAlerts}
             onViewChange={setView}
@@ -188,7 +214,39 @@ export default function App() {
             onMarkAllDiscussed={store.markAllDiscussed}
           />
         )}
+        {view === 'north-star' && (
+          <NorthStarView
+            northStar={store.northStar}
+            onSave={store.saveNorthStar}
+          />
+        )}
+        {view === 'decision-log' && (
+          <DecisionLogView
+            decisions={store.decisions}
+            commitments={store.commitments}
+            onAddDecision={store.addDecision}
+            onUpdateDecision={store.updateDecision}
+            onDeleteDecision={store.deleteDecision}
+            onAddCommitment={store.addCommitment}
+            onToggleCommitment={store.toggleCommitment}
+            onDeleteCommitment={store.deleteCommitment}
+          />
+        )}
+        {view === 'weekly-review' && (
+          <WeeklyReviewView
+            reviews={store.weeklyReviews}
+            onSave={store.saveWeeklyReview}
+          />
+        )}
       </main>
+
+      {/* Global overlays */}
+      <QuickCaptureButton onClick={() => setShowQuickCapture(true)} />
+      <QuickCapture
+        open={showQuickCapture}
+        onClose={() => setShowQuickCapture(false)}
+        onCapture={text => { store.addDumpItem(text); }}
+      />
 
       {showTaskModal && (
         <TaskModal

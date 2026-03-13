@@ -1,16 +1,37 @@
 export type QuadrantId = 'do-now' | 'schedule' | 'delegate' | 'drop';
 export type KanbanColumnId = 'backlog' | 'in-progress' | 'done';
 export type Priority = 'critical' | 'high' | 'medium' | 'low';
-export type View = 'dashboard' | 'kanban' | 'eisenhower' | 'okrs' | 'swot' | 'first-team' | 'delegations' | 'frameworks' | 'updates' | 'focus' | 'dump';
+export type EnergyLevel = 'deep-work' | 'quick-win' | 'admin' | 'creative';
+export type RecurrenceType = 'daily' | 'weekdays' | 'weekly' | 'monthly';
+export type View =
+  | 'dashboard'
+  | 'kanban'
+  | 'eisenhower'
+  | 'okrs'
+  | 'swot'
+  | 'first-team'
+  | 'delegations'
+  | 'frameworks'
+  | 'updates'
+  | 'focus'
+  | 'dump'
+  | 'north-star'
+  | 'decision-log'
+  | 'weekly-review';
 
 export type DumpItemStatus = 'inbox' | 'task' | 'idea' | 'archived';
+
+export interface RecurrenceRule {
+  type: RecurrenceType;
+  endDate?: string;
+}
 
 export interface DumpItem {
   id: string;
   content: string;
   createdAt: string;
   status: DumpItemStatus;
-  convertedTaskId?: string; // set when converted to a task
+  convertedTaskId?: string;
   aiSuggestion?: {
     type: 'task' | 'idea' | 'discard';
     quadrant?: QuadrantId;
@@ -47,7 +68,7 @@ export interface Update {
   type: UpdateType;
   createdAt: string;
   recipientIds: string[];
-  discussedWith: string[]; // person IDs who have been told
+  discussedWith: string[];
 }
 
 export interface Task {
@@ -57,11 +78,13 @@ export interface Task {
   quadrant: QuadrantId;
   column: KanbanColumnId;
   priority: Priority;
+  energy?: EnergyLevel;
   dueDate?: string;
   tags: string[];
   commitmentNote?: string;
   createdAt: string;
   completedAt?: string;
+  recurrence?: RecurrenceRule;
   // Delegation tracking
   delegatedTo?: string;
   delegatedAt?: string;
@@ -80,7 +103,7 @@ export interface OKR {
 export interface KeyResult {
   id: string;
   description: string;
-  progress: number; // 0-100
+  progress: number;
   target: string;
   current: string;
 }
@@ -97,6 +120,46 @@ export interface FirstTeamMember {
   role: string;
   commitment?: string;
   linkedTaskIds?: string[];
+}
+
+export interface Decision {
+  id: string;
+  title: string;
+  context: string;
+  decision: string;
+  alternatives?: string;
+  outcome?: string;
+  people?: string;
+  madeAt: string;
+  reviewAt?: string;
+}
+
+export interface Commitment {
+  id: string;
+  what: string;
+  to: string;
+  dueDate?: string;
+  done: boolean;
+  createdAt: string;
+}
+
+export interface WeeklyReview {
+  id: string;
+  weekOf: string;
+  wins: string;
+  slipped: string;
+  commitmentsMade: string;
+  nextWeekFocus: string;
+  energyRating: number;
+  notes?: string;
+  completedAt: string;
+}
+
+export interface NorthStar {
+  statement: string;
+  antiGoals: string[];
+  pillars: string[];
+  updatedAt: string;
 }
 
 export const QUADRANTS: Record<QuadrantId, { label: string; shortLabel: string; color: string; bg: string; border: string; description: string }> = {
@@ -145,4 +208,11 @@ export const PRIORITY_CONFIG: Record<Priority, { label: string; color: string; d
   high: { label: 'High', color: 'text-orange-400', dot: 'bg-orange-500' },
   medium: { label: 'Medium', color: 'text-amber-400', dot: 'bg-amber-500' },
   low: { label: 'Low', color: 'text-blue-400', dot: 'bg-blue-500' },
+};
+
+export const ENERGY_CONFIG: Record<EnergyLevel, { label: string; emoji: string; color: string; bg: string; border: string }> = {
+  'deep-work': { label: 'Deep Work', emoji: '🧠', color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/30' },
+  'quick-win': { label: 'Quick Win', emoji: '⚡', color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/30' },
+  'admin':     { label: 'Admin',     emoji: '📋', color: 'text-gray-400',   bg: 'bg-gray-500/10',   border: 'border-gray-500/30'   },
+  'creative':  { label: 'Creative',  emoji: '🎨', color: 'text-pink-400',   bg: 'bg-pink-500/10',   border: 'border-pink-500/30'   },
 };

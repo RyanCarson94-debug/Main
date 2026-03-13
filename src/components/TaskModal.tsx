@@ -1,7 +1,15 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Tag } from 'lucide-react';
-import type { Task, QuadrantId, KanbanColumnId, Priority } from '../types';
-import { QUADRANTS, PRIORITY_CONFIG } from '../types';
+import { X, Plus, Tag, RefreshCw } from 'lucide-react';
+import type { Task, QuadrantId, KanbanColumnId, Priority, EnergyLevel, RecurrenceType } from '../types';
+import { QUADRANTS, PRIORITY_CONFIG, ENERGY_CONFIG } from '../types';
+
+const RECURRENCE_OPTIONS: { value: RecurrenceType | 'none'; label: string }[] = [
+  { value: 'none',     label: 'No repeat' },
+  { value: 'daily',    label: 'Daily' },
+  { value: 'weekdays', label: 'Weekdays' },
+  { value: 'weekly',   label: 'Weekly' },
+  { value: 'monthly',  label: 'Monthly' },
+];
 
 interface TaskModalProps {
   task?: Task | null;
@@ -216,17 +224,62 @@ export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
             </div>
           </div>
 
-          {/* Due Date */}
+          {/* Energy Level */}
           <div>
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-              Due Date
+              Energy Required
             </label>
-            <input
-              type="date"
-              value={form.dueDate ?? ''}
-              onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))}
-              className="w-full bg-black/30 border border-[#2D1F5E] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500 transition-colors [color-scheme:dark]"
-            />
+            <div className="grid grid-cols-4 gap-1.5">
+              {(Object.keys(ENERGY_CONFIG) as EnergyLevel[]).map(eId => {
+                const e = ENERGY_CONFIG[eId];
+                const selected = form.energy === eId;
+                return (
+                  <button
+                    key={eId}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, energy: eId }))}
+                    className={`flex flex-col items-center gap-1 py-2 px-1 rounded-lg border text-xs font-semibold transition-all ${
+                      selected ? `${e.bg} ${e.border} ${e.color}` : 'border-[#2D1F5E] text-gray-500 hover:border-gray-500'
+                    }`}
+                  >
+                    <span>{e.emoji}</span>
+                    <span className="text-[10px] leading-none">{e.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Due Date + Recurrence row */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                Due Date
+              </label>
+              <input
+                type="date"
+                value={form.dueDate ?? ''}
+                onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))}
+                className="w-full bg-black/30 border border-[#2D1F5E] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500 transition-colors [color-scheme:dark]"
+              />
+            </div>
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                <RefreshCw size={11} /> Repeats
+              </label>
+              <select
+                value={form.recurrence?.type ?? 'none'}
+                onChange={e => {
+                  const val = e.target.value as RecurrenceType | 'none';
+                  setForm(f => ({ ...f, recurrence: val === 'none' ? undefined : { type: val } }));
+                }}
+                className="w-full bg-black/30 border border-[#2D1F5E] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500 transition-colors"
+              >
+                {RECURRENCE_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Actions */}

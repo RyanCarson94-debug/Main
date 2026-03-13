@@ -116,6 +116,59 @@ Respond ONLY with a JSON array, no explanation, no markdown. Example format:
   }
 }
 
+export async function recommendNextTask(
+  tasks: Task[],
+  onDone: (result: { taskId: string; task: string; reason: string }) => void,
+  onError: (err: string) => void,
+): Promise<void> {
+  const now = new Date();
+  const hour = now.getHours();
+  const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+  const todayStr = now.toISOString().split('T')[0];
+
+  const overdue  = tasks.filter(t => t.column !== 'done' && t.dueDate && t.dueDate < todayStr);
+  const dueToday = tasks.filter(t => t.column !== 'done' && t.dueDate === todayStr);
+  const active   = tasks.filter(t => t.column === 'in-progress');
+  const doNow    = tasks.filter(t => t.quadrant === 'do-now' && t.column !== 'done');
+
+  const format = (label: string, list: Task[]) =>
+    list.map(t => `${label}: [${t.id}] "${t.title}" (${t.priority}${t.energy ? ', ' + t.energy : ''})`).join('\n');
+
+  const taskList = [
+    format('OVERDUE', overdue),
+    format('DUE TODAY', dueToday),
+    format('IN PROGRESS', active.filter(t => !overdue.includes(t) && !dueToday.includes(t))),
+    format('DO NOW', doNow.filter(t => !overdue.includes(t) && !dueToday.includes(t) && !active.includes(t))),
+  ].filter(Boolean).join('\n').slice(0, 1500);
+
+  const prompt = `You are an ADHD leadership coach. It is ${timeOfDay}. Pick the single most important task to work on right now.
+
+Tasks:
+${taskList || 'No active tasks.'}
+
+Respond ONLY with JSON: {"taskId": "...", "task": "exact task title", "reason": "one direct sentence explaining why this task right now"}`;
+
+  try {
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 256,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    const raw = response.content[0].type === 'text' ? response.content[0].text : '';
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('No JSON in response');
+    onDone(JSON.parse(match[0]));
+  } catch (err) {
+    if (err instanceof Anthropic.AuthenticationError) {
+      onError('Invalid API key.');
+    } else if (err instanceof Anthropic.RateLimitError) {
+      onError('Rate limited. Try again in a moment.');
+    } else {
+      onError('Could not get recommendation.');
+    }
+  }
+}
+
 export async function streamDelegationEmail(
   task: Task,
   delegatee: string,

@@ -1,29 +1,79 @@
 import { useState, useEffect } from 'react';
-import type { Task, OKR, SwotItem, FirstTeamMember, KanbanColumnId, QuadrantId, Update, UpdatePerson, TaskFocus, FocusStep, DumpItem, DumpItemStatus } from './types';
+import type {
+  Task, OKR, SwotItem, FirstTeamMember, KanbanColumnId, QuadrantId,
+  Update, UpdatePerson, TaskFocus, FocusStep, DumpItem, DumpItemStatus,
+  Decision, Commitment, WeeklyReview, NorthStar, RecurrenceRule,
+} from './types';
 
 const STORAGE_KEYS = {
-  tasks: 'adhd-leader-tasks',
-  okrs: 'adhd-leader-okrs',
-  swot: 'adhd-leader-swot',
-  team: 'adhd-leader-team',
-  updatePeople: 'adhd-leader-update-people',
-  updates: 'adhd-leader-updates',
-  focusMap: 'adhd-leader-focus-map',
-  dump: 'adhd-leader-dump',
+  tasks:         'adhd-leader-tasks',
+  okrs:          'adhd-leader-okrs',
+  swot:          'adhd-leader-swot',
+  team:          'adhd-leader-team',
+  updatePeople:  'adhd-leader-update-people',
+  updates:       'adhd-leader-updates',
+  focusMap:      'adhd-leader-focus-map',
+  dump:          'adhd-leader-dump',
+  decisions:     'adhd-leader-decisions',
+  commitments:   'adhd-leader-commitments',
+  weeklyReviews: 'adhd-leader-weekly-reviews',
+  northStar:     'adhd-leader-north-star',
 };
+
+// Dual-write: primary key + backup key for resilience
+function saveToStorage<T>(key: string, value: T): void {
+  const json = JSON.stringify(value);
+  localStorage.setItem(key, json);
+  localStorage.setItem(`${key}-bak`, json);
+}
 
 function loadFromStorage<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
+    if (raw) return JSON.parse(raw) as T;
+  } catch { /* fall through to backup */ }
+  try {
+    const bak = localStorage.getItem(`${key}-bak`);
+    if (bak) return JSON.parse(bak) as T;
+  } catch { /* fall through to fallback */ }
+  return fallback;
 }
 
-function saveToStorage<T>(key: string, value: T): void {
-  localStorage.setItem(key, JSON.stringify(value));
+// ─── Recurrence helpers ───────────────────────────────────────────────────────
+
+function getNextDueDate(currentDue: string, rule: RecurrenceRule): string | null {
+  const date = new Date(currentDue);
+  switch (rule.type) {
+    case 'daily':
+      date.setDate(date.getDate() + 1);
+      break;
+    case 'weekdays':
+      date.setDate(date.getDate() + 1);
+      while (date.getDay() === 0 || date.getDay() === 6)
+        date.setDate(date.getDate() + 1);
+      break;
+    case 'weekly':
+      date.setDate(date.getDate() + 7);
+      break;
+    case 'monthly':
+      date.setMonth(date.getMonth() + 1);
+      break;
+  }
+  if (rule.endDate && date > new Date(rule.endDate)) return null;
+  return date.toISOString().split('T')[0];
 }
+
+// ─── Weekly review helper ─────────────────────────────────────────────────────
+
+export function getWeekStart(date: Date): string {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  return d.toISOString().split('T')[0];
+}
+
+// ─── Sample data ──────────────────────────────────────────────────────────────
 
 const SAMPLE_TASKS: Task[] = [
   {
@@ -33,6 +83,7 @@ const SAMPLE_TASKS: Task[] = [
     quadrant: 'do-now',
     column: 'in-progress',
     priority: 'critical',
+    energy: 'deep-work',
     tags: ['strategy', 'leadership'],
     createdAt: new Date().toISOString(),
   },
@@ -42,6 +93,7 @@ const SAMPLE_TASKS: Task[] = [
     quadrant: 'schedule',
     column: 'backlog',
     priority: 'high',
+    energy: 'deep-work',
     tags: ['okrs', 'team'],
     createdAt: new Date().toISOString(),
   },
@@ -51,6 +103,7 @@ const SAMPLE_TASKS: Task[] = [
     quadrant: 'do-now',
     column: 'backlog',
     priority: 'high',
+    energy: 'admin',
     tags: ['team'],
     createdAt: new Date().toISOString(),
   },
@@ -60,6 +113,7 @@ const SAMPLE_TASKS: Task[] = [
     quadrant: 'delegate',
     column: 'backlog',
     priority: 'medium',
+    energy: 'admin',
     tags: ['admin'],
     createdAt: new Date().toISOString(),
   },
@@ -69,52 +123,45 @@ const SAMPLE_TASKS: Task[] = [
     quadrant: 'schedule',
     column: 'backlog',
     priority: 'low',
+    energy: 'quick-win',
     tags: ['growth'],
     createdAt: new Date().toISOString(),
   },
 ];
 
-export function useAppStore() {
-  const [tasks, setTasks] = useState<Task[]>(() =>
-    loadFromStorage(STORAGE_KEYS.tasks, SAMPLE_TASKS)
-  );
-  const [okrs, setOkrs] = useState<OKR[]>(() =>
-    loadFromStorage(STORAGE_KEYS.okrs, [])
-  );
-  const [swotItems, setSwotItems] = useState<SwotItem[]>(() =>
-    loadFromStorage(STORAGE_KEYS.swot, [])
-  );
-  const [teamMembers, setTeamMembers] = useState<FirstTeamMember[]>(() =>
-    loadFromStorage(STORAGE_KEYS.team, [])
-  );
-  const [updatePeople, setUpdatePeople] = useState<UpdatePerson[]>(() =>
-    loadFromStorage(STORAGE_KEYS.updatePeople, [])
-  );
-  const [updates, setUpdates] = useState<Update[]>(() =>
-    loadFromStorage(STORAGE_KEYS.updates, [])
-  );
-  const [focusMap, setFocusMap] = useState<Record<string, TaskFocus>>(() =>
-    loadFromStorage(STORAGE_KEYS.focusMap, {})
-  );
-  const [dumpItems, setDumpItems] = useState<DumpItem[]>(() =>
-    loadFromStorage(STORAGE_KEYS.dump, [])
-  );
+// ─── Store ────────────────────────────────────────────────────────────────────
 
-  useEffect(() => { saveToStorage(STORAGE_KEYS.tasks, tasks); }, [tasks]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.okrs, okrs); }, [okrs]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.swot, swotItems); }, [swotItems]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.team, teamMembers); }, [teamMembers]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.updatePeople, updatePeople); }, [updatePeople]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.updates, updates); }, [updates]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.focusMap, focusMap); }, [focusMap]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.dump, dumpItems); }, [dumpItems]);
+export function useAppStore() {
+  const [tasks,         setTasks]         = useState<Task[]>(() => loadFromStorage(STORAGE_KEYS.tasks, SAMPLE_TASKS));
+  const [okrs,          setOkrs]          = useState<OKR[]>(() => loadFromStorage(STORAGE_KEYS.okrs, []));
+  const [swotItems,     setSwotItems]     = useState<SwotItem[]>(() => loadFromStorage(STORAGE_KEYS.swot, []));
+  const [teamMembers,   setTeamMembers]   = useState<FirstTeamMember[]>(() => loadFromStorage(STORAGE_KEYS.team, []));
+  const [updatePeople,  setUpdatePeople]  = useState<UpdatePerson[]>(() => loadFromStorage(STORAGE_KEYS.updatePeople, []));
+  const [updates,       setUpdates]       = useState<Update[]>(() => loadFromStorage(STORAGE_KEYS.updates, []));
+  const [focusMap,      setFocusMap]      = useState<Record<string, TaskFocus>>(() => loadFromStorage(STORAGE_KEYS.focusMap, {}));
+  const [dumpItems,     setDumpItems]     = useState<DumpItem[]>(() => loadFromStorage(STORAGE_KEYS.dump, []));
+  const [decisions,     setDecisions]     = useState<Decision[]>(() => loadFromStorage(STORAGE_KEYS.decisions, []));
+  const [commitments,   setCommitments]   = useState<Commitment[]>(() => loadFromStorage(STORAGE_KEYS.commitments, []));
+  const [weeklyReviews, setWeeklyReviews] = useState<WeeklyReview[]>(() => loadFromStorage(STORAGE_KEYS.weeklyReviews, []));
+  const [northStar,     setNorthStar]     = useState<NorthStar | null>(() => loadFromStorage<NorthStar | null>(STORAGE_KEYS.northStar, null));
+
+  useEffect(() => { saveToStorage(STORAGE_KEYS.tasks,         tasks);         }, [tasks]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.okrs,          okrs);          }, [okrs]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.swot,          swotItems);     }, [swotItems]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.team,          teamMembers);   }, [teamMembers]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.updatePeople,  updatePeople);  }, [updatePeople]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.updates,       updates);       }, [updates]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.focusMap,      focusMap);      }, [focusMap]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.dump,          dumpItems);     }, [dumpItems]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.decisions,     decisions);     }, [decisions]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.commitments,   commitments);   }, [commitments]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.weeklyReviews, weeklyReviews); }, [weeklyReviews]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.northStar,     northStar);     }, [northStar]);
+
+  // ── Tasks ──────────────────────────────────────────────────────────────────
 
   const addTask = (task: Omit<Task, 'id' | 'createdAt'>) => {
-    const newTask: Task = {
-      ...task,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-    };
+    const newTask: Task = { ...task, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
     setTasks(prev => [newTask, ...prev]);
     return newTask;
   };
@@ -128,34 +175,40 @@ export function useAppStore() {
   };
 
   const moveTaskColumn = (id: string, column: KanbanColumnId) => {
-    setTasks(prev => prev.map(t =>
-      t.id === id
-        ? { ...t, column, completedAt: column === 'done' ? new Date().toISOString() : undefined }
-        : t
-    ));
+    setTasks(prev => {
+      const task = prev.find(t => t.id === id);
+      const updated = prev.map(t =>
+        t.id === id
+          ? { ...t, column, completedAt: column === 'done' ? new Date().toISOString() : undefined }
+          : t
+      );
+      // Auto-spawn next recurring instance when marked done
+      if (column === 'done' && task?.recurrence && task.dueDate) {
+        const nextDue = getNextDueDate(task.dueDate, task.recurrence);
+        if (nextDue) {
+          const next: Task = {
+            ...task,
+            id: crypto.randomUUID(),
+            column: 'backlog',
+            createdAt: new Date().toISOString(),
+            completedAt: undefined,
+            dueDate: nextDue,
+          };
+          return [...updated, next];
+        }
+      }
+      return updated;
+    });
   };
 
   const moveTaskQuadrant = (id: string, quadrant: QuadrantId) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, quadrant } : t));
   };
 
-  const markDelegated = (
-    id: string,
-    delegatedTo: string,
-    followUpDate?: string,
-    emailDraft?: string,
-  ) => {
+  const markDelegated = (id: string, delegatedTo: string, followUpDate?: string, emailDraft?: string) => {
     setTasks(prev => prev.map(t =>
       t.id === id
-        ? {
-            ...t,
-            delegatedTo,
-            delegatedAt: new Date().toISOString(),
-            followUpDate,
-            followUpDone: false,
-            quadrant: 'delegate' as QuadrantId,
-            ...(emailDraft ? { delegationEmailDraft: emailDraft } : {}),
-          }
+        ? { ...t, delegatedTo, delegatedAt: new Date().toISOString(), followUpDate, followUpDone: false, quadrant: 'delegate' as QuadrantId, ...(emailDraft ? { delegationEmailDraft: emailDraft } : {}) }
         : t
     ));
   };
@@ -168,116 +221,87 @@ export function useAppStore() {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, delegationEmailDraft: email } : t));
   };
 
+  // ── OKRs ───────────────────────────────────────────────────────────────────
+
   const addOKR = (okr: Omit<OKR, 'id'>) => {
     setOkrs(prev => [...prev, { ...okr, id: crypto.randomUUID() }]);
   };
-
   const updateOKR = (id: string, updates: Partial<OKR>) => {
     setOkrs(prev => prev.map(o => o.id === id ? { ...o, ...updates } : o));
   };
-
   const deleteOKR = (id: string) => {
     setOkrs(prev => prev.filter(o => o.id !== id));
   };
 
+  // ── SWOT ───────────────────────────────────────────────────────────────────
+
   const addSwotItem = (item: Omit<SwotItem, 'id'>) => {
     setSwotItems(prev => [...prev, { ...item, id: crypto.randomUUID() }]);
   };
-
   const deleteSwotItem = (id: string) => {
     setSwotItems(prev => prev.filter(s => s.id !== id));
   };
 
+  // ── Team ───────────────────────────────────────────────────────────────────
+
   const addTeamMember = (member: Omit<FirstTeamMember, 'id'>) => {
     setTeamMembers(prev => [...prev, { ...member, id: crypto.randomUUID() }]);
   };
-
   const updateTeamMember = (id: string, updates: Partial<FirstTeamMember>) => {
     setTeamMembers(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
   };
-
   const deleteTeamMember = (id: string) => {
     setTeamMembers(prev => prev.filter(m => m.id !== id));
   };
-
   const linkTaskToMember = (memberId: string, taskId: string) => {
     setTeamMembers(prev => prev.map(m =>
-      m.id === memberId
-        ? { ...m, linkedTaskIds: [...new Set([...(m.linkedTaskIds ?? []), taskId])] }
-        : m
+      m.id === memberId ? { ...m, linkedTaskIds: [...new Set([...(m.linkedTaskIds ?? []), taskId])] } : m
     ));
   };
-
   const unlinkTaskFromMember = (memberId: string, taskId: string) => {
     setTeamMembers(prev => prev.map(m =>
-      m.id === memberId
-        ? { ...m, linkedTaskIds: (m.linkedTaskIds ?? []).filter(id => id !== taskId) }
-        : m
+      m.id === memberId ? { ...m, linkedTaskIds: (m.linkedTaskIds ?? []).filter(id => id !== taskId) } : m
     ));
   };
 
+  // ── Brain Dump ─────────────────────────────────────────────────────────────
+
   const addDumpItem = (content: string) => {
-    const item: DumpItem = {
-      id: crypto.randomUUID(),
-      content: content.trim(),
-      createdAt: new Date().toISOString(),
-      status: 'inbox',
-    };
+    const item: DumpItem = { id: crypto.randomUUID(), content: content.trim(), createdAt: new Date().toISOString(), status: 'inbox' };
     setDumpItems(prev => [item, ...prev]);
     return item.id;
   };
-
   const updateDumpItem = (id: string, updates: Partial<DumpItem>) => {
     setDumpItems(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
   };
-
   const deleteDumpItem = (id: string) => {
     setDumpItems(prev => prev.filter(d => d.id !== id));
   };
-
   const setDumpStatus = (id: string, status: DumpItemStatus) => {
     setDumpItems(prev => prev.map(d => d.id === id ? { ...d, status } : d));
   };
-
   const convertDumpToTask = (dumpId: string, taskData: Omit<Task, 'id' | 'createdAt'>) => {
-    const newTask: Task = {
-      ...taskData,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-    };
+    const newTask: Task = { ...taskData, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
     setTasks(prev => [newTask, ...prev]);
-    setDumpItems(prev => prev.map(d =>
-      d.id === dumpId ? { ...d, status: 'task' as DumpItemStatus, convertedTaskId: newTask.id } : d
-    ));
+    setDumpItems(prev => prev.map(d => d.id === dumpId ? { ...d, status: 'task' as DumpItemStatus, convertedTaskId: newTask.id } : d));
     return newTask.id;
   };
-
   const clearDumpInbox = () => {
     setDumpItems(prev => prev.filter(d => d.status !== 'inbox'));
   };
 
-  const setFocusSteps = (taskId: string, steps: FocusStep[]) => {
-    setFocusMap(prev => ({
-      ...prev,
-      [taskId]: { taskId, steps, updatedAt: new Date().toISOString() },
-    }));
-  };
+  // ── Focus ──────────────────────────────────────────────────────────────────
 
+  const setFocusSteps = (taskId: string, steps: FocusStep[]) => {
+    setFocusMap(prev => ({ ...prev, [taskId]: { taskId, steps, updatedAt: new Date().toISOString() } }));
+  };
   const toggleFocusStep = (taskId: string, stepId: string) => {
     setFocusMap(prev => {
       const focus = prev[taskId];
       if (!focus) return prev;
-      return {
-        ...prev,
-        [taskId]: {
-          ...focus,
-          steps: focus.steps.map(s => s.id === stepId ? { ...s, done: !s.done } : s),
-          updatedAt: new Date().toISOString(),
-        },
-      };
+      return { ...prev, [taskId]: { ...focus, steps: focus.steps.map(s => s.id === stepId ? { ...s, done: !s.done } : s), updatedAt: new Date().toISOString() } };
     });
   };
-
   const addFocusStep = (taskId: string, text: string, estimateMinutes?: number) => {
     const newStep: FocusStep = { id: crypto.randomUUID(), text, estimateMinutes, done: false };
     setFocusMap(prev => {
@@ -286,53 +310,32 @@ export function useAppStore() {
       return { ...prev, [taskId]: { taskId, steps, updatedAt: new Date().toISOString() } };
     });
   };
-
   const deleteFocusStep = (taskId: string, stepId: string) => {
     setFocusMap(prev => {
       const focus = prev[taskId];
       if (!focus) return prev;
-      return {
-        ...prev,
-        [taskId]: { ...focus, steps: focus.steps.filter(s => s.id !== stepId), updatedAt: new Date().toISOString() },
-      };
+      return { ...prev, [taskId]: { ...focus, steps: focus.steps.filter(s => s.id !== stepId), updatedAt: new Date().toISOString() } };
     });
+  };
+  const clearFocusSteps = (taskId: string) => {
+    setFocusMap(prev => { const next = { ...prev }; delete next[taskId]; return next; });
   };
 
-  const clearFocusSteps = (taskId: string) => {
-    setFocusMap(prev => {
-      const next = { ...prev };
-      delete next[taskId];
-      return next;
-    });
-  };
+  // ── Updates / 1:1s ─────────────────────────────────────────────────────────
 
   const addUpdatePerson = (person: Omit<UpdatePerson, 'id'>) => {
     setUpdatePeople(prev => [...prev, { ...person, id: crypto.randomUUID() }]);
   };
-
   const deleteUpdatePerson = (id: string) => {
     setUpdatePeople(prev => prev.filter(p => p.id !== id));
-    // Remove person from all updates
-    setUpdates(prev => prev.map(u => ({
-      ...u,
-      recipientIds: u.recipientIds.filter(r => r !== id),
-      discussedWith: u.discussedWith.filter(d => d !== id),
-    })));
+    setUpdates(prev => prev.map(u => ({ ...u, recipientIds: u.recipientIds.filter(r => r !== id), discussedWith: u.discussedWith.filter(d => d !== id) })));
   };
-
   const addUpdate = (update: Omit<Update, 'id' | 'createdAt' | 'discussedWith'>) => {
-    setUpdates(prev => [{
-      ...update,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      discussedWith: [],
-    }, ...prev]);
+    setUpdates(prev => [{ ...update, id: crypto.randomUUID(), createdAt: new Date().toISOString(), discussedWith: [] }, ...prev]);
   };
-
   const deleteUpdate = (id: string) => {
     setUpdates(prev => prev.filter(u => u.id !== id));
   };
-
   const markDiscussed = (updateId: string, personId: string) => {
     setUpdates(prev => prev.map(u =>
       u.id === updateId && !u.discussedWith.includes(personId)
@@ -340,7 +343,6 @@ export function useAppStore() {
         : u
     ));
   };
-
   const markAllDiscussed = (personId: string) => {
     setUpdates(prev => prev.map(u =>
       u.recipientIds.includes(personId) && !u.discussedWith.includes(personId)
@@ -349,49 +351,64 @@ export function useAppStore() {
     ));
   };
 
+  // ── Decisions ──────────────────────────────────────────────────────────────
+
+  const addDecision = (d: Omit<Decision, 'id'>) => {
+    setDecisions(prev => [{ ...d, id: crypto.randomUUID() }, ...prev]);
+  };
+  const updateDecision = (id: string, updates: Partial<Decision>) => {
+    setDecisions(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
+  };
+  const deleteDecision = (id: string) => {
+    setDecisions(prev => prev.filter(d => d.id !== id));
+  };
+
+  // ── Commitments ────────────────────────────────────────────────────────────
+
+  const addCommitment = (c: Omit<Commitment, 'id' | 'createdAt' | 'done'>) => {
+    setCommitments(prev => [{ ...c, id: crypto.randomUUID(), createdAt: new Date().toISOString(), done: false }, ...prev]);
+  };
+  const toggleCommitment = (id: string) => {
+    setCommitments(prev => prev.map(c => c.id === id ? { ...c, done: !c.done } : c));
+  };
+  const deleteCommitment = (id: string) => {
+    setCommitments(prev => prev.filter(c => c.id !== id));
+  };
+
+  // ── Weekly Review ──────────────────────────────────────────────────────────
+
+  const saveWeeklyReview = (review: Omit<WeeklyReview, 'id'>) => {
+    setWeeklyReviews(prev => {
+      const existing = prev.findIndex(r => r.weekOf === review.weekOf);
+      if (existing >= 0) {
+        const updated = [...prev];
+        updated[existing] = { ...updated[existing], ...review };
+        return updated;
+      }
+      return [{ ...review, id: crypto.randomUUID() }, ...prev];
+    });
+  };
+
+  // ── North Star ─────────────────────────────────────────────────────────────
+
+  const saveNorthStar = (ns: NorthStar) => {
+    setNorthStar(ns);
+  };
+
   return {
-    tasks,
-    okrs,
-    swotItems,
-    teamMembers,
-    updatePeople,
-    updates,
-    focusMap,
-    dumpItems,
-    addDumpItem,
-    updateDumpItem,
-    deleteDumpItem,
-    setDumpStatus,
-    convertDumpToTask,
-    clearDumpInbox,
-    addTask,
-    updateTask,
-    deleteTask,
-    moveTaskColumn,
-    moveTaskQuadrant,
-    markDelegated,
-    markFollowUpDone,
-    saveDelegationEmail,
-    addOKR,
-    updateOKR,
-    deleteOKR,
-    addSwotItem,
-    deleteSwotItem,
-    addTeamMember,
-    updateTeamMember,
-    deleteTeamMember,
-    linkTaskToMember,
-    unlinkTaskFromMember,
-    setFocusSteps,
-    toggleFocusStep,
-    addFocusStep,
-    deleteFocusStep,
-    clearFocusSteps,
-    addUpdatePerson,
-    deleteUpdatePerson,
-    addUpdate,
-    deleteUpdate,
-    markDiscussed,
-    markAllDiscussed,
+    tasks, okrs, swotItems, teamMembers, updatePeople, updates, focusMap, dumpItems,
+    decisions, commitments, weeklyReviews, northStar,
+    addTask, updateTask, deleteTask, moveTaskColumn, moveTaskQuadrant,
+    markDelegated, markFollowUpDone, saveDelegationEmail,
+    addOKR, updateOKR, deleteOKR,
+    addSwotItem, deleteSwotItem,
+    addTeamMember, updateTeamMember, deleteTeamMember, linkTaskToMember, unlinkTaskFromMember,
+    addDumpItem, updateDumpItem, deleteDumpItem, setDumpStatus, convertDumpToTask, clearDumpInbox,
+    setFocusSteps, toggleFocusStep, addFocusStep, deleteFocusStep, clearFocusSteps,
+    addUpdatePerson, deleteUpdatePerson, addUpdate, deleteUpdate, markDiscussed, markAllDiscussed,
+    addDecision, updateDecision, deleteDecision,
+    addCommitment, toggleCommitment, deleteCommitment,
+    saveWeeklyReview,
+    saveNorthStar,
   };
 }
