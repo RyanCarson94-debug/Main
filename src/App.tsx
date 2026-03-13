@@ -12,10 +12,14 @@ import { FrameworksLibrary } from './components/FrameworksLibrary';
 import { UpdatesView } from './components/UpdatesView';
 import { FocusView } from './components/FocusView';
 import { BrainDumpView } from './components/BrainDumpView';
+import { LoginView } from './components/LoginView';
 import { useAppStore } from './store';
 import type { View, Task, QuadrantId } from './types';
 
 export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return sessionStorage.getItem('adhd-leader-session') === '1';
+  });
   const [view, setView] = useState<View>('kanban');
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
@@ -73,6 +77,10 @@ export default function App() {
     dumpInbox: store.dumpItems.filter(d => d.status === 'inbox').length,
   };
 
+  if (!isLoggedIn) {
+    return <LoginView onLogin={() => setIsLoggedIn(true)} />;
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#0F0A1E]">
       <Sidebar view={view} onViewChange={setView} taskCounts={taskCounts} />
@@ -124,9 +132,12 @@ export default function App() {
         {view === 'first-team' && (
           <FirstTeamView
             members={store.teamMembers}
+            tasks={store.tasks}
             onAdd={store.addTeamMember}
             onUpdate={store.updateTeamMember}
             onDelete={store.deleteTeamMember}
+            onLinkTask={store.linkTaskToMember}
+            onUnlinkTask={store.unlinkTaskFromMember}
           />
         )}
         {view === 'dump' && (

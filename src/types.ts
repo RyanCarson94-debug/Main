@@ -96,6 +96,7 @@ export interface FirstTeamMember {
   name: string;
   role: string;
   commitment?: string;
+  linkedTaskIds?: string[];
 }
 
 export const QUADRANTS: Record<QuadrantId, { label: string; shortLabel: string; color: string; bg: string; border: string; description: string }> = {

@@ -200,6 +200,22 @@ export function useAppStore() {
     setTeamMembers(prev => prev.filter(m => m.id !== id));
   };
 
+  const linkTaskToMember = (memberId: string, taskId: string) => {
+    setTeamMembers(prev => prev.map(m =>
+      m.id === memberId
+        ? { ...m, linkedTaskIds: [...new Set([...(m.linkedTaskIds ?? []), taskId])] }
+        : m
+    ));
+  };
+
+  const unlinkTaskFromMember = (memberId: string, taskId: string) => {
+    setTeamMembers(prev => prev.map(m =>
+      m.id === memberId
+        ? { ...m, linkedTaskIds: (m.linkedTaskIds ?? []).filter(id => id !== taskId) }
+        : m
+    ));
+  };
+
   const addDumpItem = (content: string) => {
     const item: DumpItem = {
       id: crypto.randomUUID(),
@@ -364,6 +380,8 @@ export function useAppStore() {
     addTeamMember,
     updateTeamMember,
     deleteTeamMember,
+    linkTaskToMember,
+    unlinkTaskFromMember,
     setFocusSteps,
     toggleFocusStep,
     addFocusStep,
