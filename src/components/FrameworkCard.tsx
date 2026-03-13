@@ -27,7 +27,7 @@ export function FrameworkCard({ framework, onClick }: FrameworkCardProps) {
   return (
     <button
       onClick={() => onClick(framework)}
-      className="w-full text-left p-4 rounded-xl bg-[#16103A] border border-[#2D1F5E] hover:border-purple-500/40 hover:bg-[#1C1448] transition-all group"
+      className="w-full text-left p-4 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] hover:border-purple-500/40 hover:bg-[#1C1448] transition-all group"
     >
       {/* Category badge */}
       <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest mb-3 ${color.bg} ${color.text} border ${color.border}`}>

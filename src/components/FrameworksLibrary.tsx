@@ -58,7 +58,7 @@ export function FrameworksLibrary() {
           placeholder="Search frameworks, categories, tags…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-[#16103A] border border-[#2D1F5E] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors"
+          className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors"
         />
         {search && (
           <button

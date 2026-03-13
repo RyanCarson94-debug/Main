@@ -96,7 +96,7 @@ function DashTaskCard({
       className={`w-full text-left px-3.5 py-2.5 rounded-xl border transition-all group ${
         urgent
           ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40'
-          : 'bg-[#16103A] border-[#2D1F5E] hover:border-purple-500/40 hover:bg-[#1a1540]'
+          : 'bg-[#1C1C1F] border-[#2C2C30] hover:border-purple-500/40 hover:bg-[#1a1540]'
       }`}
     >
       <div className="flex items-center gap-2.5">
@@ -236,7 +236,7 @@ export function DashboardView({
 
       {/* ── AI Recommendation ── */}
       {(whatNowResult || whatNowError) && (
-        <div className={`relative rounded-2xl p-4 border ${whatNowError ? 'bg-red-500/5 border-red-500/20' : 'bg-purple-500/10 border-purple-500/30'}`}>
+        <div className={`relative rounded-2xl p-4 border ${whatNowError ? 'bg-red-500/5 border-red-500/20' : 'bg-purple-500/10 border-white/10'}`}>
           <button onClick={() => { setWhatNowResult(null); setWhatNowError(''); }} className="absolute top-3 right-3 text-gray-600 hover:text-gray-400">
             <X size={14} />
           </button>
@@ -357,7 +357,7 @@ export function DashboardView({
               <SectionHeader icon={<Target size={13} className="text-pink-400" />} title="OKR Snapshot" onNavigate={() => onViewChange('okrs')} />
               <div className="space-y-2">
                 {okrSnapshot.map(okr => (
-                  <button key={okr.id} onClick={() => onViewChange('okrs')} className="w-full text-left p-3 rounded-xl bg-[#16103A] border border-[#2D1F5E] hover:border-purple-500/30 transition-all">
+                  <button key={okr.id} onClick={() => onViewChange('okrs')} className="w-full text-left p-3 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] hover:border-white/10 transition-all">
                     <p className="text-xs font-semibold text-gray-300 truncate mb-2">{okr.objective}</p>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">

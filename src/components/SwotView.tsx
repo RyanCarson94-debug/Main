@@ -53,7 +53,7 @@ const CATEGORIES: {
     description: 'Risks and external challenges',
     color: 'text-purple-400',
     bg: 'bg-purple-500/10',
-    border: 'border-purple-500/30',
+    border: 'border-white/10',
   },
 ];
 

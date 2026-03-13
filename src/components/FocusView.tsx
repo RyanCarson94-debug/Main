@@ -92,7 +92,7 @@ function PomodoroTimer({ taskTitle }: { taskTitle: string }) {
   const dashOffset = circumference * (1 - progress);
 
   return (
-    <div className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-[#16103A] border border-[#2D1F5E]">
+    <div className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-[#1C1C1F] border border-[#2C2C30]">
       <div className="flex items-center gap-2">
         {isBreak
           ? <><Coffee size={13} className="text-emerald-400" /><span className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Break</span></>
@@ -205,7 +205,7 @@ function StepList({
         <div
           key={step.id}
           className={`flex items-start gap-3 p-3 rounded-xl transition-all ${
-            step.done ? 'bg-white/[0.02] border border-white/5 opacity-50' : 'bg-[#16103A] border border-[#2D1F5E]'
+            step.done ? 'bg-white/[0.02] border border-white/5 opacity-50' : 'bg-[#1C1C1F] border border-[#2C2C30]'
           }`}
         >
           <button
@@ -245,12 +245,12 @@ function StepList({
           value={newText}
           onChange={e => setNewText(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit()}
-          className="flex-1 px-3 py-2 rounded-xl bg-[#16103A] border border-[#2D1F5E] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
+          className="flex-1 px-3 py-2 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
         />
         <button
           onClick={submit}
           disabled={!newText.trim()}
-          className="p-2 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30 hover:bg-purple-600/30 transition-colors disabled:opacity-30"
+          className="p-2 rounded-xl bg-purple-600/20 text-purple-400 border border-white/10 hover:bg-purple-600/30 transition-colors disabled:opacity-30"
         >
           <Plus size={15} />
         </button>
@@ -356,7 +356,7 @@ function BatchTab({ tasks }: { tasks: Task[] }) {
           <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Do These Together (Same Tag)</p>
           <div className="space-y-2">
             {tagBatches.map(([tag, tagTasks]) => (
-              <div key={tag} className="p-3 rounded-xl bg-[#16103A] border border-[#2D1F5E]">
+              <div key={tag} className="p-3 rounded-xl bg-[#1C1C1F] border border-[#2C2C30]">
                 <p className="text-xs font-bold text-purple-400 mb-2">#{tag} <span className="text-gray-600 font-normal">({tagTasks.length} tasks)</span></p>
                 <div className="space-y-1">
                   {tagTasks.map(task => (
@@ -437,7 +437,7 @@ export function FocusView({
           <Zap size={20} className="text-amber-400" />
           <h1 className="text-xl font-black text-white">Focus Mode</h1>
         </div>
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#16103A] border border-[#2D1F5E]">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#1C1C1F] border border-[#2C2C30]">
           {(['focus', 'batch'] as const).map(t => (
             <button
               key={t}
@@ -477,7 +477,7 @@ export function FocusView({
                   onClick={() => { setSelectedTaskId(task.id); setAiError(null); }}
                   className={`w-full text-left px-3 py-2.5 rounded-xl transition-all ${
                     active
-                      ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/20 border border-purple-500/30'
+                      ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/20 border border-white/10'
                       : 'hover:bg-white/5 border border-transparent'
                   }`}
                 >
@@ -563,7 +563,7 @@ export function FocusView({
                     <button
                       onClick={handleAiBreakdown}
                       disabled={aiLoading}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-300 border border-purple-500/30 hover:bg-purple-600/30 transition-colors disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-300 border border-white/10 hover:bg-purple-600/30 transition-colors disabled:opacity-50"
                     >
                       {aiLoading
                         ? <><Loader2 size={12} className="animate-spin" />Breaking down…</>

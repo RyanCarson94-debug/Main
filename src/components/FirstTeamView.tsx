@@ -37,7 +37,7 @@ function AddMemberModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-2xl bg-[#0C0820] border border-[#2D1F5E] p-6 shadow-2xl"
+        className="w-full max-w-sm rounded-2xl bg-[#141417] border border-[#2C2C30] p-6 shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <h3 className="text-base font-black text-white mb-4">Add Team Member</h3>
@@ -52,7 +52,7 @@ function AddMemberModal({
               onChange={e => setName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && submit()}
               placeholder="e.g. Alex Kim"
-              className="w-full px-3 py-2.5 rounded-xl bg-[#16103A] border border-[#2D1F5E] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
+              className="w-full px-3 py-2.5 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
             />
           </div>
           <div>
@@ -64,7 +64,7 @@ function AddMemberModal({
               onChange={e => setRole(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && submit()}
               placeholder="e.g. VP Engineering"
-              className="w-full px-3 py-2.5 rounded-xl bg-[#16103A] border border-[#2D1F5E] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
+              className="w-full px-3 py-2.5 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
             />
           </div>
         </div>
@@ -116,7 +116,7 @@ function LinkTaskModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl bg-[#0C0820] border border-[#2D1F5E] p-6 shadow-2xl"
+        className="w-full max-w-md rounded-2xl bg-[#141417] border border-[#2C2C30] p-6 shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <h3 className="text-base font-black text-white mb-4">Link a Task</h3>
@@ -125,7 +125,7 @@ function LinkTaskModal({
           placeholder="Search tasks…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full px-3 py-2.5 rounded-xl bg-[#16103A] border border-[#2D1F5E] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 mb-3"
+          className="w-full px-3 py-2.5 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 mb-3"
         />
         <div className="space-y-1.5 max-h-64 overflow-y-auto">
           {available.length === 0 ? (
@@ -143,7 +143,7 @@ function LinkTaskModal({
                     onLink(task.id);
                     onClose();
                   }}
-                  className="w-full text-left px-3 py-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 hover:border-purple-500/30 transition-all"
+                  className="w-full text-left px-3 py-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 hover:border-white/10 transition-all"
                 >
                   <div className="flex items-center gap-2">
                     <span
@@ -187,7 +187,7 @@ function LinkedTaskCard({
   return (
     <div
       className={`p-3.5 rounded-xl border transition-all ${
-        done ? 'bg-white/[0.02] border-white/5 opacity-50' : 'bg-[#16103A] border-[#2D1F5E]'
+        done ? 'bg-white/[0.02] border-white/5 opacity-50' : 'bg-[#1C1C1F] border-[#2C2C30]'
       }`}
     >
       <div className="flex items-start gap-3">
@@ -290,7 +290,7 @@ export function FirstTeamView({
             <p className="text-xs text-gray-600">Add your peer leaders</p>
             <button
               onClick={() => setShowAddMember(true)}
-              className="mt-3 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-400 border border-purple-500/30 hover:bg-purple-600/30 transition-colors"
+              className="mt-3 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-400 border border-white/10 hover:bg-purple-600/30 transition-colors"
             >
               + Add Member
             </button>
@@ -305,7 +305,7 @@ export function FirstTeamView({
                 onClick={() => setSelectedId(member.id)}
                 className={`w-full text-left px-3 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
                   active
-                    ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/20 border border-purple-500/30'
+                    ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/20 border border-white/10'
                     : 'hover:bg-white/5 border border-transparent'
                 }`}
               >
@@ -322,7 +322,7 @@ export function FirstTeamView({
                   </p>
                 </div>
                 {count > 0 && (
-                  <span className="shrink-0 text-[10px] font-black px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                  <span className="shrink-0 text-[10px] font-black px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-white/10">
                     {count}
                   </span>
                 )}

@@ -54,7 +54,7 @@ function AddPersonModal({ onAdd, onClose }: { onAdd: (p: Omit<UpdatePerson, 'id'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-2xl bg-[#0C0820] border border-[#2D1F5E] p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-sm rounded-2xl bg-[#141417] border border-[#2C2C30] p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
         <h3 className="text-base font-black text-white mb-4">Add Person</h3>
         <div className="space-y-3">
           <div>
@@ -66,7 +66,7 @@ function AddPersonModal({ onAdd, onClose }: { onAdd: (p: Omit<UpdatePerson, 'id'
               value={name}
               onChange={e => setName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && submit()}
-              className="w-full px-3 py-2.5 rounded-xl bg-[#16103A] border border-[#2D1F5E] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
+              className="w-full px-3 py-2.5 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
             />
           </div>
           <div>
@@ -136,7 +136,7 @@ function AddUpdateForm({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-2xl bg-[#0C0820] border border-[#2D1F5E] p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-lg rounded-2xl bg-[#141417] border border-[#2C2C30] p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
         <h3 className="text-base font-black text-white mb-4">Log Update</h3>
 
         {/* Type selector */}
@@ -167,7 +167,7 @@ function AddUpdateForm({
           value={content}
           onChange={e => setContent(e.target.value)}
           rows={4}
-          className="w-full px-3 py-2.5 rounded-xl bg-[#16103A] border border-[#2D1F5E] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 resize-none mb-4"
+          className="w-full px-3 py-2.5 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 resize-none mb-4"
         />
 
         {/* Who needs to know */}
@@ -246,7 +246,7 @@ function UpdateCard({
   const dateStr = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
   return (
-    <div className={`p-4 rounded-xl border transition-all ${discussed ? 'bg-white/[0.02] border-white/5 opacity-50' : 'bg-[#16103A] border-[#2D1F5E]'}`}>
+    <div className={`p-4 rounded-xl border transition-all ${discussed ? 'bg-white/[0.02] border-white/5 opacity-50' : 'bg-[#1C1C1F] border-[#2C2C30]'}`}>
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
           {/* Type + date row */}
@@ -363,7 +363,7 @@ export function UpdatesView({
             <p className="text-xs text-gray-600">Add the people you brief</p>
             <button
               onClick={() => setShowAddPerson(true)}
-              className="mt-3 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-400 border border-purple-500/30 hover:bg-purple-600/30 transition-colors"
+              className="mt-3 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-400 border border-white/10 hover:bg-purple-600/30 transition-colors"
             >
               + Add Person
             </button>
@@ -379,7 +379,7 @@ export function UpdatesView({
                 onClick={() => setSelectedPersonId(person.id)}
                 className={`w-full text-left px-3 py-2.5 rounded-xl transition-all group flex items-center gap-2 ${
                   active
-                    ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/20 border border-purple-500/30'
+                    ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/20 border border-white/10'
                     : 'hover:bg-white/5 border border-transparent'
                 }`}
               >

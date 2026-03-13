@@ -47,8 +47,8 @@ export function QuickCapture({ open, onClose, onCapture }: QuickCaptureProps) {
             <p className="text-sm font-bold text-emerald-400">Captured to Brain Dump!</p>
           </div>
         ) : (
-          <div className="rounded-2xl bg-[#0C0820] border border-purple-500/30 shadow-2xl shadow-purple-500/10 overflow-hidden">
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-[#2D1F5E]">
+          <div className="rounded-2xl bg-[#141417] border border-white/10 shadow-2xl overflow-hidden">
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-[#2C2C30]">
               <Zap size={14} className="text-purple-400 shrink-0" />
               <p className="text-xs font-black text-purple-400 uppercase tracking-widest flex-1">
                 Quick Capture
@@ -71,7 +71,7 @@ export function QuickCapture({ open, onClose, onCapture }: QuickCaptureProps) {
                 className="w-full bg-transparent text-white text-base placeholder-gray-600 focus:outline-none py-1"
               />
             </div>
-            <div className="flex items-center justify-between px-4 py-3 border-t border-[#2D1F5E]">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-[#2C2C30]">
               <p className="text-[11px] text-gray-600">Goes to Brain Dump inbox — triage later</p>
               <button
                 onClick={submit}
@@ -96,7 +96,7 @@ export function QuickCaptureButton({ onClick }: { onClick: () => void }) {
     <button
       onClick={onClick}
       title="Quick capture (N)"
-      className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all hover:scale-110 flex items-center justify-center"
+      className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-gradient-to-br bg-violet-600  text-white shadow-lg hover:shadow-purple-500/50 transition-all hover:scale-110 flex items-center justify-center"
     >
       <Plus size={22} />
     </button>

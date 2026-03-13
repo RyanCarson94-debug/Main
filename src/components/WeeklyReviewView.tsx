@@ -95,7 +95,7 @@ function ReviewForm({
               className={`flex-1 py-2 rounded-xl border text-xs font-semibold transition-all ${
                 energyRating === n
                   ? 'bg-purple-600/20 border-purple-500/40 text-white'
-                  : 'border-[#2D1F5E] text-gray-600 hover:border-gray-500'
+                  : 'border-[#2C2C30] text-gray-600 hover:border-gray-500'
               }`}
             >
               {ENERGY_LABELS[n]}
@@ -115,7 +115,7 @@ function ReviewForm({
 
       <button
         onClick={submit}
-        className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-sm transition-all hover:shadow-lg hover:shadow-purple-500/20"
+        className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm transition-all hover:shadow-lg hover:shadow-purple-500/20"
       >
         {saved ? '✓ Saved!' : existing ? 'Update Review' : 'Complete Review'}
       </button>
@@ -140,7 +140,7 @@ function ReviewField({
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         rows={2}
-        className="w-full px-3 py-2.5 rounded-xl bg-[#16103A] border border-[#2D1F5E] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 resize-none"
+        className="w-full px-3 py-2.5 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 resize-none"
       />
     </div>
   );
@@ -152,7 +152,7 @@ function PastReviewCard({ review, onClick }: { review: WeeklyReview; onClick: ()
   return (
     <button
       onClick={onClick}
-      className="w-full text-left px-4 py-3 rounded-xl bg-[#16103A] border border-[#2D1F5E] hover:border-purple-500/30 transition-all"
+      className="w-full text-left px-4 py-3 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] hover:border-white/10 transition-all"
     >
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs font-bold text-gray-300">{getWeekLabel(review.weekOf)}</p>

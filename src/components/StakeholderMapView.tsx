@@ -65,8 +65,8 @@ function StakeholderFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-[#0C0820] border border-[#2D1F5E] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2D1F5E]">
+      <div className="w-full max-w-md rounded-2xl bg-[#141417] border border-[#2C2C30] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2C2C30]">
           <h3 className="text-base font-black text-white">{stakeholder ? 'Edit Stakeholder' : 'Add Stakeholder'}</h3>
           <button onClick={onClose} className="text-gray-600 hover:text-gray-400 transition-colors"><X size={16} /></button>
         </div>
@@ -116,7 +116,7 @@ function StakeholderFormModal({
   );
 }
 
-const INPUT = 'w-full px-3 py-2.5 rounded-xl bg-[#0F0A1E] border border-[#2D1F5E] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50';
+const INPUT = 'w-full px-3 py-2.5 rounded-xl bg-[#111113] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50';
 function SField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
@@ -154,7 +154,7 @@ export function StakeholderMapView({
         </div>
         <button
           onClick={() => { setEditTarget(null); setShowForm(true); }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-sm rounded-xl transition-all hover:shadow-lg hover:shadow-purple-500/30"
+          className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm rounded-xl transition-all"
         >
           <Plus size={16} /> Add Stakeholder
         </button>
@@ -205,7 +205,7 @@ export function StakeholderMapView({
         {/* Detail panel */}
         {selected && (
           <div className="w-[240px] shrink-0 flex flex-col gap-3">
-            <div className="rounded-2xl bg-[#16103A] border border-[#2D1F5E] p-4">
+            <div className="rounded-2xl bg-[#1C1C1F] border border-[#2C2C30] p-4">
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <p className="text-sm font-black text-white">{selected.name}</p>

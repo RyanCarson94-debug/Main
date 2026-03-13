@@ -57,7 +57,7 @@ export function KanbanBoard({ tasks, onAddTask, onEditTask, onDeleteTask, onMove
         </div>
         <button
           onClick={onAddTask}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-sm rounded-xl transition-all hover:shadow-lg hover:shadow-purple-500/30 active:scale-95"
+          className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm rounded-xl transition-all active:scale-95"
         >
           <Plus size={16} />
           New Task
@@ -86,7 +86,7 @@ export function KanbanBoard({ tasks, onAddTask, onEditTask, onDeleteTask, onMove
                 flex-1 min-w-[280px] flex flex-col rounded-2xl border transition-all duration-150
                 ${isOver
                   ? 'border-purple-500/50 bg-purple-500/5'
-                  : 'border-[#2D1F5E] bg-white/2'
+                  : 'border-[#2C2C30] bg-white/2'
                 }
               `}
               onDragOver={e => handleDragOver(e, colId)}
@@ -94,7 +94,7 @@ export function KanbanBoard({ tasks, onAddTask, onEditTask, onDeleteTask, onMove
               onDrop={e => handleDrop(e, colId)}
             >
               {/* Column header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-[#2D1F5E]">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-[#2C2C30]">
                 <div className="flex items-center gap-2">
                   <span className={`w-2.5 h-2.5 rounded-full ${col.accent}`} />
                   <span className={`font-bold text-sm ${col.color}`}>{col.label}</span>
@@ -138,7 +138,7 @@ export function KanbanBoard({ tasks, onAddTask, onEditTask, onDeleteTask, onMove
               {colId === 'backlog' && (
                 <button
                   onClick={onAddTask}
-                  className="flex items-center gap-2 mx-3 mb-3 px-3 py-2 rounded-xl border border-dashed border-[#2D1F5E] text-gray-600 hover:text-gray-400 hover:border-gray-600 text-xs font-medium transition-colors"
+                  className="flex items-center gap-2 mx-3 mb-3 px-3 py-2 rounded-xl border border-dashed border-[#2C2C30] text-gray-600 hover:text-gray-400 hover:border-gray-600 text-xs font-medium transition-colors"
                 >
                   <Plus size={12} />
                   Add task

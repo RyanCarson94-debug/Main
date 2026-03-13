@@ -40,7 +40,7 @@ export function EisenhowerMatrix({
         </div>
         <button
           onClick={() => onAddTask()}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-sm rounded-xl transition-all hover:shadow-lg hover:shadow-purple-500/30 active:scale-95"
+          className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm rounded-xl transition-all active:scale-95"
         >
           <Plus size={16} />
           New Task

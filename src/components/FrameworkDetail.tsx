@@ -19,11 +19,11 @@ export function FrameworkDetail({ framework, onClose, onNavigate }: FrameworkDet
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[#0C0820] border border-[#2D1F5E] shadow-2xl"
+        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[#141417] border border-[#2C2C30] shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 p-6 pb-4 bg-[#0C0820] border-b border-[#2D1F5E]">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 p-6 pb-4 bg-[#141417] border-b border-[#2C2C30]">
           <div className="flex-1 min-w-0">
             <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest mb-2 ${color.bg} ${color.text} border ${color.border}`}>
               {framework.category}

@@ -26,7 +26,7 @@ function getFollowUpStatus(task: Task): 'overdue' | 'today' | 'upcoming' | 'done
 const STATUS_CONFIG = {
   overdue: { label: 'Follow-up Overdue', color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/30', icon: <AlertTriangle size={12} /> },
   today: { label: 'Follow-up Today', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30', icon: <Clock size={12} /> },
-  upcoming: { label: 'Follow-up Scheduled', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30', icon: <Calendar size={12} /> },
+  upcoming: { label: 'Follow-up Scheduled', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-white/10', icon: <Calendar size={12} /> },
   done: { label: 'Follow-up Done', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', icon: <CheckCircle2 size={12} /> },
   'no-date': { label: 'No Follow-up Set', color: 'text-gray-500', bg: 'bg-gray-500/10', border: 'border-gray-500/30', icon: <Clock size={12} /> },
 };
@@ -73,7 +73,7 @@ export function DelegationsView({ tasks, onOpenDelegationModal, onMarkFollowUpDo
           { label: 'In Flight', value: delegated.filter(t => getFollowUpStatus(t) === 'upcoming').length, color: 'text-purple-400' },
           { label: 'Loops Closed', value: delegated.filter(t => getFollowUpStatus(t) === 'done').length, color: 'text-emerald-400' },
         ].map(stat => (
-          <div key={stat.label} className="p-3 rounded-xl bg-white/3 border border-[#2D1F5E]">
+          <div key={stat.label} className="p-3 rounded-xl bg-white/3 border border-[#2C2C30]">
             <p className={`text-2xl font-black ${stat.color}`}>{stat.value}</p>
             <p className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">{stat.label}</p>
           </div>
@@ -90,7 +90,7 @@ export function DelegationsView({ tasks, onOpenDelegationModal, onMarkFollowUpDo
               flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all
               ${filter === f.id
                 ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
-                : 'border-[#2D1F5E] text-gray-500 hover:text-gray-300 hover:border-gray-600'
+                : 'border-[#2C2C30] text-gray-500 hover:text-gray-300 hover:border-gray-600'
               }
             `}
           >

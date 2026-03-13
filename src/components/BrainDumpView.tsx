@@ -57,7 +57,7 @@ function ConvertToTaskForm({
   };
 
   return (
-    <div className="mt-3 p-3 rounded-xl bg-[#0C0820] border border-purple-500/30 space-y-3">
+    <div className="mt-3 p-3 rounded-xl bg-[#141417] border border-white/10 space-y-3">
       {/* Title */}
       <div>
         <label className="text-[10px] font-bold text-gray-600 uppercase tracking-widest block mb-1">Task Title</label>
@@ -67,7 +67,7 @@ function ConvertToTaskForm({
           value={title}
           onChange={e => setTitle(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit()}
-          className="w-full px-2.5 py-2 rounded-lg bg-[#16103A] border border-[#2D1F5E] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
+          className="w-full px-2.5 py-2 rounded-lg bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
         />
       </div>
 
@@ -152,7 +152,7 @@ function DumpCard({
       item.status === 'archived' ? 'bg-white/[0.015] border-white/5 opacity-50' :
       item.status === 'task' ? 'bg-emerald-500/5 border-emerald-500/15' :
       item.status === 'idea' ? 'bg-blue-500/5 border-blue-500/15' :
-      'bg-[#16103A] border-[#2D1F5E]'
+      'bg-[#1C1C1F] border-[#2C2C30]'
     }`}>
       {/* Status badge + date */}
       <div className="flex items-center justify-between mb-2">
@@ -203,7 +203,7 @@ function DumpCard({
         <div className="flex flex-wrap gap-1.5">
           <button
             onClick={() => setConverting(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-300 border border-purple-500/30 hover:bg-purple-600/30 transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-300 border border-white/10 hover:bg-purple-600/30 transition-colors"
           >
             <CheckSquare size={11} /> Make Task
           </button>
@@ -314,7 +314,7 @@ export function BrainDumpView({
             <button
               onClick={handleAiTriage}
               disabled={aiLoading || untriaged === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-300 border border-purple-500/30 hover:bg-purple-600/30 transition-colors disabled:opacity-40"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-300 border border-white/10 hover:bg-purple-600/30 transition-colors disabled:opacity-40"
             >
               {aiLoading
                 ? <><Loader2 size={12} className="animate-spin" /> Triaging…</>
@@ -335,7 +335,7 @@ export function BrainDumpView({
       </div>
 
       {/* Capture area */}
-      <div className="shrink-0 rounded-2xl bg-[#16103A] border border-[#2D1F5E] focus-within:border-purple-500/50 transition-colors">
+      <div className="shrink-0 rounded-2xl bg-[#1C1C1F] border border-[#2C2C30] focus-within:border-purple-500/50 transition-colors">
         <textarea
           ref={textareaRef}
           placeholder="Dump it here… anything on your mind. One thought per line or a wall of text — doesn't matter.&#10;&#10;Press Cmd+Enter (or the button below) to capture."
@@ -382,7 +382,7 @@ export function BrainDumpView({
             onClick={() => setTab(t.id)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               tab === t.id
-                ? 'bg-purple-600/30 text-purple-200 border border-purple-500/30'
+                ? 'bg-purple-600/30 text-purple-200 border border-white/10'
                 : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
             }`}
           >

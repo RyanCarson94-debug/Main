@@ -55,11 +55,11 @@ export function LoginView({ onLogin }: LoginViewProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0F0A1E] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#111113] flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600 to-pink-600 mb-4 shadow-lg shadow-purple-500/30">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br bg-violet-600 mb-4 shadow-lg">
             <Zap size={28} className="text-white" />
           </div>
           <h1 className="text-2xl font-black text-white tracking-tight">LEAD</h1>
@@ -67,7 +67,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl bg-[#0C0820] border border-[#2D1F5E] p-6 shadow-2xl">
+        <div className="rounded-2xl bg-[#141417] border border-[#2C2C30] p-6 shadow-2xl">
           <div className="flex items-center gap-2 mb-1">
             <Lock size={14} className="text-purple-400" />
             <h2 className="text-sm font-black text-white">
@@ -99,7 +99,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
                     setError('');
                   }}
                   onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                  className="w-full px-4 py-3 rounded-xl bg-[#16103A] border border-[#2D1F5E] text-white text-lg tracking-widest placeholder-gray-700 focus:outline-none focus:border-purple-500/50 pr-12"
+                  className="w-full px-4 py-3 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-white text-lg tracking-widest placeholder-gray-700 focus:outline-none focus:border-purple-500/50 pr-12"
                 />
                 <button
                   onClick={() => setShowPin(s => !s)}
@@ -120,7 +120,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
                     setError('');
                   }}
                   onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                  className="w-full px-4 py-3 rounded-xl bg-[#16103A] border border-[#2D1F5E] text-white text-lg tracking-widest placeholder-gray-700 focus:outline-none focus:border-purple-500/50 pr-12"
+                  className="w-full px-4 py-3 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-white text-lg tracking-widest placeholder-gray-700 focus:outline-none focus:border-purple-500/50 pr-12"
                 />
                 <button
                   onClick={() => setShowPin(s => !s)}
@@ -135,7 +135,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
 
             <button
               onClick={handleSubmit}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-sm transition-all hover:shadow-lg hover:shadow-purple-500/20"
+              className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm transition-all hover:shadow-lg hover:shadow-purple-500/20"
             >
               {step === 'enter' ? 'Unlock' : step === 'create' ? 'Continue' : 'Create PIN'}
             </button>
