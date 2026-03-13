@@ -255,16 +255,16 @@ export function DashboardView({
       )}
 
       {/* ── Stat Cards ── */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <StatCard label="Overdue" count={overdueTasks.length} sub={overdueTasks.length === 0 ? 'all clear' : 'need attention'} colorClass={overdueTasks.length > 0 ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-white/[0.03] border-white/5 text-gray-500'} icon={<CalendarClock size={16} />} onClick={() => onViewChange('kanban')} />
         <StatCard label="Do Now" count={doNowTasks.length + overdueTasks.length + dueTodayTasks.length} sub="urgent tasks" colorClass="bg-amber-500/10 border-amber-500/20 text-amber-400" icon={<Zap size={16} />} onClick={() => onViewChange('eisenhower')} />
         <StatCard label="Done This Week" count={doneThisWeek} sub={doneThisWeek === 0 ? "let's go" : 'great work'} colorClass="bg-emerald-500/10 border-emerald-500/20 text-emerald-400" icon={<CheckCircle2 size={16} />} />
       </div>
 
       {/* ── Main Grid ── */}
-      <div className="grid grid-cols-5 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
         {/* Left: tasks */}
-        <div className="col-span-3 space-y-5">
+        <div className="lg:col-span-3 space-y-5">
           {/* Overdue */}
           {overdueTasks.length > 0 && (
             <section>
@@ -329,7 +329,7 @@ export function DashboardView({
         </div>
 
         {/* Right: alerts + OKRs + quick nav */}
-        <div className="col-span-2 space-y-5">
+        <div className="lg:col-span-2 space-y-5">
           {/* Needs Attention */}
           {totalAlerts > 0 && (
             <section>
@@ -374,7 +374,7 @@ export function DashboardView({
           {/* Quick Access */}
           <section>
             <SectionHeader icon={<TrendingUp size={13} className="text-gray-500" />} title="Quick Access" />
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <QuickNavTile icon={<BrainCircuit size={15} />} label="Brain Dump" badge={dumpInboxCount || undefined} onClick={() => onViewChange('dump')} />
               <QuickNavTile icon={<Zap size={15} />} label="Focus Mode" onClick={() => onViewChange('focus')} />
               <QuickNavTile icon={<UserCheck size={15} />} label="Delegations" badge={delegationAlerts || undefined} onClick={() => onViewChange('delegations')} />

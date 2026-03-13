@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Grid2x2, Target, BarChart2, Users, Zap, UserCheck,
   BookOpen, Bell, BrainCircuit, Home, Compass, BookMarked, CalendarCheck,
-  LogOut, Network, Search, UserCog, Bot, Keyboard, CalendarDays,
+  LogOut, Network, Search, UserCog, Bot, Keyboard, CalendarDays, X,
 } from 'lucide-react';
 import type { View } from '../types';
 
@@ -13,6 +13,8 @@ interface SidebarProps {
   onToggleAICoach: () => void;
   onShowShortcuts: () => void;
   aiCoachOpen: boolean;
+  mobileOpen: boolean;
+  onMobileClose: () => void;
   taskCounts: {
     doNow: number;
     inProgress: number;
@@ -32,27 +34,27 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Daily',
     items: [
-      { id: 'dashboard',    label: 'Dashboard',    icon: <Home size={14} /> },
-      { id: 'day-planner',  label: 'Day Planner',  icon: <CalendarDays size={14} /> },
-      { id: 'dump',         label: 'Brain Dump',   icon: <BrainCircuit size={14} />, badge: c => c.dumpInbox },
-      { id: 'focus',        label: 'Focus Mode',   icon: <Zap size={14} /> },
+      { id: 'dashboard',   label: 'Dashboard',    icon: <Home size={14} /> },
+      { id: 'day-planner', label: 'Day Planner',  icon: <CalendarDays size={14} /> },
+      { id: 'dump',        label: 'Brain Dump',   icon: <BrainCircuit size={14} />, badge: c => c.dumpInbox },
+      { id: 'focus',       label: 'Focus Mode',   icon: <Zap size={14} /> },
     ],
   },
   {
     label: 'Tasks',
     items: [
-      { id: 'kanban',       label: 'Task Board',   icon: <LayoutDashboard size={14} /> },
-      { id: 'eisenhower',   label: 'Eisenhower',   icon: <Grid2x2 size={14} /> },
-      { id: 'delegations',  label: 'Delegations',  icon: <UserCheck size={14} />, badge: c => c.delegationAlerts },
+      { id: 'kanban',      label: 'Task Board',   icon: <LayoutDashboard size={14} /> },
+      { id: 'eisenhower',  label: 'Eisenhower',   icon: <Grid2x2 size={14} /> },
+      { id: 'delegations', label: 'Delegations',  icon: <UserCheck size={14} />, badge: c => c.delegationAlerts },
     ],
   },
   {
     label: 'People',
     items: [
-      { id: 'updates',         label: '1:1 Briefings',  icon: <Bell size={14} />,    badge: c => c.pendingUpdates },
-      { id: 'first-team',      label: 'First Team',     icon: <Users size={14} /> },
-      { id: 'direct-reports',  label: 'Direct Reports', icon: <UserCog size={14} /> },
-      { id: 'stakeholders',    label: 'Stakeholders',   icon: <Network size={14} /> },
+      { id: 'updates',        label: '1:1 Briefings',  icon: <Bell size={14} />,    badge: c => c.pendingUpdates },
+      { id: 'first-team',     label: 'First Team',     icon: <Users size={14} /> },
+      { id: 'direct-reports', label: 'Direct Reports', icon: <UserCog size={14} /> },
+      { id: 'stakeholders',   label: 'Stakeholders',   icon: <Network size={14} /> },
     ],
   },
   {
@@ -73,23 +75,32 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-export function Sidebar({ view, onViewChange, onLogout, onSearch, onToggleAICoach, onShowShortcuts, aiCoachOpen, taskCounts }: SidebarProps) {
-  return (
+export function Sidebar({
+  view, onViewChange, onLogout, onSearch, onToggleAICoach, onShowShortcuts,
+  aiCoachOpen, mobileOpen, onMobileClose, taskCounts,
+}: SidebarProps) {
+  const navigate = (v: View) => { onViewChange(v); onMobileClose(); };
+
+  const inner = (
     <aside className="w-[200px] shrink-0 flex flex-col h-full border-r border-[#2A2640] bg-[#1A1826]">
       {/* Logo */}
-      <div className="px-4 py-4 border-b border-[#2A2640]">
+      <div className="px-4 py-4 border-b border-[#2A2640] flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-6 h-6 rounded-lg bg-violet-600 flex items-center justify-center shrink-0 shadow-sm shadow-violet-900/60">
             <Zap size={13} className="text-white" />
           </div>
           <p className="text-sm font-semibold text-white tracking-tight">ADHD Leader</p>
         </div>
+        {/* Mobile close button */}
+        <button onClick={onMobileClose} className="md:hidden p-1 text-gray-600 hover:text-gray-300 transition-colors">
+          <X size={16} />
+        </button>
       </div>
 
       {/* Search */}
       <div className="px-3 pt-3">
         <button
-          onClick={onSearch}
+          onClick={() => { onSearch(); onMobileClose(); }}
           className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#2A2640] text-gray-600 hover:text-gray-400 hover:border-[#3A3650] transition-all text-xs"
         >
           <Search size={12} />
@@ -101,7 +112,7 @@ export function Sidebar({ view, onViewChange, onLogout, onSearch, onToggleAICoac
       {/* AI Coach button */}
       <div className="px-3 pt-2">
         <button
-          onClick={onToggleAICoach}
+          onClick={() => { onToggleAICoach(); onMobileClose(); }}
           className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
             aiCoachOpen
               ? 'border-violet-500/40 bg-violet-500/15 text-violet-300'
@@ -139,7 +150,7 @@ export function Sidebar({ view, onViewChange, onLogout, onSearch, onToggleAICoac
                 return (
                   <button
                     key={item.id}
-                    onClick={() => onViewChange(item.id)}
+                    onClick={() => navigate(item.id)}
                     className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-sm transition-colors ${
                       active
                         ? 'bg-violet-500/15 border border-violet-500/20 text-white'
@@ -166,9 +177,8 @@ export function Sidebar({ view, onViewChange, onLogout, onSearch, onToggleAICoac
       {/* Footer */}
       <div className="px-3 py-3 border-t border-[#2A2640] space-y-px">
         <button
-          onClick={onShowShortcuts}
+          onClick={() => { onShowShortcuts(); onMobileClose(); }}
           className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] text-gray-700 hover:text-gray-400 hover:bg-white/[0.04] transition-colors"
-          title="Keyboard shortcuts (?)"
         >
           <Keyboard size={14} />
           <span>Shortcuts</span>
@@ -183,5 +193,20 @@ export function Sidebar({ view, onViewChange, onLogout, onSearch, onToggleAICoac
         </button>
       </div>
     </aside>
+  );
+
+  return (
+    <>
+      {/* Desktop: always visible */}
+      <div className="hidden md:block h-full shrink-0">{inner}</div>
+
+      {/* Mobile: slide-in drawer */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div className="absolute inset-0 bg-black/60" onClick={onMobileClose} />
+          <div className="relative">{inner}</div>
+        </div>
+      )}
+    </>
   );
 }

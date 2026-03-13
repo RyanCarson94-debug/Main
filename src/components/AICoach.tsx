@@ -70,7 +70,7 @@ export function AICoach({ tasks, okrs, decisions, onClose }: AICoachProps) {
   };
 
   return (
-    <div className="fixed right-0 top-0 h-full w-[380px] bg-[#1A1824] border-l border-[#2A2640] flex flex-col z-40 shadow-2xl shadow-black/50">
+    <div className="fixed right-0 top-0 h-[100dvh] w-full md:w-[380px] bg-[#1A1824] border-l border-[#2A2640] flex flex-col z-40 shadow-2xl shadow-black/50">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#2A2640] shrink-0">
         <div className="flex items-center gap-2.5">

@@ -93,7 +93,7 @@ export function DayPlannerView({ tasks, onEditTask, onAddTask }: DayPlannerViewP
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {SLOTS.map(slot => {
               const slotTasks = tasksBySlot(slot.id);
               const slotEstimate = slotTasks.reduce((s, t) => s + (t.estimateMinutes ?? 0), 0);

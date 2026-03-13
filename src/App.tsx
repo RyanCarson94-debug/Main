@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Search, Bot, Zap } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { KanbanBoard } from './components/KanbanBoard';
 import { EisenhowerMatrix } from './components/EisenhowerMatrix';
@@ -63,6 +64,7 @@ export default function App() {
   const [showSearch, setShowSearch] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showAICoach, setShowAICoach] = useState(false);
+  const [showMobileNav, setShowMobileNav] = useState(false);
   const [notifBanner, setNotifBanner] = useState(false);
   const csvImportRef = useRef<HTMLInputElement>(null);
 
@@ -195,7 +197,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#12111A]">
+    <div className="flex h-[100dvh] overflow-hidden bg-[#12111A]">
       <Sidebar
         view={view}
         onViewChange={setView}
@@ -204,10 +206,36 @@ export default function App() {
         onToggleAICoach={() => setShowAICoach(s => !s)}
         onShowShortcuts={() => setShowShortcuts(true)}
         aiCoachOpen={showAICoach}
+        mobileOpen={showMobileNav}
+        onMobileClose={() => setShowMobileNav(false)}
         taskCounts={taskCounts}
       />
 
-      <main className={`flex-1 overflow-hidden flex flex-col transition-all ${showAICoach ? 'mr-[380px]' : ''}`}>
+      <main className={`flex-1 overflow-hidden flex flex-col transition-all ${showAICoach ? 'md:mr-[380px]' : ''}`}>
+        {/* Mobile top header */}
+        <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-[#2A2640] bg-[#1A1826] shrink-0">
+          <button
+            onClick={() => setShowMobileNav(true)}
+            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+          >
+            <div className="w-5 h-5 rounded bg-violet-600 flex items-center justify-center">
+              <Zap size={11} className="text-white" />
+            </div>
+            <span className="text-sm font-semibold text-white">ADHD Leader</span>
+          </button>
+          <div className="flex items-center gap-2">
+            {taskCounts.doNow > 0 && (
+              <span className="w-2 h-2 rounded-full bg-red-500" />
+            )}
+            <button onClick={() => setShowSearch(true)} className="p-1.5 text-gray-500 hover:text-gray-300 transition-colors">
+              <Search size={17} />
+            </button>
+            <button onClick={() => setShowAICoach(s => !s)} className={`p-1.5 transition-colors ${showAICoach ? 'text-violet-400' : 'text-gray-500 hover:text-gray-300'}`}>
+              <Bot size={17} />
+            </button>
+          </div>
+        </div>
+
         {/* Notification banner */}
         {notifBanner && (
           <div className="shrink-0 flex items-center justify-between px-5 py-2.5 bg-purple-600/20 border-b border-purple-500/20">
@@ -221,7 +249,7 @@ export default function App() {
           </div>
         )}
 
-        <div className="flex-1 overflow-hidden p-6">
+        <div className="flex-1 overflow-hidden p-4 md:p-6">
           {view === 'dashboard' && (
             <DashboardView
               tasks={store.tasks}

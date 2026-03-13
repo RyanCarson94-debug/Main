@@ -61,9 +61,9 @@ export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-[#1A1035] border border-[#2A2640] rounded-2xl shadow-2xl animate-[slideIn_0.2s_ease-out] overflow-hidden">
+      <div className="relative w-full sm:max-w-lg bg-[#1A1035] border-t sm:border border-[#2A2640] rounded-t-2xl sm:rounded-2xl shadow-2xl animate-[slideIn_0.2s_ease-out] overflow-hidden max-h-[92dvh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#2A2640]">
           <h2 className="text-lg font-bold text-white">
@@ -75,7 +75,7 @@ export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 overflow-y-auto flex-1">
           {/* Title */}
           <div>
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
@@ -105,7 +105,7 @@ export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
           </div>
 
           {/* Quadrant + Priority row */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
                 Quadrant
@@ -229,7 +229,7 @@ export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
               Energy Required
             </label>
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
               {(Object.keys(ENERGY_CONFIG) as EnergyLevel[]).map(eId => {
                 const e = ENERGY_CONFIG[eId];
                 const selected = form.energy === eId;
@@ -251,7 +251,7 @@ export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
           </div>
 
           {/* Due Date + Recurrence row */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
                 Due Date

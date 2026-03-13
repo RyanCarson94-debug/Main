@@ -457,9 +457,9 @@ export function FocusView({
       {tab === 'batch' ? (
         <BatchTab tasks={activeTasks} />
       ) : (
-        <div className="flex-1 flex gap-4 min-h-0">
+        <div className="flex-1 flex flex-col md:flex-row gap-4 min-h-0 overflow-y-auto md:overflow-hidden">
           {/* ── Left: Task picker ── */}
-          <div className="w-[220px] shrink-0 flex flex-col gap-1 overflow-y-auto">
+          <div className="w-full md:w-[220px] shrink-0 flex flex-col gap-1 overflow-y-auto max-h-48 md:max-h-none">
             <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-1 px-1">Your Tasks</p>
             {activeTasks.length === 0 && (
               <p className="text-xs text-gray-600 italic px-1">No active tasks</p>
@@ -528,9 +528,9 @@ export function FocusView({
               </div>
 
               {/* Two-column layout: timer + steps */}
-              <div className="flex gap-4 flex-1 min-h-0">
+              <div className="flex flex-col sm:flex-row gap-4 flex-1 min-h-0">
                 {/* Timer column */}
-                <div className="w-[200px] shrink-0 space-y-4">
+                <div className="w-full sm:w-[200px] shrink-0 space-y-4">
                   <PomodoroTimer taskTitle={selectedTask.title} />
 
                   {/* ADHD strategy tip */}
