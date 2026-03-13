@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { BookMarked, Plus, Trash2, X, CheckSquare, Square, ChevronDown, ChevronUp, CalendarDays, Users } from 'lucide-react';
+import { BookMarked, Plus, Trash2, X, CheckSquare, Square, ChevronDown, ChevronUp, CalendarDays, Users, Sparkles, Download, Loader2 } from 'lucide-react';
 import type { Decision, Commitment } from '../types';
 import { ConfirmModal } from './ConfirmModal';
+import { streamDecisionHelper } from '../services/claudeApi';
+import { exportDecisionsCSV } from '../utils/export';
 
 interface DecisionLogViewProps {
   decisions: Decision[];
@@ -169,27 +171,72 @@ function DecisionCard({
         </button>
 
         {expanded && (
-          <div className="px-4 pb-4 space-y-3 border-t border-[#2A2640] pt-3">
-            {decision.context && <InfoBlock label="Context" text={decision.context} />}
-            <InfoBlock label="Decision" text={decision.decision} highlight />
-            {decision.alternatives && <InfoBlock label="Alternatives considered" text={decision.alternatives} />}
-            {decision.outcome && <InfoBlock label="Outcome" text={decision.outcome} color="emerald" />}
-            {decision.reviewAt && (
-              <p className="text-[11px] text-gray-600 flex items-center gap-1">
-                <CalendarDays size={10} /> Review: {new Date(decision.reviewAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-              </p>
-            )}
-            <div className="flex gap-2 pt-1">
-              <button onClick={onEdit} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-400 bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-colors">Edit / Add Outcome</button>
-              <button onClick={() => setConfirmDelete(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors">Delete</button>
-            </div>
-          </div>
+          <DecisionCardExpanded decision={decision} onEdit={onEdit} onDelete={() => setConfirmDelete(true)} />
         )}
       </div>
       {confirmDelete && (
         <ConfirmModal title="Delete decision?" message="This will permanently remove this decision log entry." onConfirm={onDelete} onClose={() => setConfirmDelete(false)} />
       )}
     </>
+  );
+}
+
+// ─── Decision Card Expanded ───────────────────────────────────────────────────
+
+function DecisionCardExpanded({ decision, onEdit, onDelete }: { decision: Decision; onEdit: () => void; onDelete: () => void }) {
+  const [aiAnalysis, setAiAnalysis] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
+
+  const runHelper = () => {
+    setAiLoading(true);
+    setAiAnalysis('');
+    setAiError('');
+    streamDecisionHelper(
+      { title: decision.title, context: decision.context, alternatives: decision.alternatives },
+      (chunk) => setAiAnalysis(a => a + chunk),
+      () => setAiLoading(false),
+      (e) => { setAiError(e); setAiLoading(false); },
+    );
+  };
+
+  return (
+    <div className="px-4 pb-4 space-y-3 border-t border-[#2A2640] pt-3">
+      {decision.context && <InfoBlock label="Context" text={decision.context} />}
+      <InfoBlock label="Decision" text={decision.decision} highlight />
+      {decision.alternatives && <InfoBlock label="Alternatives considered" text={decision.alternatives} />}
+      {decision.outcome && <InfoBlock label="Outcome" text={decision.outcome} color="emerald" />}
+      {decision.reviewAt && (
+        <p className="text-[11px] text-gray-600 flex items-center gap-1">
+          <CalendarDays size={10} /> Review: {new Date(decision.reviewAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </p>
+      )}
+
+      {/* AI analysis */}
+      {(aiAnalysis || aiLoading) && (
+        <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/20 space-y-1">
+          <p className="text-[10px] font-bold text-violet-400 uppercase tracking-widest flex items-center gap-1">
+            <Sparkles size={9} /> AI Analysis
+            {aiLoading && <Loader2 size={10} className="animate-spin ml-1" />}
+          </p>
+          <div className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">{aiAnalysis}</div>
+        </div>
+      )}
+      {aiError && <p className="text-xs text-red-400 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20">{aiError}</p>}
+
+      <div className="flex gap-2 pt-1 flex-wrap">
+        <button onClick={onEdit} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-400 bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-colors">Edit / Add Outcome</button>
+        <button
+          onClick={runHelper}
+          disabled={aiLoading}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-violet-400 bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/20 transition-colors disabled:opacity-50"
+        >
+          <Sparkles size={10} />
+          {aiAnalysis ? 'Re-analyse' : 'Help me think'}
+        </button>
+        <button onClick={onDelete} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors">Delete</button>
+      </div>
+    </div>
   );
 }
 
@@ -245,13 +292,23 @@ export function DecisionLogView({
           </h2>
           <p className="text-gray-400 text-sm mt-0.5">Track what was decided and commitments you've made</p>
         </div>
-        <button
-          onClick={() => tab === 'decisions' ? setShowDecisionForm(true) : setShowCommitmentForm(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm rounded-xl transition-all"
-        >
-          <Plus size={16} />
-          {tab === 'decisions' ? 'Log Decision' : 'Log Commitment'}
-        </button>
+        <div className="flex items-center gap-2">
+          {tab === 'decisions' && decisions.length > 0 && (
+            <button
+              onClick={() => exportDecisionsCSV(decisions)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#2A2640] text-gray-500 hover:text-gray-300 hover:border-gray-500 text-xs font-semibold transition-colors"
+            >
+              <Download size={12} /> Export
+            </button>
+          )}
+          <button
+            onClick={() => tab === 'decisions' ? setShowDecisionForm(true) : setShowCommitmentForm(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm rounded-xl transition-all"
+          >
+            <Plus size={16} />
+            {tab === 'decisions' ? 'Log Decision' : 'Log Commitment'}
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

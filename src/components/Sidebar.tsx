@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Grid2x2, Target, BarChart2, Users, Zap, UserCheck,
   BookOpen, Bell, BrainCircuit, Home, Compass, BookMarked, CalendarCheck,
-  LogOut, Network, Search, UserCog,
+  LogOut, Network, Search, UserCog, Bot, Keyboard, CalendarDays,
 } from 'lucide-react';
 import type { View } from '../types';
 
@@ -10,6 +10,9 @@ interface SidebarProps {
   onViewChange: (v: View) => void;
   onLogout: () => void;
   onSearch: () => void;
+  onToggleAICoach: () => void;
+  onShowShortcuts: () => void;
+  aiCoachOpen: boolean;
   taskCounts: {
     doNow: number;
     inProgress: number;
@@ -29,17 +32,18 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Daily',
     items: [
-      { id: 'dashboard',    label: 'Dashboard',   icon: <Home size={14} /> },
-      { id: 'dump',         label: 'Brain Dump',  icon: <BrainCircuit size={14} />, badge: c => c.dumpInbox },
-      { id: 'focus',        label: 'Focus Mode',  icon: <Zap size={14} /> },
+      { id: 'dashboard',    label: 'Dashboard',    icon: <Home size={14} /> },
+      { id: 'day-planner',  label: 'Day Planner',  icon: <CalendarDays size={14} /> },
+      { id: 'dump',         label: 'Brain Dump',   icon: <BrainCircuit size={14} />, badge: c => c.dumpInbox },
+      { id: 'focus',        label: 'Focus Mode',   icon: <Zap size={14} /> },
     ],
   },
   {
     label: 'Tasks',
     items: [
-      { id: 'kanban',       label: 'Task Board',  icon: <LayoutDashboard size={14} /> },
-      { id: 'eisenhower',   label: 'Eisenhower',  icon: <Grid2x2 size={14} /> },
-      { id: 'delegations',  label: 'Delegations', icon: <UserCheck size={14} />, badge: c => c.delegationAlerts },
+      { id: 'kanban',       label: 'Task Board',   icon: <LayoutDashboard size={14} /> },
+      { id: 'eisenhower',   label: 'Eisenhower',   icon: <Grid2x2 size={14} /> },
+      { id: 'delegations',  label: 'Delegations',  icon: <UserCheck size={14} />, badge: c => c.delegationAlerts },
     ],
   },
   {
@@ -69,7 +73,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-export function Sidebar({ view, onViewChange, onLogout, onSearch, taskCounts }: SidebarProps) {
+export function Sidebar({ view, onViewChange, onLogout, onSearch, onToggleAICoach, onShowShortcuts, aiCoachOpen, taskCounts }: SidebarProps) {
   return (
     <aside className="w-[200px] shrink-0 flex flex-col h-full border-r border-[#2A2640] bg-[#1A1826]">
       {/* Logo */}
@@ -94,9 +98,25 @@ export function Sidebar({ view, onViewChange, onLogout, onSearch, taskCounts }: 
         </button>
       </div>
 
-      {/* Urgent signal — only if there's something to act on */}
+      {/* AI Coach button */}
+      <div className="px-3 pt-2">
+        <button
+          onClick={onToggleAICoach}
+          className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+            aiCoachOpen
+              ? 'border-violet-500/40 bg-violet-500/15 text-violet-300'
+              : 'border-[#2A2640] text-gray-600 hover:text-gray-300 hover:border-[#3A3650]'
+          }`}
+        >
+          <Bot size={12} />
+          <span className="flex-1 text-left">AI Coach</span>
+          {aiCoachOpen && <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />}
+        </button>
+      </div>
+
+      {/* Urgent signal */}
       {taskCounts.doNow > 0 && (
-        <div className="mx-3 mt-3 px-3 py-2 rounded-lg border border-[#2A2640] bg-[#1E1C28]">
+        <div className="mx-3 mt-2 px-3 py-2 rounded-lg border border-[#2A2640] bg-[#1E1C28]">
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
             <p className="text-xs text-gray-400">
@@ -144,7 +164,16 @@ export function Sidebar({ view, onViewChange, onLogout, onSearch, taskCounts }: 
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-3 border-t border-[#2A2640]">
+      <div className="px-3 py-3 border-t border-[#2A2640] space-y-px">
+        <button
+          onClick={onShowShortcuts}
+          className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] text-gray-700 hover:text-gray-400 hover:bg-white/[0.04] transition-colors"
+          title="Keyboard shortcuts (?)"
+        >
+          <Keyboard size={14} />
+          <span>Shortcuts</span>
+          <kbd className="ml-auto text-[10px] text-gray-700 px-1 py-0.5 rounded bg-white/5 border border-[#2A2640]">?</kbd>
+        </button>
         <button
           onClick={onLogout}
           className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] text-gray-700 hover:text-gray-400 hover:bg-white/[0.04] transition-colors"

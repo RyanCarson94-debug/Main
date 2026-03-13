@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Upload, Download } from 'lucide-react';
 import type { Task, KanbanColumnId } from '../types';
 import { COLUMNS } from '../types';
 import { TaskCard } from './TaskCard';
+import { exportTasksCSV } from '../utils/export';
 
 interface KanbanBoardProps {
   tasks: Task[];
@@ -11,9 +12,10 @@ interface KanbanBoardProps {
   onDeleteTask: (id: string) => void;
   onMoveColumn: (id: string, col: KanbanColumnId) => void;
   onDelegateTask?: (task: Task) => void;
+  onImportCSV?: () => void;
 }
 
-export function KanbanBoard({ tasks, onAddTask, onEditTask, onDeleteTask, onMoveColumn, onDelegateTask }: KanbanBoardProps) {
+export function KanbanBoard({ tasks, onAddTask, onEditTask, onDeleteTask, onMoveColumn, onDelegateTask, onImportCSV }: KanbanBoardProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<KanbanColumnId | null>(null);
 
@@ -55,13 +57,31 @@ export function KanbanBoard({ tasks, onAddTask, onEditTask, onDeleteTask, onMove
             {completedCount}/{totalCount} tasks done &middot; {progressPct}% complete
           </p>
         </div>
-        <button
-          onClick={onAddTask}
-          className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm rounded-xl transition-all active:scale-95"
-        >
-          <Plus size={16} />
-          New Task
-        </button>
+        <div className="flex items-center gap-2">
+          {onImportCSV && (
+            <button
+              onClick={onImportCSV}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#2A2640] text-gray-500 hover:text-gray-300 hover:border-gray-500 text-xs font-semibold transition-colors"
+              title="Import tasks from CSV"
+            >
+              <Upload size={13} /> Import CSV
+            </button>
+          )}
+          <button
+            onClick={() => exportTasksCSV(tasks)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#2A2640] text-gray-500 hover:text-gray-300 hover:border-gray-500 text-xs font-semibold transition-colors"
+            title="Export tasks to CSV"
+          >
+            <Download size={13} /> Export
+          </button>
+          <button
+            onClick={onAddTask}
+            className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm rounded-xl transition-all active:scale-95"
+          >
+            <Plus size={16} />
+            New Task
+          </button>
+        </div>
       </div>
 
       {/* Progress bar */}

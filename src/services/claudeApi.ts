@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { Task, FocusStep, DumpItem } from '../types';
+import type { Task, FocusStep, DumpItem, WeeklyReview, Decision, OKR } from '../types';
 
 const client = new Anthropic({
   apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY ?? '',
@@ -231,5 +231,124 @@ Keep it under 250 words. Be specific and clear — avoid vague phrases. Write in
     } else {
       onError('Failed to generate email. Check your API key and connection.');
     }
+  }
+}
+
+// ─── AI Coach ─────────────────────────────────────────────────────────────────
+
+export type ChatMessage = { role: 'user' | 'assistant'; content: string };
+
+export async function streamAICoach(
+  messages: ChatMessage[],
+  context: { tasks: Task[]; okrs: OKR[]; decisions: Decision[] },
+  onChunk: (text: string) => void,
+  onDone: () => void,
+  onError: (err: string) => void,
+): Promise<void> {
+  const today = new Date().toISOString().split('T')[0];
+  const urgentTasks = context.tasks.filter(t => t.column !== 'done' && (t.quadrant === 'do-now' || (t.dueDate && t.dueDate <= today)));
+  const activeTasks = context.tasks.filter(t => t.column === 'in-progress');
+
+  const systemPrompt = `You are an expert ADHD leadership coach embedded in a productivity app. You have deep knowledge of ADHD management strategies, executive function support, leadership development, and time management.
+
+Current context:
+- Urgent/Do Now tasks (${urgentTasks.length}): ${urgentTasks.slice(0, 5).map(t => `"${t.title}" (${t.priority})`).join(', ') || 'none'}
+- In Progress (${activeTasks.length}): ${activeTasks.slice(0, 3).map(t => `"${t.title}"`).join(', ') || 'none'}
+- Total active tasks: ${context.tasks.filter(t => t.column !== 'done').length}
+- Active OKRs: ${context.okrs.slice(0, 3).map(o => `"${o.objective}"`).join(', ') || 'none'}
+- Recent decisions: ${context.decisions.slice(0, 3).map(d => `"${d.title}"`).join(', ') || 'none'}
+
+Be direct, practical, and ADHD-aware. Keep responses concise (2–4 short paragraphs max). Use bullet points for action items. Acknowledge the cognitive load of leadership with ADHD without being condescending.`;
+
+  try {
+    const stream = client.messages.stream({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: messages.map(m => ({ role: m.role, content: m.content })),
+    });
+
+    stream.on('text', onChunk);
+    await stream.finalMessage();
+    onDone();
+  } catch (err) {
+    if (err instanceof Anthropic.AuthenticationError) onError('Invalid API key.');
+    else if (err instanceof Anthropic.RateLimitError) onError('Rate limited — try again in a moment.');
+    else onError('Coach unavailable. Check your API key and connection.');
+  }
+}
+
+// ─── Weekly Review Summary ────────────────────────────────────────────────────
+
+export async function generateWeeklySummary(
+  review: WeeklyReview,
+  completedTasks: Task[],
+  onDone: (summary: string) => void,
+  onError: (err: string) => void,
+): Promise<void> {
+  const prompt = `You are an ADHD leadership coach. Summarise this weekly review in exactly 3 sentences — one sentence per paragraph. Be specific, warm, and forward-looking. Focus on the most important win, the most important slip, and the key focus for next week.
+
+Weekly Review:
+- Wins: ${review.wins || 'not filled in'}
+- What slipped: ${review.slipped || 'nothing noted'}
+- Commitments made: ${review.commitmentsMade || 'none noted'}
+- Next week focus: ${review.nextWeekFocus || 'not set'}
+- Energy this week: ${review.energyRating}/5
+- Notes: ${review.notes || 'none'}
+- Tasks completed this week: ${completedTasks.map(t => t.title).join(', ') || 'none recorded'}
+
+Write 3 sentences. No headers, no bullets. Plain prose.`;
+
+  try {
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 256,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+    onDone(text);
+  } catch (err) {
+    if (err instanceof Anthropic.AuthenticationError) onError('Invalid API key.');
+    else if (err instanceof Anthropic.RateLimitError) onError('Rate limited — try again.');
+    else onError('Could not generate summary.');
+  }
+}
+
+// ─── Decision Helper ──────────────────────────────────────────────────────────
+
+export async function streamDecisionHelper(
+  decision: Pick<Decision, 'title' | 'context' | 'alternatives'>,
+  onChunk: (text: string) => void,
+  onDone: () => void,
+  onError: (err: string) => void,
+): Promise<void> {
+  const prompt = `You are an ADHD leadership coach helping a leader think through a decision clearly.
+
+Decision: ${decision.title}
+Context: ${decision.context || 'No additional context provided'}
+Alternatives considered: ${decision.alternatives || 'Not specified'}
+
+Help them think through this decision using this structure (be concise, use short bullet points):
+
+**What's at stake** — 2-3 bullets on key consequences
+**Key tensions** — what makes this hard (trade-offs, uncertainties)
+**Questions to ask yourself** — 3 clarifying questions that might unlock clarity
+**A suggested frame** — one way to look at this that cuts through the noise
+
+Keep each section to 2-4 bullets. Be direct and ADHD-aware (avoid analysis paralysis language).`;
+
+  try {
+    const stream = client.messages.stream({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 700,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    stream.on('text', onChunk);
+    await stream.finalMessage();
+    onDone();
+  } catch (err) {
+    if (err instanceof Anthropic.AuthenticationError) onError('Invalid API key.');
+    else if (err instanceof Anthropic.RateLimitError) onError('Rate limited — try again.');
+    else onError('Could not generate analysis.');
   }
 }

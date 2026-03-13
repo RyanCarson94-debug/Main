@@ -22,7 +22,8 @@ export type View =
   | 'decision-log'
   | 'weekly-review'
   | 'stakeholders'
-  | 'direct-reports';
+  | 'direct-reports'
+  | 'day-planner';
 
 export type DumpItemStatus = 'inbox' | 'task' | 'idea' | 'archived';
 
@@ -85,6 +86,7 @@ export interface Task {
   priority: Priority;
   energy?: EnergyLevel;
   dueDate?: string;
+  estimateMinutes?: number;
   tags: string[];
   commitmentNote?: string;
   createdAt: string;

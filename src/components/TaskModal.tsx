@@ -282,6 +282,41 @@ export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
             </div>
           </div>
 
+          {/* Time estimate */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+              Time Estimate (minutes)
+            </label>
+            <div className="flex gap-2 items-center">
+              <input
+                type="number"
+                min={5}
+                max={480}
+                step={5}
+                value={form.estimateMinutes ?? ''}
+                onChange={e => setForm(f => ({ ...f, estimateMinutes: e.target.value ? parseInt(e.target.value) : undefined }))}
+                placeholder="e.g. 30"
+                className="w-32 bg-black/30 border border-[#2A2640] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500 transition-colors"
+              />
+              <div className="flex gap-1.5">
+                {[15, 30, 60, 90].map(m => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, estimateMinutes: m }))}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                      form.estimateMinutes === m
+                        ? 'bg-violet-600/20 border-violet-500/40 text-violet-300'
+                        : 'border-[#2A2640] text-gray-500 hover:border-gray-500 hover:text-gray-300'
+                    }`}
+                  >
+                    {m}m
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* Actions */}
           <div className="flex gap-3 pt-2">
             <button

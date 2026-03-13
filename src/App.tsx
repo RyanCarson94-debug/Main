@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { KanbanBoard } from './components/KanbanBoard';
 import { EisenhowerMatrix } from './components/EisenhowerMatrix';
@@ -21,8 +21,12 @@ import { StakeholderMapView } from './components/StakeholderMapView';
 import { DirectReportsView } from './components/DirectReportsView';
 import { QuickCapture, QuickCaptureButton } from './components/QuickCapture';
 import { SearchOverlay } from './components/SearchOverlay';
+import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
+import { AICoach } from './components/AICoach';
+import { DayPlannerView } from './components/DayPlannerView';
 import { useAppStore } from './store';
 import type { View, Task, QuadrantId } from './types';
+import { parseTasksCSV } from './utils/export';
 
 // ─── Notification helper ──────────────────────────────────────────────────────
 
@@ -57,7 +61,10 @@ export default function App() {
   const [delegatingTask, setDelegatingTask] = useState<Task | null>(null);
   const [showQuickCapture, setShowQuickCapture] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showAICoach, setShowAICoach] = useState(false);
   const [notifBanner, setNotifBanner] = useState(false);
+  const csvImportRef = useRef<HTMLInputElement>(null);
 
   const store = useAppStore();
 
@@ -74,9 +81,13 @@ export default function App() {
         e.preventDefault();
         setShowSearch(s => !s);
       }
+      if (e.key === '?' && !inInput) {
+        setShowShortcuts(s => !s);
+      }
       if (e.key === 'Escape') {
         setShowSearch(false);
         setShowQuickCapture(false);
+        setShowShortcuts(false);
       }
     };
     window.addEventListener('keydown', handler);
@@ -139,6 +150,23 @@ export default function App() {
     setView(targetView);
   };
 
+  const handleCSVImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const tasks = parseTasksCSV(ev.target?.result as string);
+        tasks.forEach(t => store.addTask(t));
+        alert(`Imported ${tasks.length} task${tasks.length !== 1 ? 's' : ''}`);
+      } catch (err) {
+        alert(`Import failed: ${err instanceof Error ? err.message : 'Invalid CSV'}`);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   const delegationAlerts = store.tasks.filter(t => {
     if (!t.delegatedTo || t.followUpDone || !t.followUpDate) return false;
     const followUp = new Date(t.followUpDate);
@@ -173,10 +201,13 @@ export default function App() {
         onViewChange={setView}
         onLogout={handleLogout}
         onSearch={() => setShowSearch(true)}
+        onToggleAICoach={() => setShowAICoach(s => !s)}
+        onShowShortcuts={() => setShowShortcuts(true)}
+        aiCoachOpen={showAICoach}
         taskCounts={taskCounts}
       />
 
-      <main className="flex-1 overflow-hidden flex flex-col">
+      <main className={`flex-1 overflow-hidden flex flex-col transition-all ${showAICoach ? 'mr-[380px]' : ''}`}>
         {/* Notification banner */}
         {notifBanner && (
           <div className="shrink-0 flex items-center justify-between px-5 py-2.5 bg-purple-600/20 border-b border-purple-500/20">
@@ -210,6 +241,7 @@ export default function App() {
               onDeleteTask={store.deleteTask}
               onMoveColumn={store.moveTaskColumn}
               onDelegateTask={task => setDelegatingTask(task)}
+              onImportCSV={() => csvImportRef.current?.click()}
             />
           )}
           {view === 'eisenhower' && (
@@ -311,7 +343,14 @@ export default function App() {
             />
           )}
           {view === 'weekly-review' && (
-            <WeeklyReviewView reviews={store.weeklyReviews} onSave={store.saveWeeklyReview} />
+            <WeeklyReviewView reviews={store.weeklyReviews} tasks={store.tasks} onSave={store.saveWeeklyReview} />
+          )}
+          {view === 'day-planner' && (
+            <DayPlannerView
+              tasks={store.tasks}
+              onEditTask={openEditTask}
+              onAddTask={openAddTask}
+            />
           )}
           {view === 'stakeholders' && (
             <StakeholderMapView
@@ -380,6 +419,26 @@ export default function App() {
           onClose={() => setDelegatingTask(null)}
         />
       )}
+
+      {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
+
+      {showAICoach && (
+        <AICoach
+          tasks={store.tasks}
+          okrs={store.okrs}
+          decisions={store.decisions}
+          onClose={() => setShowAICoach(false)}
+        />
+      )}
+
+      {/* Hidden CSV import input */}
+      <input
+        ref={csvImportRef}
+        type="file"
+        accept=".csv"
+        className="hidden"
+        onChange={handleCSVImport}
+      />
     </div>
   );
 }

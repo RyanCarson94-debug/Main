@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Plus, Trash2, Target, TrendingUp } from 'lucide-react';
+import { Plus, Trash2, Target, TrendingUp, Download } from 'lucide-react';
 import type { OKR, KeyResult } from '../types';
+import { exportOKRsCSV } from '../utils/export';
 
 interface OKRViewProps {
   okrs: OKR[];
@@ -57,13 +58,23 @@ export function OKRView({ okrs, onAddOKR, onUpdateOKR, onDeleteOKR }: OKRViewPro
           </h2>
           <p className="text-gray-400 text-sm mt-0.5">Objectives & Key Results</p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm rounded-xl transition-all"
-        >
-          <Plus size={16} />
-          New Objective
-        </button>
+        <div className="flex items-center gap-2">
+          {okrs.length > 0 && (
+            <button
+              onClick={() => exportOKRsCSV(okrs)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#2A2640] text-gray-500 hover:text-gray-300 hover:border-gray-500 text-xs font-semibold transition-colors"
+            >
+              <Download size={13} /> Export CSV
+            </button>
+          )}
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm rounded-xl transition-all"
+          >
+            <Plus size={16} />
+            New Objective
+          </button>
+        </div>
       </div>
 
       {showForm && (
