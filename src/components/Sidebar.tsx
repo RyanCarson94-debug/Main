@@ -1,6 +1,7 @@
 import {
   LayoutDashboard, Grid2x2, Target, BarChart2, Users, Zap, UserCheck,
-  BookOpen, Bell, BrainCircuit, Home, Compass, BookMarked, CalendarCheck, LogOut,
+  BookOpen, Bell, BrainCircuit, Home, Compass, BookMarked, CalendarCheck,
+  LogOut, Network, Search, UserCog,
 } from 'lucide-react';
 import type { View } from '../types';
 
@@ -8,6 +9,7 @@ interface SidebarProps {
   view: View;
   onViewChange: (v: View) => void;
   onLogout: () => void;
+  onSearch: () => void;
   taskCounts: {
     doNow: number;
     inProgress: number;
@@ -43,8 +45,10 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'People',
     items: [
-      { id: 'updates',      label: '1:1 Briefings', icon: <Bell size={16} />, badge: c => c.pendingUpdates },
-      { id: 'first-team',   label: 'First Team',    icon: <Users size={16} /> },
+      { id: 'updates',         label: '1:1 Briefings',   icon: <Bell size={16} />,    badge: c => c.pendingUpdates },
+      { id: 'first-team',      label: 'First Team',      icon: <Users size={16} /> },
+      { id: 'direct-reports',  label: 'Direct Reports',  icon: <UserCog size={16} /> },
+      { id: 'stakeholders',    label: 'Stakeholders',    icon: <Network size={16} /> },
     ],
   },
   {
@@ -65,7 +69,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-export function Sidebar({ view, onViewChange, onLogout, taskCounts }: SidebarProps) {
+export function Sidebar({ view, onViewChange, onLogout, onSearch, taskCounts }: SidebarProps) {
   return (
     <aside className="w-[220px] shrink-0 flex flex-col h-full border-r border-[#2D1F5E] bg-[#0C0820]">
       {/* Logo */}
@@ -80,6 +84,16 @@ export function Sidebar({ view, onViewChange, onLogout, taskCounts }: SidebarPro
           </div>
         </div>
       </div>
+
+      {/* Search */}
+      <button
+        onClick={onSearch}
+        className="mx-3 mt-3 flex items-center gap-2 px-3 py-2 rounded-xl border border-[#2D1F5E] text-gray-600 hover:text-gray-300 hover:bg-white/5 transition-all text-xs"
+      >
+        <Search size={13} />
+        <span className="flex-1 text-left">Search…</span>
+        <kbd className="text-[10px] px-1 py-0.5 rounded bg-white/5 border border-white/10">⌘K</kbd>
+      </button>
 
       {/* Focus status */}
       {(taskCounts.doNow > 0 || taskCounts.inProgress > 0) && (

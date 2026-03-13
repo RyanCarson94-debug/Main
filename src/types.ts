@@ -3,6 +3,9 @@ export type KanbanColumnId = 'backlog' | 'in-progress' | 'done';
 export type Priority = 'critical' | 'high' | 'medium' | 'low';
 export type EnergyLevel = 'deep-work' | 'quick-win' | 'admin' | 'creative';
 export type RecurrenceType = 'daily' | 'weekdays' | 'weekly' | 'monthly';
+export type InfluenceLevel = 'high' | 'medium' | 'low';
+export type InterestLevel  = 'high' | 'medium' | 'low';
+
 export type View =
   | 'dashboard'
   | 'kanban'
@@ -17,7 +20,9 @@ export type View =
   | 'dump'
   | 'north-star'
   | 'decision-log'
-  | 'weekly-review';
+  | 'weekly-review'
+  | 'stakeholders'
+  | 'direct-reports';
 
 export type DumpItemStatus = 'inbox' | 'task' | 'idea' | 'archived';
 
@@ -209,6 +214,27 @@ export const PRIORITY_CONFIG: Record<Priority, { label: string; color: string; d
   medium: { label: 'Medium', color: 'text-amber-400', dot: 'bg-amber-500' },
   low: { label: 'Low', color: 'text-blue-400', dot: 'bg-blue-500' },
 };
+
+export interface Stakeholder {
+  id: string;
+  name: string;
+  role: string;
+  org?: string;
+  influence: InfluenceLevel;
+  interest: InterestLevel;
+  strategy?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface DirectReportProfile {
+  personId: string;
+  growthGoals: string;
+  strengths: string[];
+  developmentAreas: string[];
+  performanceNotes: string;
+  lastUpdated: string;
+}
 
 export const ENERGY_CONFIG: Record<EnergyLevel, { label: string; emoji: string; color: string; bg: string; border: string }> = {
   'deep-work': { label: 'Deep Work', emoji: '🧠', color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/30' },

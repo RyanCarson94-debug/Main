@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { saveToCloud, loadFromCloud } from './services/supabase';
 import type {
   Task, OKR, SwotItem, FirstTeamMember, KanbanColumnId, QuadrantId,
   Update, UpdatePerson, TaskFocus, FocusStep, DumpItem, DumpItemStatus,
   Decision, Commitment, WeeklyReview, NorthStar, RecurrenceRule,
+  Stakeholder, DirectReportProfile,
 } from './types';
 
 const STORAGE_KEYS = {
@@ -17,7 +19,9 @@ const STORAGE_KEYS = {
   decisions:     'adhd-leader-decisions',
   commitments:   'adhd-leader-commitments',
   weeklyReviews: 'adhd-leader-weekly-reviews',
-  northStar:     'adhd-leader-north-star',
+  northStar:          'adhd-leader-north-star',
+  stakeholders:       'adhd-leader-stakeholders',
+  directReportProfiles: 'adhd-leader-direct-report-profiles',
 };
 
 // Dual-write: primary key + backup key for resilience
@@ -144,6 +148,8 @@ export function useAppStore() {
   const [commitments,   setCommitments]   = useState<Commitment[]>(() => loadFromStorage(STORAGE_KEYS.commitments, []));
   const [weeklyReviews, setWeeklyReviews] = useState<WeeklyReview[]>(() => loadFromStorage(STORAGE_KEYS.weeklyReviews, []));
   const [northStar,     setNorthStar]     = useState<NorthStar | null>(() => loadFromStorage<NorthStar | null>(STORAGE_KEYS.northStar, null));
+  const [stakeholders,          setStakeholders]          = useState<Stakeholder[]>(() => loadFromStorage(STORAGE_KEYS.stakeholders, []));
+  const [directReportProfiles,  setDirectReportProfiles]  = useState<DirectReportProfile[]>(() => loadFromStorage(STORAGE_KEYS.directReportProfiles, []));
 
   useEffect(() => { saveToStorage(STORAGE_KEYS.tasks,         tasks);         }, [tasks]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.okrs,          okrs);          }, [okrs]);
@@ -156,7 +162,64 @@ export function useAppStore() {
   useEffect(() => { saveToStorage(STORAGE_KEYS.decisions,     decisions);     }, [decisions]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.commitments,   commitments);   }, [commitments]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.weeklyReviews, weeklyReviews); }, [weeklyReviews]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.northStar,     northStar);     }, [northStar]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.northStar,             northStar);             }, [northStar]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.stakeholders,          stakeholders);          }, [stakeholders]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.directReportProfiles,  directReportProfiles);  }, [directReportProfiles]);
+
+  // ── Cloud sync (Supabase) ──────────────────────────────────────────────────
+  // Debounced save: 3s after last change, push full state to cloud
+
+  const cloudSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const triggerCloudSave = useCallback(() => {
+    if (cloudSaveTimer.current) clearTimeout(cloudSaveTimer.current);
+    cloudSaveTimer.current = setTimeout(() => {
+      const snapshot = {
+        tasks, okrs, swotItems, teamMembers, updatePeople, updates,
+        focusMap, dumpItems, decisions, commitments, weeklyReviews,
+        northStar, stakeholders, directReportProfiles,
+        cloudSavedAt: new Date().toISOString(),
+      };
+      void saveToCloud(snapshot);
+    }, 3000);
+  }, [tasks, okrs, swotItems, teamMembers, updatePeople, updates,
+      focusMap, dumpItems, decisions, commitments, weeklyReviews,
+      northStar, stakeholders, directReportProfiles]);
+
+  useEffect(() => { triggerCloudSave(); }, [triggerCloudSave]);
+
+  // Load from cloud on first mount: if cloud data is newer, merge it
+  useEffect(() => {
+    void (async () => {
+      const cloud = await loadFromCloud();
+      if (!cloud) return;
+      const cloudDate = new Date(cloud.saved_at);
+      const localDate = new Date(loadFromStorage<string>('adhd-leader-last-cloud-load', '1970-01-01'));
+      if (cloudDate <= localDate) return;
+
+      // Cloud is newer — restore all state
+      const p = cloud.payload as Record<string, unknown>;
+      if (Array.isArray(p.tasks))               setTasks(p.tasks as Task[]);
+      if (Array.isArray(p.okrs))                setOkrs(p.okrs as OKR[]);
+      if (Array.isArray(p.swotItems))           setSwotItems(p.swotItems as SwotItem[]);
+      if (Array.isArray(p.teamMembers))         setTeamMembers(p.teamMembers as FirstTeamMember[]);
+      if (Array.isArray(p.updatePeople))        setUpdatePeople(p.updatePeople as UpdatePerson[]);
+      if (Array.isArray(p.updates))             setUpdates(p.updates as Update[]);
+      if (p.focusMap && typeof p.focusMap === 'object') setFocusMap(p.focusMap as Record<string, TaskFocus>);
+      if (Array.isArray(p.dumpItems))           setDumpItems(p.dumpItems as DumpItem[]);
+      if (Array.isArray(p.decisions))           setDecisions(p.decisions as Decision[]);
+      if (Array.isArray(p.commitments))         setCommitments(p.commitments as Commitment[]);
+      if (Array.isArray(p.weeklyReviews))       setWeeklyReviews(p.weeklyReviews as WeeklyReview[]);
+      if (p.northStar)                          setNorthStar(p.northStar as NorthStar);
+      if (Array.isArray(p.stakeholders))        setStakeholders(p.stakeholders as Stakeholder[]);
+      if (Array.isArray(p.directReportProfiles)) setDirectReportProfiles(p.directReportProfiles as DirectReportProfile[]);
+
+      saveToStorage('adhd-leader-last-cloud-load', cloud.saved_at);
+      console.info('[sync] Restored data from cloud (newer than local)');
+    })();
+  // Run only once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Tasks ──────────────────────────────────────────────────────────────────
 
@@ -395,6 +458,32 @@ export function useAppStore() {
     setNorthStar(ns);
   };
 
+  // ── Stakeholders ───────────────────────────────────────────────────────────
+
+  const addStakeholder = (s: Omit<Stakeholder, 'id' | 'createdAt'>) => {
+    setStakeholders(prev => [{ ...s, id: crypto.randomUUID(), createdAt: new Date().toISOString() }, ...prev]);
+  };
+  const updateStakeholder = (id: string, updates: Partial<Stakeholder>) => {
+    setStakeholders(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+  };
+  const deleteStakeholder = (id: string) => {
+    setStakeholders(prev => prev.filter(s => s.id !== id));
+  };
+
+  // ── Direct Report Profiles ─────────────────────────────────────────────────
+
+  const saveDirectReportProfile = (profile: DirectReportProfile) => {
+    setDirectReportProfiles(prev => {
+      const idx = prev.findIndex(p => p.personId === profile.personId);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = profile;
+        return updated;
+      }
+      return [...prev, profile];
+    });
+  };
+
   return {
     tasks, okrs, swotItems, teamMembers, updatePeople, updates, focusMap, dumpItems,
     decisions, commitments, weeklyReviews, northStar,
@@ -410,5 +499,7 @@ export function useAppStore() {
     addCommitment, toggleCommitment, deleteCommitment,
     saveWeeklyReview,
     saveNorthStar,
+    stakeholders, addStakeholder, updateStakeholder, deleteStakeholder,
+    directReportProfiles, saveDirectReportProfile,
   };
 }

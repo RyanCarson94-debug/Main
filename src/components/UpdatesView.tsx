@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import {
   MessageSquarePlus, Trash2, CheckCheck, ChevronDown, Plus,
-  UserPlus, Check, Bell, Clock, AlertTriangle, Zap, Info,
+  UserPlus, Check, Bell, Clock, AlertTriangle, Zap, Info, ClipboardList,
 } from 'lucide-react';
-import type { Update, UpdatePerson, UpdateType, PersonRelationship } from '../types';
+import type { Update, UpdatePerson, UpdateType, PersonRelationship, Commitment, Decision, Task, FirstTeamMember } from '../types';
+import { MeetingPrepModal } from './MeetingPrepModal';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -32,6 +33,11 @@ interface UpdatesViewProps {
   onDeleteUpdate: (id: string) => void;
   onMarkDiscussed: (updateId: string, personId: string) => void;
   onMarkAllDiscussed: (personId: string) => void;
+  // For meeting prep
+  commitments?: Commitment[];
+  decisions?: Decision[];
+  tasks?: Task[];
+  teamMembers?: FirstTeamMember[];
 }
 
 // ─── Add Person Modal ─────────────────────────────────────────────────────────
@@ -303,7 +309,12 @@ export function UpdatesView({
   onDeleteUpdate,
   onMarkDiscussed,
   onMarkAllDiscussed,
+  commitments = [],
+  decisions = [],
+  tasks = [],
+  teamMembers = [],
 }: UpdatesViewProps) {
+  const [showPrep, setShowPrep] = useState(false);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(
     people.length > 0 ? people[0].id : null
   );
@@ -415,6 +426,13 @@ export function UpdatesView({
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowPrep(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-purple-400 bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-colors"
+                >
+                  <ClipboardList size={13} />
+                  Prep
+                </button>
                 {pending.length > 0 && (
                   <button
                     onClick={() => onMarkAllDiscussed(selectedPerson.id)}
@@ -519,6 +537,18 @@ export function UpdatesView({
           defaultPersonId={resolvedId ?? undefined}
           onAdd={onAddUpdate}
           onClose={() => setShowAddUpdate(false)}
+        />
+      )}
+      {showPrep && selectedPerson && (
+        <MeetingPrepModal
+          personName={selectedPerson.name}
+          personId={selectedPerson.id}
+          updates={updates}
+          commitments={commitments}
+          decisions={decisions}
+          tasks={tasks}
+          teamMembers={teamMembers}
+          onClose={() => setShowPrep(false)}
         />
       )}
     </div>
