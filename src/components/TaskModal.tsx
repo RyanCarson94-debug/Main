@@ -63,9 +63,9 @@ export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-[#1A1035] border border-[#2C2C30] rounded-2xl shadow-2xl animate-[slideIn_0.2s_ease-out] overflow-hidden">
+      <div className="relative w-full max-w-lg bg-[#1A1035] border border-[#2A2640] rounded-2xl shadow-2xl animate-[slideIn_0.2s_ease-out] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2C2C30]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2A2640]">
           <h2 className="text-lg font-bold text-white">
             {task ? 'Edit Task' : 'New Task'}
           </h2>
@@ -86,7 +86,7 @@ export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
               value={form.title}
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
               placeholder="What needs to happen?"
-              className="w-full bg-black/30 border border-[#2C2C30] rounded-xl px-4 py-3 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500 transition-colors"
+              className="w-full bg-black/30 border border-[#2A2640] rounded-xl px-4 py-3 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500 transition-colors"
             />
           </div>
 
@@ -100,7 +100,7 @@ export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               placeholder="Add context or details..."
               rows={2}
-              className="w-full bg-black/30 border border-[#2C2C30] rounded-xl px-4 py-3 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500 transition-colors resize-none"
+              className="w-full bg-black/30 border border-[#2A2640] rounded-xl px-4 py-3 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500 transition-colors resize-none"
             />
           </div>
 
@@ -121,7 +121,7 @@ export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
                       onClick={() => setForm(f => ({ ...f, quadrant: qId }))}
                       className={`
                         text-xs font-semibold px-2 py-2 rounded-lg border transition-all
-                        ${selected ? `${q.bg} ${q.border} ${q.color}` : 'border-[#2C2C30] text-gray-500 hover:border-gray-500'}
+                        ${selected ? `${q.bg} ${q.border} ${q.color}` : 'border-[#2A2640] text-gray-500 hover:border-gray-500'}
                       `}
                     >
                       {q.label}
@@ -146,7 +146,7 @@ export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
                       onClick={() => setForm(f => ({ ...f, priority: pId }))}
                       className={`
                         flex items-center gap-1.5 text-xs font-semibold px-2 py-2 rounded-lg border transition-all
-                        ${selected ? `bg-white/10 border-white/20 ${p.color}` : 'border-[#2C2C30] text-gray-500 hover:border-gray-500'}
+                        ${selected ? `bg-white/10 border-white/20 ${p.color}` : 'border-[#2A2640] text-gray-500 hover:border-gray-500'}
                       `}
                     >
                       <span className={`w-1.5 h-1.5 rounded-full ${p.dot}`} />
@@ -173,7 +173,7 @@ export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
                     flex-1 text-xs font-semibold py-2 rounded-lg border capitalize transition-all
                     ${form.column === col
                       ? 'bg-purple-600/20 border-purple-500/50 text-purple-300'
-                      : 'border-[#2C2C30] text-gray-500 hover:border-gray-500'
+                      : 'border-[#2A2640] text-gray-500 hover:border-gray-500'
                     }
                   `}
                 >
@@ -216,9 +216,9 @@ export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
                 onChange={e => setTagInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); }}}
                 placeholder="Add tag..."
-                className="flex-1 bg-black/30 border border-[#2C2C30] rounded-xl px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500 transition-colors"
+                className="flex-1 bg-black/30 border border-[#2A2640] rounded-xl px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500 transition-colors"
               />
-              <button type="button" onClick={addTag} className="px-3 py-2 rounded-xl bg-white/5 border border-[#2C2C30] text-gray-400 hover:text-white hover:border-gray-500 transition-colors">
+              <button type="button" onClick={addTag} className="px-3 py-2 rounded-xl bg-white/5 border border-[#2A2640] text-gray-400 hover:text-white hover:border-gray-500 transition-colors">
                 <Plus size={14} />
               </button>
             </div>
@@ -239,7 +239,7 @@ export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
                     type="button"
                     onClick={() => setForm(f => ({ ...f, energy: eId }))}
                     className={`flex flex-col items-center gap-1 py-2 px-1 rounded-lg border text-xs font-semibold transition-all ${
-                      selected ? `${e.bg} ${e.border} ${e.color}` : 'border-[#2C2C30] text-gray-500 hover:border-gray-500'
+                      selected ? `${e.bg} ${e.border} ${e.color}` : 'border-[#2A2640] text-gray-500 hover:border-gray-500'
                     }`}
                   >
                     <span>{e.emoji}</span>
@@ -260,7 +260,7 @@ export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
                 type="date"
                 value={form.dueDate ?? ''}
                 onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))}
-                className="w-full bg-black/30 border border-[#2C2C30] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500 transition-colors [color-scheme:dark]"
+                className="w-full bg-black/30 border border-[#2A2640] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500 transition-colors [color-scheme:dark]"
               />
             </div>
             <div>
@@ -273,7 +273,7 @@ export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
                   const val = e.target.value as RecurrenceType | 'none';
                   setForm(f => ({ ...f, recurrence: val === 'none' ? undefined : { type: val } }));
                 }}
-                className="w-full bg-black/30 border border-[#2C2C30] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500 transition-colors"
+                className="w-full bg-black/30 border border-[#2A2640] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500 transition-colors"
               >
                 {RECURRENCE_OPTIONS.map(o => (
                   <option key={o.value} value={o.value}>{o.label}</option>
@@ -287,7 +287,7 @@ export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 rounded-xl border border-[#2C2C30] text-gray-400 hover:text-white hover:border-gray-500 font-semibold text-sm transition-colors"
+              className="flex-1 py-3 rounded-xl border border-[#2A2640] text-gray-400 hover:text-white hover:border-gray-500 font-semibold text-sm transition-colors"
             >
               Cancel
             </button>

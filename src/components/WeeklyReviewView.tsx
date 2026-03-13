@@ -95,7 +95,7 @@ function ReviewForm({
               className={`flex-1 py-2 rounded-xl border text-xs font-semibold transition-all ${
                 energyRating === n
                   ? 'bg-purple-600/20 border-purple-500/40 text-white'
-                  : 'border-[#2C2C30] text-gray-600 hover:border-gray-500'
+                  : 'border-[#2A2640] text-gray-600 hover:border-gray-500'
               }`}
             >
               {ENERGY_LABELS[n]}
@@ -140,7 +140,7 @@ function ReviewField({
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         rows={2}
-        className="w-full px-3 py-2.5 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 resize-none"
+        className="w-full px-3 py-2.5 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 resize-none"
       />
     </div>
   );
@@ -152,7 +152,7 @@ function PastReviewCard({ review, onClick }: { review: WeeklyReview; onClick: ()
   return (
     <button
       onClick={onClick}
-      className="w-full text-left px-4 py-3 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] hover:border-white/10 transition-all"
+      className="w-full text-left px-4 py-3 rounded-xl bg-[#1E1C28] border border-[#2A2640] hover:border-white/10 transition-all"
     >
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs font-bold text-gray-300">{getWeekLabel(review.weekOf)}</p>

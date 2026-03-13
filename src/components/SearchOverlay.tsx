@@ -209,9 +209,9 @@ export function SearchOverlay({ open, onClose, onNavigate, data }: SearchOverlay
   return (
     <div className="fixed inset-0 z-[70] flex items-start justify-center pt-[15vh] px-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-      <div className="relative w-full max-w-xl rounded-2xl bg-[#141417] border border-white/10 shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+      <div className="relative w-full max-w-xl rounded-2xl bg-[#1A1824] border border-white/10 shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
         {/* Input */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-[#2C2C30]">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-[#2A2640]">
           <Search size={16} className="text-gray-500 shrink-0" />
           <input
             ref={inputRef}
@@ -269,7 +269,7 @@ export function SearchOverlay({ open, onClose, onNavigate, data }: SearchOverlay
         </div>
 
         {results.length > 0 && (
-          <div className="px-4 py-2 border-t border-[#2C2C30] text-[11px] text-gray-700">
+          <div className="px-4 py-2 border-t border-[#2A2640] text-[11px] text-gray-700">
             {results.length} result{results.length > 1 ? 's' : ''} — click or use arrows + enter
           </div>
         )}

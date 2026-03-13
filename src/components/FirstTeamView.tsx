@@ -37,7 +37,7 @@ function AddMemberModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-2xl bg-[#141417] border border-[#2C2C30] p-6 shadow-2xl"
+        className="w-full max-w-sm rounded-2xl bg-[#1A1824] border border-[#2A2640] p-6 shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <h3 className="text-base font-black text-white mb-4">Add Team Member</h3>
@@ -52,7 +52,7 @@ function AddMemberModal({
               onChange={e => setName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && submit()}
               placeholder="e.g. Alex Kim"
-              className="w-full px-3 py-2.5 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
+              className="w-full px-3 py-2.5 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
             />
           </div>
           <div>
@@ -64,7 +64,7 @@ function AddMemberModal({
               onChange={e => setRole(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && submit()}
               placeholder="e.g. VP Engineering"
-              className="w-full px-3 py-2.5 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
+              className="w-full px-3 py-2.5 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
             />
           </div>
         </div>
@@ -116,7 +116,7 @@ function LinkTaskModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl bg-[#141417] border border-[#2C2C30] p-6 shadow-2xl"
+        className="w-full max-w-md rounded-2xl bg-[#1A1824] border border-[#2A2640] p-6 shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <h3 className="text-base font-black text-white mb-4">Link a Task</h3>
@@ -125,7 +125,7 @@ function LinkTaskModal({
           placeholder="Search tasks…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full px-3 py-2.5 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 mb-3"
+          className="w-full px-3 py-2.5 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 mb-3"
         />
         <div className="space-y-1.5 max-h-64 overflow-y-auto">
           {available.length === 0 ? (
@@ -187,7 +187,7 @@ function LinkedTaskCard({
   return (
     <div
       className={`p-3.5 rounded-xl border transition-all ${
-        done ? 'bg-white/[0.02] border-white/5 opacity-50' : 'bg-[#1C1C1F] border-[#2C2C30]'
+        done ? 'bg-white/[0.02] border-white/5 opacity-50' : 'bg-[#1E1C28] border-[#2A2640]'
       }`}
     >
       <div className="flex items-start gap-3">

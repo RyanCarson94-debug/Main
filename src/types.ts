@@ -203,9 +203,9 @@ export const QUADRANTS: Record<QuadrantId, { label: string; shortLabel: string; 
 };
 
 export const COLUMNS: Record<KanbanColumnId, { label: string; color: string; accent: string }> = {
-  backlog: { label: 'Backlog', color: 'text-gray-300', accent: 'bg-gray-500' },
-  'in-progress': { label: 'In Progress', color: 'text-purple-300', accent: 'bg-purple-500' },
-  done: { label: 'Done', color: 'text-emerald-300', accent: 'bg-emerald-500' },
+  backlog: { label: 'Backlog', color: 'text-gray-400', accent: 'bg-gray-600' },
+  'in-progress': { label: 'In Progress', color: 'text-violet-300', accent: 'bg-violet-500' },
+  done: { label: 'Done', color: 'text-emerald-400', accent: 'bg-emerald-500' },
 };
 
 export const PRIORITY_CONFIG: Record<Priority, { label: string; color: string; dot: string }> = {

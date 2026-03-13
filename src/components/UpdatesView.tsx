@@ -54,7 +54,7 @@ function AddPersonModal({ onAdd, onClose }: { onAdd: (p: Omit<UpdatePerson, 'id'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-2xl bg-[#141417] border border-[#2C2C30] p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-sm rounded-2xl bg-[#1A1824] border border-[#2A2640] p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
         <h3 className="text-base font-black text-white mb-4">Add Person</h3>
         <div className="space-y-3">
           <div>
@@ -66,7 +66,7 @@ function AddPersonModal({ onAdd, onClose }: { onAdd: (p: Omit<UpdatePerson, 'id'
               value={name}
               onChange={e => setName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && submit()}
-              className="w-full px-3 py-2.5 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
+              className="w-full px-3 py-2.5 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
             />
           </div>
           <div>
@@ -136,7 +136,7 @@ function AddUpdateForm({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-2xl bg-[#141417] border border-[#2C2C30] p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-lg rounded-2xl bg-[#1A1824] border border-[#2A2640] p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
         <h3 className="text-base font-black text-white mb-4">Log Update</h3>
 
         {/* Type selector */}
@@ -167,7 +167,7 @@ function AddUpdateForm({
           value={content}
           onChange={e => setContent(e.target.value)}
           rows={4}
-          className="w-full px-3 py-2.5 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 resize-none mb-4"
+          className="w-full px-3 py-2.5 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 resize-none mb-4"
         />
 
         {/* Who needs to know */}
@@ -246,7 +246,7 @@ function UpdateCard({
   const dateStr = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
   return (
-    <div className={`p-4 rounded-xl border transition-all ${discussed ? 'bg-white/[0.02] border-white/5 opacity-50' : 'bg-[#1C1C1F] border-[#2C2C30]'}`}>
+    <div className={`p-4 rounded-xl border transition-all ${discussed ? 'bg-white/[0.02] border-white/5 opacity-50' : 'bg-[#1E1C28] border-[#2A2640]'}`}>
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
           {/* Type + date row */}

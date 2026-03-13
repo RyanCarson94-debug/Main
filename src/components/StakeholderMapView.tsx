@@ -65,8 +65,8 @@ function StakeholderFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-[#141417] border border-[#2C2C30] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2C2C30]">
+      <div className="w-full max-w-md rounded-2xl bg-[#1A1824] border border-[#2A2640] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2A2640]">
           <h3 className="text-base font-black text-white">{stakeholder ? 'Edit Stakeholder' : 'Add Stakeholder'}</h3>
           <button onClick={onClose} className="text-gray-600 hover:text-gray-400 transition-colors"><X size={16} /></button>
         </div>
@@ -116,7 +116,7 @@ function StakeholderFormModal({
   );
 }
 
-const INPUT = 'w-full px-3 py-2.5 rounded-xl bg-[#111113] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50';
+const INPUT = 'w-full px-3 py-2.5 rounded-xl bg-[#12111A] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50';
 function SField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
@@ -205,7 +205,7 @@ export function StakeholderMapView({
         {/* Detail panel */}
         {selected && (
           <div className="w-[240px] shrink-0 flex flex-col gap-3">
-            <div className="rounded-2xl bg-[#1C1C1F] border border-[#2C2C30] p-4">
+            <div className="rounded-2xl bg-[#1E1C28] border border-[#2A2640] p-4">
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <p className="text-sm font-black text-white">{selected.name}</p>

@@ -41,7 +41,7 @@ function StatCard({
   return (
     <button
       onClick={onClick}
-      className={`text-left p-4 rounded-2xl border transition-all hover:scale-[1.02] active:scale-[0.99] group ${colorClass}`}
+      className={`text-left p-4 rounded-2xl border shadow-md shadow-black/40 transition-all hover:scale-[1.02] active:scale-[0.99] group ${colorClass}`}
     >
       <div className="flex items-start justify-between mb-3">
         <span className="opacity-70">{icon}</span>
@@ -63,15 +63,15 @@ function SectionHeader({
 }) {
   return (
     <div className="flex items-center justify-between mb-2">
-      <div className="flex items-center gap-1.5">
-        {icon}
-        <span className="text-xs font-black uppercase tracking-widest text-gray-400">{title}</span>
+      <div className="flex items-center gap-2">
+        <span className="text-violet-400">{icon}</span>
+        <span className="text-xs font-bold uppercase tracking-widest text-gray-300">{title}</span>
         {count !== undefined && count > 0 && (
-          <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-white/5 text-gray-500">{count}</span>
+          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-400">{count}</span>
         )}
       </div>
       {onNavigate && (
-        <button onClick={onNavigate} className="text-[11px] text-gray-600 hover:text-purple-400 flex items-center gap-0.5 transition-colors">
+        <button onClick={onNavigate} className="text-[11px] text-gray-600 hover:text-violet-400 flex items-center gap-0.5 transition-colors">
           See all <ChevronRight size={11} />
         </button>
       )}
@@ -96,7 +96,7 @@ function DashTaskCard({
       className={`w-full text-left px-3.5 py-2.5 rounded-xl border transition-all group ${
         urgent
           ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40'
-          : 'bg-[#1C1C1F] border-[#2C2C30] hover:border-purple-500/40 hover:bg-[#1a1540]'
+          : 'bg-[#1E1C28] border-[#2A2640] hover:border-purple-500/40 hover:bg-[#1a1540]'
       }`}
     >
       <div className="flex items-center gap-2.5">
@@ -357,7 +357,7 @@ export function DashboardView({
               <SectionHeader icon={<Target size={13} className="text-pink-400" />} title="OKR Snapshot" onNavigate={() => onViewChange('okrs')} />
               <div className="space-y-2">
                 {okrSnapshot.map(okr => (
-                  <button key={okr.id} onClick={() => onViewChange('okrs')} className="w-full text-left p-3 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] hover:border-white/10 transition-all">
+                  <button key={okr.id} onClick={() => onViewChange('okrs')} className="w-full text-left p-3 rounded-xl bg-[#1E1C28] border border-[#2A2640] hover:border-white/10 transition-all">
                     <p className="text-xs font-semibold text-gray-300 truncate mb-2">{okr.objective}</p>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">

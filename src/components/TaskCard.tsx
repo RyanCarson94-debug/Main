@@ -23,9 +23,10 @@ export function TaskCard({ task, onDelete, onMoveColumn, onEdit, onDelegate, com
   return (
     <div
       className={`
-        group relative rounded-xl border border-[#2C2C30] bg-[#1C1C1F]
+        group relative rounded-xl border border-[#2A2640] bg-[#1E1C28]
+        shadow-sm shadow-black/40
         transition-colors cursor-pointer
-        ${isDone ? 'opacity-50' : 'hover:border-[#3C3C40] hover:bg-[#222226]'}
+        ${isDone ? 'opacity-50' : 'hover:border-violet-500/30 hover:bg-[#24222F]'}
         ${compact ? 'p-3' : 'p-3.5'}
       `}
       onClick={() => onEdit(task)}
@@ -74,7 +75,7 @@ export function TaskCard({ task, onDelete, onMoveColumn, onEdit, onDelegate, com
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           {task.tags.slice(0, 2).map(tag => (
-            <span key={tag} className="flex items-center gap-1 text-[10px] text-gray-700 px-1.5 py-0.5 rounded bg-white/[0.04] border border-[#2C2C30]">
+            <span key={tag} className="flex items-center gap-1 text-[10px] text-gray-700 px-1.5 py-0.5 rounded bg-white/[0.04] border border-[#2A2640]">
               <Tag size={7} />
               {tag}
             </span>

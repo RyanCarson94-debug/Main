@@ -76,17 +76,17 @@ export function OKRView({ okrs, onAddOKR, onUpdateOKR, onDeleteOKR }: OKRViewPro
                 onChange={e => setNewObj(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addOKR()}
                 placeholder="What's your objective? (e.g. Build a high-performing team)"
-                className="w-full bg-black/30 border border-[#2C2C30] rounded-xl px-4 py-3 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500"
+                className="w-full bg-black/30 border border-[#2A2640] rounded-xl px-4 py-3 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500"
               />
               <input
                 value={newQuarter}
                 onChange={e => setNewQuarter(e.target.value)}
                 placeholder="Quarter (e.g. Q2 2025)"
-                className="w-full bg-black/30 border border-[#2C2C30] rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500"
+                className="w-full bg-black/30 border border-[#2A2640] rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500"
               />
             </div>
             <div className="flex gap-2 shrink-0">
-              <button onClick={() => setShowForm(false)} className="px-3 py-2.5 rounded-xl border border-[#2C2C30] text-gray-400 hover:text-white text-sm">Cancel</button>
+              <button onClick={() => setShowForm(false)} className="px-3 py-2.5 rounded-xl border border-[#2A2640] text-gray-400 hover:text-white text-sm">Cancel</button>
               <button onClick={addOKR} className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm">Add</button>
             </div>
           </div>
@@ -104,9 +104,9 @@ export function OKRView({ okrs, onAddOKR, onUpdateOKR, onDeleteOKR }: OKRViewPro
           {okrs.map(okr => {
             const progress = avgProgress(okr);
             return (
-              <div key={okr.id} className="rounded-2xl border border-[#2C2C30] bg-white/2 overflow-hidden">
+              <div key={okr.id} className="rounded-2xl border border-[#2A2640] bg-white/2 overflow-hidden">
                 {/* Objective header */}
-                <div className="flex items-start justify-between p-4 border-b border-[#2C2C30]">
+                <div className="flex items-start justify-between p-4 border-b border-[#2A2640]">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-bold text-purple-400 uppercase tracking-widest">{okr.quarter}</span>
@@ -158,7 +158,7 @@ export function OKRView({ okrs, onAddOKR, onUpdateOKR, onDeleteOKR }: OKRViewPro
                   ))}
                   <button
                     onClick={() => addKR(okr.id, okr)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-[#2C2C30] text-gray-600 hover:text-gray-400 hover:border-gray-600 text-xs font-medium transition-colors w-full"
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-[#2A2640] text-gray-600 hover:text-gray-400 hover:border-gray-600 text-xs font-medium transition-colors w-full"
                   >
                     <Plus size={11} />
                     Add key result

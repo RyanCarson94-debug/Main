@@ -86,7 +86,7 @@ export function KanbanBoard({ tasks, onAddTask, onEditTask, onDeleteTask, onMove
                 flex-1 min-w-[280px] flex flex-col rounded-2xl border transition-all duration-150
                 ${isOver
                   ? 'border-purple-500/50 bg-purple-500/5'
-                  : 'border-[#2C2C30] bg-white/2'
+                  : 'border-[#2A2640] bg-white/2'
                 }
               `}
               onDragOver={e => handleDragOver(e, colId)}
@@ -94,7 +94,7 @@ export function KanbanBoard({ tasks, onAddTask, onEditTask, onDeleteTask, onMove
               onDrop={e => handleDrop(e, colId)}
             >
               {/* Column header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-[#2C2C30]">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-[#2A2640]">
                 <div className="flex items-center gap-2">
                   <span className={`w-2.5 h-2.5 rounded-full ${col.accent}`} />
                   <span className={`font-bold text-sm ${col.color}`}>{col.label}</span>
@@ -138,7 +138,7 @@ export function KanbanBoard({ tasks, onAddTask, onEditTask, onDeleteTask, onMove
               {colId === 'backlog' && (
                 <button
                   onClick={onAddTask}
-                  className="flex items-center gap-2 mx-3 mb-3 px-3 py-2 rounded-xl border border-dashed border-[#2C2C30] text-gray-600 hover:text-gray-400 hover:border-gray-600 text-xs font-medium transition-colors"
+                  className="flex items-center gap-2 mx-3 mb-3 px-3 py-2 rounded-xl border border-dashed border-[#2A2640] text-gray-600 hover:text-gray-400 hover:border-gray-600 text-xs font-medium transition-colors"
                 >
                   <Plus size={12} />
                   Add task

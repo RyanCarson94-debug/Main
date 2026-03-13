@@ -42,7 +42,7 @@ function ChipInput({
           onChange={e => setVal(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && add()}
           placeholder={placeholder}
-          className="flex-1 px-3 py-2 rounded-xl bg-[#111113] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
+          className="flex-1 px-3 py-2 rounded-xl bg-[#12111A] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
         />
         <button onClick={add} disabled={!val.trim()} className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white disabled:opacity-40 transition-colors">
           <Plus size={14} />
@@ -137,7 +137,7 @@ export function DirectReportsView({
                 className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all ${
                   selectedId === p.id
                     ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/20 border-white/10 text-white'
-                    : 'text-gray-400 border-[#2C2C30] hover:text-gray-200 hover:bg-white/5'
+                    : 'text-gray-400 border-[#2A2640] hover:text-gray-200 hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -190,7 +190,7 @@ export function DirectReportsView({
                 onChange={e => setGrowthGoals(e.target.value)}
                 rows={3}
                 placeholder="What are their career goals and development aspirations this quarter?"
-                className="w-full px-3 py-2.5 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 resize-none"
+                className="w-full px-3 py-2.5 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 resize-none"
               />
             </ProfileSection>
 
@@ -218,7 +218,7 @@ export function DirectReportsView({
                 onChange={e => setPerformanceNotes(e.target.value)}
                 rows={4}
                 placeholder="Observations, feedback given, patterns noticed, recent wins…"
-                className="w-full px-3 py-2.5 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 resize-none"
+                className="w-full px-3 py-2.5 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 resize-none"
               />
             </ProfileSection>
 

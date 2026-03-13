@@ -102,7 +102,7 @@ export function DelegationModal({ task, onDelegate, onClose }: DelegationModalPr
                 value={delegatee}
                 onChange={e => setDelegatee(e.target.value)}
                 placeholder="Name or email..."
-                className="w-full bg-black/30 border border-[#2C2C30] rounded-xl px-4 py-3 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-amber-500/50 transition-colors"
+                className="w-full bg-black/30 border border-[#2A2640] rounded-xl px-4 py-3 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-amber-500/50 transition-colors"
               />
             </div>
             <div>
@@ -114,7 +114,7 @@ export function DelegationModal({ task, onDelegate, onClose }: DelegationModalPr
                 type="date"
                 value={followUpDate}
                 onChange={e => setFollowUpDate(e.target.value)}
-                className="w-full bg-black/30 border border-[#2C2C30] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-amber-500/50 transition-colors [color-scheme:dark]"
+                className="w-full bg-black/30 border border-[#2A2640] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-amber-500/50 transition-colors [color-scheme:dark]"
               />
             </div>
           </div>
@@ -201,7 +201,7 @@ export function DelegationModal({ task, onDelegate, onClose }: DelegationModalPr
                 )}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center h-28 rounded-xl border border-dashed border-[#2C2C30] text-center text-gray-600">
+              <div className="flex flex-col items-center justify-center h-28 rounded-xl border border-dashed border-[#2A2640] text-center text-gray-600">
                 <Sparkles size={20} className="mb-2 opacity-30" />
                 <p className="text-xs">
                   {hasApiKey
@@ -222,10 +222,10 @@ export function DelegationModal({ task, onDelegate, onClose }: DelegationModalPr
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 px-6 py-4 border-t border-[#2C2C30] shrink-0">
+        <div className="flex gap-3 px-6 py-4 border-t border-[#2A2640] shrink-0">
           <button
             onClick={onClose}
-            className="flex-1 py-3 rounded-xl border border-[#2C2C30] text-gray-400 hover:text-white hover:border-gray-500 font-semibold text-sm transition-colors"
+            className="flex-1 py-3 rounded-xl border border-[#2A2640] text-gray-400 hover:text-white hover:border-gray-500 font-semibold text-sm transition-colors"
           >
             Cancel
           </button>

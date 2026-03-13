@@ -23,7 +23,7 @@ export function ConfirmModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-2xl bg-[#141417] border border-[#2C2C30] p-6 shadow-2xl"
+        className="w-full max-w-sm rounded-2xl bg-[#1A1824] border border-[#2A2640] p-6 shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 mb-3">

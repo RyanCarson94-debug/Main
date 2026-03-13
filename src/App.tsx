@@ -167,7 +167,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#111113]">
+    <div className="flex h-screen overflow-hidden bg-[#12111A]">
       <Sidebar
         view={view}
         onViewChange={setView}

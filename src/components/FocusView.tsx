@@ -92,7 +92,7 @@ function PomodoroTimer({ taskTitle }: { taskTitle: string }) {
   const dashOffset = circumference * (1 - progress);
 
   return (
-    <div className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-[#1C1C1F] border border-[#2C2C30]">
+    <div className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-[#1E1C28] border border-[#2A2640]">
       <div className="flex items-center gap-2">
         {isBreak
           ? <><Coffee size={13} className="text-emerald-400" /><span className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Break</span></>
@@ -205,7 +205,7 @@ function StepList({
         <div
           key={step.id}
           className={`flex items-start gap-3 p-3 rounded-xl transition-all ${
-            step.done ? 'bg-white/[0.02] border border-white/5 opacity-50' : 'bg-[#1C1C1F] border border-[#2C2C30]'
+            step.done ? 'bg-white/[0.02] border border-white/5 opacity-50' : 'bg-[#1E1C28] border border-[#2A2640]'
           }`}
         >
           <button
@@ -245,7 +245,7 @@ function StepList({
           value={newText}
           onChange={e => setNewText(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit()}
-          className="flex-1 px-3 py-2 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
+          className="flex-1 px-3 py-2 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
         />
         <button
           onClick={submit}
@@ -356,7 +356,7 @@ function BatchTab({ tasks }: { tasks: Task[] }) {
           <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Do These Together (Same Tag)</p>
           <div className="space-y-2">
             {tagBatches.map(([tag, tagTasks]) => (
-              <div key={tag} className="p-3 rounded-xl bg-[#1C1C1F] border border-[#2C2C30]">
+              <div key={tag} className="p-3 rounded-xl bg-[#1E1C28] border border-[#2A2640]">
                 <p className="text-xs font-bold text-purple-400 mb-2">#{tag} <span className="text-gray-600 font-normal">({tagTasks.length} tasks)</span></p>
                 <div className="space-y-1">
                   {tagTasks.map(task => (
@@ -437,7 +437,7 @@ export function FocusView({
           <Zap size={20} className="text-amber-400" />
           <h1 className="text-xl font-black text-white">Focus Mode</h1>
         </div>
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#1C1C1F] border border-[#2C2C30]">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#1E1C28] border border-[#2A2640]">
           {(['focus', 'batch'] as const).map(t => (
             <button
               key={t}

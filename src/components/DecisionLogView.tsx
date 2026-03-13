@@ -46,8 +46,8 @@ function DecisionFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-2xl bg-[#141417] border border-[#2C2C30] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2C2C30] shrink-0">
+      <div className="w-full max-w-lg rounded-2xl bg-[#1A1824] border border-[#2A2640] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2A2640] shrink-0">
           <h3 className="text-base font-black text-white">{decision ? 'Edit Decision' : 'Log a Decision'}</h3>
           <button onClick={onClose} className="text-gray-600 hover:text-gray-400 transition-colors"><X size={16} /></button>
         </div>
@@ -81,7 +81,7 @@ function DecisionFormModal({
             </Field>
           )}
         </div>
-        <div className="flex gap-2 px-6 py-4 border-t border-[#2C2C30] shrink-0">
+        <div className="flex gap-2 px-6 py-4 border-t border-[#2A2640] shrink-0">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:text-white hover:bg-white/5 transition-colors border border-white/5">Cancel</button>
           <button onClick={submit} disabled={!form.title.trim() || !form.decision.trim()} className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-purple-600 hover:bg-purple-500 text-white transition-colors disabled:opacity-40">
             {decision ? 'Save Changes' : 'Log Decision'}
@@ -113,7 +113,7 @@ function CommitmentFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-2xl bg-[#141417] border border-[#2C2C30] p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-sm rounded-2xl bg-[#1A1824] border border-[#2A2640] p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
         <h3 className="text-base font-black text-white mb-4">Log a Commitment</h3>
         <div className="space-y-3">
           <Field label="What did you commit to? *">
@@ -153,7 +153,7 @@ function DecisionCard({
 
   return (
     <>
-      <div className="rounded-xl bg-[#1C1C1F] border border-[#2C2C30] overflow-hidden">
+      <div className="rounded-xl bg-[#1E1C28] border border-[#2A2640] overflow-hidden">
         <button onClick={() => setExpanded(e => !e)} className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-white/[0.02] transition-colors">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
@@ -169,7 +169,7 @@ function DecisionCard({
         </button>
 
         {expanded && (
-          <div className="px-4 pb-4 space-y-3 border-t border-[#2C2C30] pt-3">
+          <div className="px-4 pb-4 space-y-3 border-t border-[#2A2640] pt-3">
             {decision.context && <InfoBlock label="Context" text={decision.context} />}
             <InfoBlock label="Decision" text={decision.decision} highlight />
             {decision.alternatives && <InfoBlock label="Alternatives considered" text={decision.alternatives} />}
@@ -195,7 +195,7 @@ function DecisionCard({
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const INPUT = 'w-full px-3 py-2.5 rounded-xl bg-[#111113] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50';
+const INPUT = 'w-full px-3 py-2.5 rounded-xl bg-[#12111A] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -356,7 +356,7 @@ function CommitmentRow({
   overdue?: boolean;
 }) {
   return (
-    <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border group ${overdue ? 'bg-red-500/5 border-red-500/15' : 'bg-[#1C1C1F] border-[#2C2C30]'}`}>
+    <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border group ${overdue ? 'bg-red-500/5 border-red-500/15' : 'bg-[#1E1C28] border-[#2A2640]'}`}>
       <button onClick={onToggle} className="shrink-0 text-gray-600 hover:text-purple-400 transition-colors">
         {commitment.done ? <CheckSquare size={16} className="text-emerald-400" /> : <Square size={16} />}
       </button>

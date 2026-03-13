@@ -55,7 +55,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#111113] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#12111A] flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -67,7 +67,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl bg-[#141417] border border-[#2C2C30] p-6 shadow-2xl">
+        <div className="rounded-2xl bg-[#1A1824] border border-[#2A2640] p-6 shadow-2xl">
           <div className="flex items-center gap-2 mb-1">
             <Lock size={14} className="text-purple-400" />
             <h2 className="text-sm font-black text-white">
@@ -99,7 +99,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
                     setError('');
                   }}
                   onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                  className="w-full px-4 py-3 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-white text-lg tracking-widest placeholder-gray-700 focus:outline-none focus:border-purple-500/50 pr-12"
+                  className="w-full px-4 py-3 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-white text-lg tracking-widest placeholder-gray-700 focus:outline-none focus:border-purple-500/50 pr-12"
                 />
                 <button
                   onClick={() => setShowPin(s => !s)}
@@ -120,7 +120,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
                     setError('');
                   }}
                   onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                  className="w-full px-4 py-3 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-white text-lg tracking-widest placeholder-gray-700 focus:outline-none focus:border-purple-500/50 pr-12"
+                  className="w-full px-4 py-3 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-white text-lg tracking-widest placeholder-gray-700 focus:outline-none focus:border-purple-500/50 pr-12"
                 />
                 <button
                   onClick={() => setShowPin(s => !s)}

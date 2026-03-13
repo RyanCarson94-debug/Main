@@ -57,7 +57,7 @@ function ConvertToTaskForm({
   };
 
   return (
-    <div className="mt-3 p-3 rounded-xl bg-[#141417] border border-white/10 space-y-3">
+    <div className="mt-3 p-3 rounded-xl bg-[#1A1824] border border-white/10 space-y-3">
       {/* Title */}
       <div>
         <label className="text-[10px] font-bold text-gray-600 uppercase tracking-widest block mb-1">Task Title</label>
@@ -67,7 +67,7 @@ function ConvertToTaskForm({
           value={title}
           onChange={e => setTitle(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit()}
-          className="w-full px-2.5 py-2 rounded-lg bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
+          className="w-full px-2.5 py-2 rounded-lg bg-[#1E1C28] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
         />
       </div>
 
@@ -152,7 +152,7 @@ function DumpCard({
       item.status === 'archived' ? 'bg-white/[0.015] border-white/5 opacity-50' :
       item.status === 'task' ? 'bg-emerald-500/5 border-emerald-500/15' :
       item.status === 'idea' ? 'bg-blue-500/5 border-blue-500/15' :
-      'bg-[#1C1C1F] border-[#2C2C30]'
+      'bg-[#1E1C28] border-[#2A2640]'
     }`}>
       {/* Status badge + date */}
       <div className="flex items-center justify-between mb-2">
@@ -335,7 +335,7 @@ export function BrainDumpView({
       </div>
 
       {/* Capture area */}
-      <div className="shrink-0 rounded-2xl bg-[#1C1C1F] border border-[#2C2C30] focus-within:border-purple-500/50 transition-colors">
+      <div className="shrink-0 rounded-2xl bg-[#1E1C28] border border-[#2A2640] focus-within:border-purple-500/50 transition-colors">
         <textarea
           ref={textareaRef}
           placeholder="Dump it here… anything on your mind. One thought per line or a wall of text — doesn't matter.&#10;&#10;Press Cmd+Enter (or the button below) to capture."

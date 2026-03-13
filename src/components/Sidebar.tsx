@@ -71,14 +71,14 @@ const NAV_GROUPS: NavGroup[] = [
 
 export function Sidebar({ view, onViewChange, onLogout, onSearch, taskCounts }: SidebarProps) {
   return (
-    <aside className="w-[200px] shrink-0 flex flex-col h-full border-r border-[#2C2C30] bg-[#111113]">
+    <aside className="w-[200px] shrink-0 flex flex-col h-full border-r border-[#2A2640] bg-[#1A1826]">
       {/* Logo */}
-      <div className="px-4 py-4 border-b border-[#2C2C30]">
+      <div className="px-4 py-4 border-b border-[#2A2640]">
         <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 rounded-lg bg-violet-600 flex items-center justify-center shrink-0">
+          <div className="w-6 h-6 rounded-lg bg-violet-600 flex items-center justify-center shrink-0 shadow-sm shadow-violet-900/60">
             <Zap size={13} className="text-white" />
           </div>
-          <p className="text-sm font-bold text-white tracking-tight">ADHD Leader</p>
+          <p className="text-sm font-semibold text-white tracking-tight">ADHD Leader</p>
         </div>
       </div>
 
@@ -86,17 +86,17 @@ export function Sidebar({ view, onViewChange, onLogout, onSearch, taskCounts }: 
       <div className="px-3 pt-3">
         <button
           onClick={onSearch}
-          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#2C2C30] text-gray-600 hover:text-gray-400 hover:border-[#3C3C40] transition-all text-xs"
+          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#2A2640] text-gray-600 hover:text-gray-400 hover:border-[#3A3650] transition-all text-xs"
         >
           <Search size={12} />
           <span className="flex-1 text-left">Search…</span>
-          <kbd className="text-[10px] text-gray-700 px-1 py-0.5 rounded bg-white/5 border border-[#2C2C30]">⌘K</kbd>
+          <kbd className="text-[10px] text-gray-700 px-1 py-0.5 rounded bg-white/5 border border-[#2A2640]">⌘K</kbd>
         </button>
       </div>
 
       {/* Urgent signal — only if there's something to act on */}
       {taskCounts.doNow > 0 && (
-        <div className="mx-3 mt-3 px-3 py-2 rounded-lg border border-[#2C2C30] bg-[#1C1C1F]">
+        <div className="mx-3 mt-3 px-3 py-2 rounded-lg border border-[#2A2640] bg-[#1E1C28]">
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
             <p className="text-xs text-gray-400">
@@ -122,14 +122,16 @@ export function Sidebar({ view, onViewChange, onLogout, onSearch, taskCounts }: 
                     onClick={() => onViewChange(item.id)}
                     className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-sm transition-colors ${
                       active
-                        ? 'bg-white/8 text-white'
-                        : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.04]'
+                        ? 'bg-violet-500/15 border border-violet-500/20 text-white'
+                        : 'border border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/[0.05]'
                     }`}
                   >
                     <span className={`shrink-0 ${active ? 'text-violet-400' : ''}`}>{item.icon}</span>
                     <span className="flex-1 text-left text-[13px]">{item.label}</span>
                     {badgeCount > 0 && (
-                      <span className={`text-[10px] font-semibold tabular-nums ${active ? 'text-violet-300' : 'text-gray-600'}`}>
+                      <span className={`text-[10px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full ${
+                        active ? 'bg-violet-500/20 text-violet-300' : 'bg-white/[0.06] text-gray-500'
+                      }`}>
                         {badgeCount}
                       </span>
                     )}
@@ -142,7 +144,7 @@ export function Sidebar({ view, onViewChange, onLogout, onSearch, taskCounts }: 
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-3 border-t border-[#2C2C30]">
+      <div className="px-3 py-3 border-t border-[#2A2640]">
         <button
           onClick={onLogout}
           className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] text-gray-700 hover:text-gray-400 hover:bg-white/[0.04] transition-colors"

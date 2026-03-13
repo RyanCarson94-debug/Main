@@ -108,7 +108,7 @@ export function NorthStarView({ northStar, onSave }: NorthStarViewProps) {
                   value={pillar}
                   onChange={e => setPillar(i, e.target.value)}
                   placeholder={`Pillar ${i + 1}…`}
-                  className="flex-1 px-3 py-2.5 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
+                  className="flex-1 px-3 py-2.5 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
                 />
                 {pillars.length > 1 && (
                   <button onClick={() => setPillars(prev => prev.filter((_, idx) => idx !== i))} className="text-gray-700 hover:text-red-400 transition-colors shrink-0">
@@ -146,7 +146,7 @@ export function NorthStarView({ northStar, onSave }: NorthStarViewProps) {
               onChange={e => setNewAntiGoal(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addAntiGoal()}
               placeholder="I will NOT pursue…"
-              className="flex-1 px-3 py-2.5 rounded-xl bg-[#1C1C1F] border border-[#2C2C30] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-red-500/30"
+              className="flex-1 px-3 py-2.5 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-red-500/30"
             />
             <button onClick={addAntiGoal} disabled={!newAntiGoal.trim()} className="px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 disabled:opacity-40 transition-colors">
               <Plus size={14} />
