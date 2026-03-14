@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Grid2x2, Target, BarChart2, Users, Zap, UserCheck,
   BookOpen, Bell, BrainCircuit, Home, Compass, BookMarked, CalendarCheck,
-  LogOut, Network, Search, UserCog, Bot, Keyboard, CalendarDays, X,
+  LogOut, Network, Search, UserCog, Bot, Keyboard, CalendarDays, X, Video,
 } from 'lucide-react';
 import type { View } from '../types';
 
@@ -36,6 +36,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: 'dashboard',   label: 'Dashboard',    icon: <Home size={14} /> },
       { id: 'day-planner', label: 'Day Planner',  icon: <CalendarDays size={14} /> },
+      { id: 'meetings',    label: 'Meetings',     icon: <Video size={14} /> },
       { id: 'dump',        label: 'Brain Dump',   icon: <BrainCircuit size={14} />, badge: c => c.dumpInbox },
       { id: 'focus',       label: 'Focus Mode',   icon: <Zap size={14} /> },
     ],

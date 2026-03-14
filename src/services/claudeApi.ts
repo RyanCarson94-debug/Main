@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { Task, FocusStep, DumpItem, WeeklyReview, Decision, OKR } from '../types';
+import type { Task, FocusStep, DumpItem, WeeklyReview, Decision, OKR, Meeting } from '../types';
 
 const client = new Anthropic({
   apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY ?? '',
@@ -351,4 +351,56 @@ Keep each section to 2-4 bullets. Be direct and ADHD-aware (avoid analysis paral
     else if (err instanceof Anthropic.RateLimitError) onError('Rate limited — try again.');
     else onError('Could not generate analysis.');
   }
+}
+
+// ─── Meeting Prep Generator ────────────────────────────────────────────────────
+
+/**
+ * Generate pre-meeting prep notes: key questions, potential objections,
+ * context to pull, and success criteria specific to the meeting type.
+ * Returns the prep notes as plain text.
+ */
+export async function generateMeetingPrep(meeting: Meeting): Promise<string> {
+  const agendaSummary = meeting.agendaItems.length > 0
+    ? meeting.agendaItems.map(a => `  - ${a.topic}${a.owner ? ` (${a.owner})` : ''}${a.durationMinutes ? ` [${a.durationMinutes}m]` : ''}`).join('\n')
+    : '  (no agenda set yet)';
+
+  const prompt = `You are an ADHD-aware executive coach helping a leader prepare for a meeting.
+
+Meeting: ${meeting.title}
+Type: ${meeting.type}
+Date: ${meeting.date}${meeting.time ? ` at ${meeting.time}` : ''}
+${meeting.durationMinutes ? `Duration: ${meeting.durationMinutes} minutes` : ''}
+${meeting.attendees.length ? `Attendees: ${meeting.attendees.join(', ')}` : ''}
+${meeting.location ? `Location: ${meeting.location}` : ''}
+${meeting.objective ? `Objective: ${meeting.objective}` : ''}
+
+Agenda:
+${agendaSummary}
+
+Generate concise, actionable prep notes using this exact structure. Use bullet points only. Be specific, not generic:
+
+**What to have ready**
+- Data, documents, or numbers to pull before the meeting
+
+**Key questions to drive the conversation**
+- Questions that move the agenda forward or surface decisions
+
+**Likely blockers or objections — and how to handle them**
+- What might come up; a short response or reframe for each
+
+**What you want to leave with**
+- The specific outcomes, decisions, or commitments you need by end of meeting
+
+Keep it tight — max 4 bullets per section. ADHD-friendly: no fluff, no filler, action-oriented language only.`;
+
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 600,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const block = response.content[0];
+  if (block.type !== 'text') throw new Error('Unexpected response type');
+  return block.text;
 }

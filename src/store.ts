@@ -4,7 +4,7 @@ import type {
   Task, OKR, SwotItem, FirstTeamMember, KanbanColumnId, QuadrantId,
   Update, UpdatePerson, TaskFocus, FocusStep, DumpItem, DumpItemStatus,
   Decision, Commitment, WeeklyReview, NorthStar, RecurrenceRule,
-  Stakeholder, DirectReportProfile,
+  Stakeholder, DirectReportProfile, Meeting, AgendaItem, MeetingActionItem,
 } from './types';
 
 const STORAGE_KEYS = {
@@ -22,6 +22,7 @@ const STORAGE_KEYS = {
   northStar:          'adhd-leader-north-star',
   stakeholders:       'adhd-leader-stakeholders',
   directReportProfiles: 'adhd-leader-direct-report-profiles',
+  meetings:           'adhd-leader-meetings',
 };
 
 // Dual-write: primary key + backup key for resilience
@@ -150,6 +151,7 @@ export function useAppStore() {
   const [northStar,     setNorthStar]     = useState<NorthStar | null>(() => loadFromStorage<NorthStar | null>(STORAGE_KEYS.northStar, null));
   const [stakeholders,          setStakeholders]          = useState<Stakeholder[]>(() => loadFromStorage(STORAGE_KEYS.stakeholders, []));
   const [directReportProfiles,  setDirectReportProfiles]  = useState<DirectReportProfile[]>(() => loadFromStorage(STORAGE_KEYS.directReportProfiles, []));
+  const [meetings,              setMeetings]              = useState<Meeting[]>(() => loadFromStorage(STORAGE_KEYS.meetings, []));
 
   useEffect(() => { saveToStorage(STORAGE_KEYS.tasks,         tasks);         }, [tasks]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.okrs,          okrs);          }, [okrs]);
@@ -165,6 +167,7 @@ export function useAppStore() {
   useEffect(() => { saveToStorage(STORAGE_KEYS.northStar,             northStar);             }, [northStar]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.stakeholders,          stakeholders);          }, [stakeholders]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.directReportProfiles,  directReportProfiles);  }, [directReportProfiles]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.meetings,              meetings);              }, [meetings]);
 
   // ── Cloud sync (Supabase) ──────────────────────────────────────────────────
   // Debounced save: 3s after last change, push full state to cloud
@@ -177,14 +180,14 @@ export function useAppStore() {
       const snapshot = {
         tasks, okrs, swotItems, teamMembers, updatePeople, updates,
         focusMap, dumpItems, decisions, commitments, weeklyReviews,
-        northStar, stakeholders, directReportProfiles,
+        northStar, stakeholders, directReportProfiles, meetings,
         cloudSavedAt: new Date().toISOString(),
       };
       void saveToCloud(snapshot);
     }, 3000);
   }, [tasks, okrs, swotItems, teamMembers, updatePeople, updates,
       focusMap, dumpItems, decisions, commitments, weeklyReviews,
-      northStar, stakeholders, directReportProfiles]);
+      northStar, stakeholders, directReportProfiles, meetings]);
 
   useEffect(() => { triggerCloudSave(); }, [triggerCloudSave]);
 
@@ -213,6 +216,7 @@ export function useAppStore() {
       if (p.northStar)                          setNorthStar(p.northStar as NorthStar);
       if (Array.isArray(p.stakeholders))        setStakeholders(p.stakeholders as Stakeholder[]);
       if (Array.isArray(p.directReportProfiles)) setDirectReportProfiles(p.directReportProfiles as DirectReportProfile[]);
+      if (Array.isArray(p.meetings))            setMeetings(p.meetings as Meeting[]);
 
       saveToStorage('adhd-leader-last-cloud-load', cloud.saved_at);
       console.info('[sync] Restored data from cloud (newer than local)');
@@ -484,6 +488,117 @@ export function useAppStore() {
     });
   };
 
+  // ── Meetings ───────────────────────────────────────────────────────────────
+
+  const addMeeting = (m: Omit<Meeting, 'id' | 'createdAt'>) => {
+    const meeting: Meeting = { ...m, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+    setMeetings(prev => [meeting, ...prev]);
+    return meeting;
+  };
+
+  const updateMeeting = (id: string, updates: Partial<Meeting>) => {
+    setMeetings(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
+  };
+
+  const deleteMeeting = (id: string) => {
+    setMeetings(prev => prev.filter(m => m.id !== id));
+  };
+
+  const addAgendaItem = (meetingId: string, item: Omit<AgendaItem, 'id'>) => {
+    setMeetings(prev => prev.map(m =>
+      m.id === meetingId
+        ? { ...m, agendaItems: [...m.agendaItems, { ...item, id: crypto.randomUUID() }] }
+        : m
+    ));
+  };
+
+  const updateAgendaItem = (meetingId: string, itemId: string, updates: Partial<AgendaItem>) => {
+    setMeetings(prev => prev.map(m =>
+      m.id === meetingId
+        ? { ...m, agendaItems: m.agendaItems.map(a => a.id === itemId ? { ...a, ...updates } : a) }
+        : m
+    ));
+  };
+
+  const deleteAgendaItem = (meetingId: string, itemId: string) => {
+    setMeetings(prev => prev.map(m =>
+      m.id === meetingId ? { ...m, agendaItems: m.agendaItems.filter(a => a.id !== itemId) } : m
+    ));
+  };
+
+  const addMeetingActionItem = (meetingId: string, item: Omit<MeetingActionItem, 'id'>) => {
+    setMeetings(prev => prev.map(m =>
+      m.id === meetingId
+        ? { ...m, actionItems: [...m.actionItems, { ...item, id: crypto.randomUUID() }] }
+        : m
+    ));
+  };
+
+  const updateMeetingActionItem = (meetingId: string, itemId: string, updates: Partial<MeetingActionItem>) => {
+    setMeetings(prev => prev.map(m =>
+      m.id === meetingId
+        ? { ...m, actionItems: m.actionItems.map(a => a.id === itemId ? { ...a, ...updates } : a) }
+        : m
+    ));
+  };
+
+  const deleteMeetingActionItem = (meetingId: string, itemId: string) => {
+    setMeetings(prev => prev.map(m =>
+      m.id === meetingId ? { ...m, actionItems: m.actionItems.filter(a => a.id !== itemId) } : m
+    ));
+  };
+
+  /** Convert a MeetingActionItem to a Task, linking them together. */
+  const convertActionItemToTask = (meetingId: string, actionItemId: string, taskData: Omit<Task, 'id' | 'createdAt'>) => {
+    const newTask = addTask(taskData);
+    // Link the task back into the meeting
+    setMeetings(prev => prev.map(m => {
+      if (m.id !== meetingId) return m;
+      return {
+        ...m,
+        actionItems: m.actionItems.map(a =>
+          a.id === actionItemId ? { ...a, linkedTaskId: newTask.id } : a
+        ),
+        linkedTaskIds: m.linkedTaskIds.includes(newTask.id)
+          ? m.linkedTaskIds
+          : [...m.linkedTaskIds, newTask.id],
+      };
+    }));
+    return newTask;
+  };
+
+  const linkTaskToMeeting = (meetingId: string, taskId: string) => {
+    setMeetings(prev => prev.map(m =>
+      m.id === meetingId && !m.linkedTaskIds.includes(taskId)
+        ? { ...m, linkedTaskIds: [...m.linkedTaskIds, taskId] }
+        : m
+    ));
+  };
+
+  const unlinkTaskFromMeeting = (meetingId: string, taskId: string) => {
+    setMeetings(prev => prev.map(m =>
+      m.id === meetingId
+        ? { ...m, linkedTaskIds: m.linkedTaskIds.filter(id => id !== taskId) }
+        : m
+    ));
+  };
+
+  const linkDecisionToMeeting = (meetingId: string, decisionId: string) => {
+    setMeetings(prev => prev.map(m =>
+      m.id === meetingId && !m.linkedDecisionIds.includes(decisionId)
+        ? { ...m, linkedDecisionIds: [...m.linkedDecisionIds, decisionId] }
+        : m
+    ));
+  };
+
+  const unlinkDecisionFromMeeting = (meetingId: string, decisionId: string) => {
+    setMeetings(prev => prev.map(m =>
+      m.id === meetingId
+        ? { ...m, linkedDecisionIds: m.linkedDecisionIds.filter(id => id !== decisionId) }
+        : m
+    ));
+  };
+
   return {
     tasks, okrs, swotItems, teamMembers, updatePeople, updates, focusMap, dumpItems,
     decisions, commitments, weeklyReviews, northStar,
@@ -501,5 +616,10 @@ export function useAppStore() {
     saveNorthStar,
     stakeholders, addStakeholder, updateStakeholder, deleteStakeholder,
     directReportProfiles, saveDirectReportProfile,
+    meetings, addMeeting, updateMeeting, deleteMeeting,
+    addAgendaItem, updateAgendaItem, deleteAgendaItem,
+    addMeetingActionItem, updateMeetingActionItem, deleteMeetingActionItem,
+    convertActionItemToTask, linkTaskToMeeting, unlinkTaskFromMeeting,
+    linkDecisionToMeeting, unlinkDecisionFromMeeting,
   };
 }

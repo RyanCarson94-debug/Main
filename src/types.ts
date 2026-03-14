@@ -5,6 +5,8 @@ export type EnergyLevel = 'deep-work' | 'quick-win' | 'admin' | 'creative';
 export type RecurrenceType = 'daily' | 'weekdays' | 'weekly' | 'monthly';
 export type InfluenceLevel = 'high' | 'medium' | 'low';
 export type InterestLevel  = 'high' | 'medium' | 'low';
+export type MeetingType = 'team' | 'standup' | 'all-hands' | 'client' | 'board' | 'strategy' | 'retrospective' | 'workshop' | 'one-on-one' | 'other';
+export type MeetingStatus = 'upcoming' | 'completed' | 'cancelled';
 
 export type View =
   | 'dashboard'
@@ -23,7 +25,8 @@ export type View =
   | 'weekly-review'
   | 'stakeholders'
   | 'direct-reports'
-  | 'day-planner';
+  | 'day-planner'
+  | 'meetings';
 
 export type DumpItemStatus = 'inbox' | 'task' | 'idea' | 'archived';
 
@@ -226,6 +229,44 @@ export interface Stakeholder {
   interest: InterestLevel;
   strategy?: string;
   notes?: string;
+  createdAt: string;
+}
+
+export interface AgendaItem {
+  id: string;
+  topic: string;
+  owner?: string;
+  durationMinutes?: number;
+  notes?: string;
+  done: boolean;
+}
+
+export interface MeetingActionItem {
+  id: string;
+  what: string;
+  who?: string;
+  dueDate?: string;
+  done: boolean;
+  linkedTaskId?: string;
+}
+
+export interface Meeting {
+  id: string;
+  title: string;
+  date: string;        // YYYY-MM-DD
+  time?: string;       // HH:MM
+  durationMinutes?: number;
+  type: MeetingType;
+  location?: string;
+  attendees: string[]; // free-text names
+  status: MeetingStatus;
+  objective?: string;  // what does success look like?
+  prepNotes?: string;  // context, things to bring up, data needed
+  agendaItems: AgendaItem[];
+  notes?: string;      // notes taken during the meeting
+  actionItems: MeetingActionItem[];
+  linkedTaskIds: string[];
+  linkedDecisionIds: string[];
   createdAt: string;
 }
 

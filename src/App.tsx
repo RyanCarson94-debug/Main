@@ -20,6 +20,7 @@ import { SearchOverlay } from './components/SearchOverlay';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { AICoach } from './components/AICoach';
 import { DayPlannerView } from './components/DayPlannerView';
+import { MeetingsView } from './components/MeetingsView';
 
 // Lazy-load infrequently-visited views so they're excluded from the initial bundle
 const SwotView          = lazy(() => import('./components/SwotView').then(m => ({ default: m.SwotView })));
@@ -68,6 +69,7 @@ export default function App() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showAICoach, setShowAICoach] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
+  const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null);
   const [notifBanner, setNotifBanner] = useState(false);
   const csvImportRef = useRef<HTMLInputElement>(null);
 
@@ -153,6 +155,7 @@ export default function App() {
 
   const handleSearchNavigate = useCallback((targetView: View) => {
     setView(targetView);
+    if (targetView !== 'meetings') setSelectedMeetingId(null);
   }, []);
 
   const handleCSVImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -394,6 +397,29 @@ export default function App() {
               tasks={store.tasks}
               onEditTask={openEditTask}
               onAddTask={openAddTask}
+            />
+          )}
+          {view === 'meetings' && (
+            <MeetingsView
+              meetings={store.meetings}
+              tasks={store.tasks}
+              decisions={store.decisions}
+              onAdd={store.addMeeting}
+              onUpdate={store.updateMeeting}
+              onDelete={store.deleteMeeting}
+              onAddAgendaItem={store.addAgendaItem}
+              onUpdateAgendaItem={store.updateAgendaItem}
+              onDeleteAgendaItem={store.deleteAgendaItem}
+              onAddActionItem={store.addMeetingActionItem}
+              onUpdateActionItem={store.updateMeetingActionItem}
+              onDeleteActionItem={store.deleteMeetingActionItem}
+              onConvertToTask={store.convertActionItemToTask}
+              onLinkTask={store.linkTaskToMeeting}
+              onUnlinkTask={store.unlinkTaskFromMeeting}
+              onLinkDecision={store.linkDecisionToMeeting}
+              onUnlinkDecision={store.unlinkDecisionFromMeeting}
+              selectedMeetingId={selectedMeetingId}
+              onSelectMeeting={setSelectedMeetingId}
             />
           )}
           {view === 'stakeholders' && (
