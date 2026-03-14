@@ -72,9 +72,9 @@ export function DelegationModal({ task, onDelegate, onClose }: DelegationModalPr
   const hasApiKey = !!import.meta.env.VITE_ANTHROPIC_API_KEY;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-2xl bg-[#1A1035] border border-amber-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full sm:max-w-2xl bg-[#1A1035] border-t sm:border border-amber-500/30 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] animate-[slideIn_0.2s_ease-out]">
 
         {/* Header */}
         <div className="flex items-start justify-between px-6 py-4 border-b border-amber-500/20 shrink-0">
@@ -144,7 +144,7 @@ export function DelegationModal({ task, onDelegate, onClose }: DelegationModalPr
                 {emailDraft && !isStreaming && (
                   <button
                     onClick={handleCopy}
-                    className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors"
+                    className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-white/5 border border-[#2A2640] text-gray-400 hover:text-white hover:border-white/20 transition-colors"
                   >
                     {copied ? <><CheckCheck size={11} className="text-emerald-400" /> Copied!</> : <><Copy size={11} /> Copy</>}
                   </button>

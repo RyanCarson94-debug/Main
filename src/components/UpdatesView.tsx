@@ -363,7 +363,7 @@ export function UpdatesView({
             <p className="text-xs text-gray-600">Add the people you brief</p>
             <button
               onClick={() => setShowAddPerson(true)}
-              className="mt-3 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-400 border border-white/10 hover:bg-purple-600/30 transition-colors"
+              className="mt-3 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-400 border border-[#2A2640] hover:bg-purple-600/30 transition-colors"
             >
               + Add Person
             </button>
@@ -379,7 +379,7 @@ export function UpdatesView({
                 onClick={() => setSelectedPersonId(person.id)}
                 className={`w-full text-left px-3 py-2.5 rounded-xl transition-all group flex items-center gap-2 ${
                   active
-                    ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/20 border border-white/10'
+                    ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/20 border border-[#2A2640]'
                     : 'hover:bg-white/5 border border-transparent'
                 }`}
               >

@@ -290,7 +290,7 @@ export function FirstTeamView({
             <p className="text-xs text-gray-600">Add your peer leaders</p>
             <button
               onClick={() => setShowAddMember(true)}
-              className="mt-3 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-400 border border-white/10 hover:bg-purple-600/30 transition-colors"
+              className="mt-3 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-400 border border-[#2A2640] hover:bg-purple-600/30 transition-colors"
             >
               + Add Member
             </button>
@@ -305,7 +305,7 @@ export function FirstTeamView({
                 onClick={() => setSelectedId(member.id)}
                 className={`w-full text-left px-3 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
                   active
-                    ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/20 border border-white/10'
+                    ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/20 border border-[#2A2640]'
                     : 'hover:bg-white/5 border border-transparent'
                 }`}
               >
@@ -322,7 +322,7 @@ export function FirstTeamView({
                   </p>
                 </div>
                 {count > 0 && (
-                  <span className="shrink-0 text-[10px] font-black px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-white/10">
+                  <span className="shrink-0 text-[10px] font-black px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-[#2A2640]">
                     {count}
                   </span>
                 )}

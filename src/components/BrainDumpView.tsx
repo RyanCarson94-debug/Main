@@ -57,7 +57,7 @@ function ConvertToTaskForm({
   };
 
   return (
-    <div className="mt-3 p-3 rounded-xl bg-[#1A1824] border border-white/10 space-y-3">
+    <div className="mt-3 p-3 rounded-xl bg-[#1A1824] border border-[#2A2640] space-y-3">
       {/* Title */}
       <div>
         <label className="text-[10px] font-bold text-gray-600 uppercase tracking-widest block mb-1">Task Title</label>
@@ -203,7 +203,7 @@ function DumpCard({
         <div className="flex flex-wrap gap-1.5">
           <button
             onClick={() => setConverting(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-300 border border-white/10 hover:bg-purple-600/30 transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-300 border border-[#2A2640] hover:bg-purple-600/30 transition-colors"
           >
             <CheckSquare size={11} /> Make Task
           </button>
@@ -314,7 +314,7 @@ export function BrainDumpView({
             <button
               onClick={handleAiTriage}
               disabled={aiLoading || untriaged === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-300 border border-white/10 hover:bg-purple-600/30 transition-colors disabled:opacity-40"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-300 border border-[#2A2640] hover:bg-purple-600/30 transition-colors disabled:opacity-40"
             >
               {aiLoading
                 ? <><Loader2 size={12} className="animate-spin" /> Triaging…</>
@@ -382,7 +382,7 @@ export function BrainDumpView({
             onClick={() => setTab(t.id)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               tab === t.id
-                ? 'bg-purple-600/30 text-purple-200 border border-white/10'
+                ? 'bg-purple-600/30 text-purple-200 border border-[#2A2640]'
                 : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
             }`}
           >

@@ -47,7 +47,7 @@ export function QuickCapture({ open, onClose, onCapture }: QuickCaptureProps) {
             <p className="text-sm font-bold text-emerald-400">Captured to Brain Dump!</p>
           </div>
         ) : (
-          <div className="rounded-2xl bg-[#1A1824] border border-white/10 shadow-2xl overflow-hidden">
+          <div className="rounded-2xl bg-[#1A1824] border border-[#2A2640] shadow-2xl overflow-hidden">
             <div className="flex items-center gap-3 px-4 py-3 border-b border-[#2A2640]">
               <Zap size={14} className="text-purple-400 shrink-0" />
               <p className="text-xs font-black text-purple-400 uppercase tracking-widest flex-1">

@@ -203,7 +203,7 @@ export function TaskModal({ task, onSave, onClose }: TaskModalProps) {
             </label>
             <div className="flex gap-2 mb-2 flex-wrap">
               {form.tags.map(tag => (
-                <span key={tag} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-white/5 text-gray-300 border border-white/10">
+                <span key={tag} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-white/5 text-gray-300 border border-[#2A2640]">
                   <Tag size={9} />
                   {tag}
                   <button type="button" onClick={() => removeTag(tag)} className="ml-1 text-gray-500 hover:text-red-400">×</button>

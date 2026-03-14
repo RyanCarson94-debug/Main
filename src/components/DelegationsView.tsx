@@ -209,7 +209,7 @@ export function DelegationsView({ tasks, onOpenDelegationModal, onMarkFollowUpDo
                     </pre>
                     <button
                       onClick={() => { navigator.clipboard.writeText(task.delegationEmailDraft!); }}
-                      className="mt-2 flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white transition-colors"
+                      className="mt-2 flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-white/5 border border-[#2A2640] text-gray-400 hover:text-white transition-colors"
                     >
                       Copy email
                     </button>

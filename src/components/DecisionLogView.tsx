@@ -84,7 +84,7 @@ function DecisionFormModal({
           )}
         </div>
         <div className="flex gap-2 px-6 py-4 border-t border-[#2A2640] shrink-0">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:text-white hover:bg-white/5 transition-colors border border-white/5">Cancel</button>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:text-white hover:bg-white/5 transition-colors border border-[#2A2640]">Cancel</button>
           <button onClick={submit} disabled={!form.title.trim() || !form.decision.trim()} className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-purple-600 hover:bg-purple-500 text-white transition-colors disabled:opacity-40">
             {decision ? 'Save Changes' : 'Log Decision'}
           </button>
@@ -129,7 +129,7 @@ function CommitmentFormModal({
           </Field>
         </div>
         <div className="flex gap-2 mt-5">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:text-white hover:bg-white/5 transition-colors border border-white/5">Cancel</button>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:text-white hover:bg-white/5 transition-colors border border-[#2A2640]">Cancel</button>
           <button onClick={submit} disabled={!what.trim() || !to.trim()} className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-purple-600 hover:bg-purple-500 text-white disabled:opacity-40 transition-colors">Log Commitment</button>
         </div>
       </div>
@@ -318,7 +318,7 @@ export function DecisionLogView({
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-xl text-sm font-bold transition-all capitalize ${
-              tab === t ? 'bg-purple-600/20 text-white border border-white/10' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
+              tab === t ? 'bg-purple-600/20 text-white border border-[#2A2640]' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
             }`}
           >
             {t}

@@ -40,7 +40,7 @@ export const TaskCard = memo(function TaskCard({ task, onDelete, onMoveColumn, o
         <div className="flex-1" />
         <button
           onClick={e => { e.stopPropagation(); onDelete(task.id); }}
-          className={`p-1 rounded text-gray-700 hover:text-red-400 transition-colors ${hover ? 'opacity-100' : 'opacity-0'}`}
+          className={`p-1 rounded-lg text-gray-700 hover:text-red-400 transition-colors ${hover ? 'opacity-100' : 'opacity-0'}`}
         >
           <Trash2 size={12} />
         </button>
@@ -75,7 +75,7 @@ export const TaskCard = memo(function TaskCard({ task, onDelete, onMoveColumn, o
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           {task.tags.slice(0, 2).map(tag => (
-            <span key={tag} className="flex items-center gap-1 text-[10px] text-gray-700 px-1.5 py-0.5 rounded bg-white/[0.04] border border-[#2A2640]">
+            <span key={tag} className="flex items-center gap-1 text-[10px] text-gray-700 px-1.5 py-0.5 rounded-md bg-white/[0.04] border border-[#2A2640]">
               <Tag size={7} />
               {tag}
             </span>
@@ -102,7 +102,7 @@ export const TaskCard = memo(function TaskCard({ task, onDelete, onMoveColumn, o
                 e.stopPropagation();
                 onMoveColumn(task.id, task.column === 'backlog' ? 'in-progress' : 'done');
               }}
-              className="p-0.5 rounded text-gray-700 hover:text-emerald-500 transition-colors"
+              className="p-0.5 rounded-md text-gray-700 hover:text-emerald-500 transition-colors"
             >
               <CheckCircle2 size={12} />
             </button>

@@ -250,7 +250,7 @@ function StepList({
         <button
           onClick={submit}
           disabled={!newText.trim()}
-          className="p-2 rounded-xl bg-purple-600/20 text-purple-400 border border-white/10 hover:bg-purple-600/30 transition-colors disabled:opacity-30"
+          className="p-2 rounded-xl bg-purple-600/20 text-purple-400 border border-[#2A2640] hover:bg-purple-600/30 transition-colors disabled:opacity-30"
         >
           <Plus size={15} />
         </button>
@@ -477,7 +477,7 @@ export function FocusView({
                   onClick={() => { setSelectedTaskId(task.id); setAiError(null); }}
                   className={`w-full text-left px-3 py-2.5 rounded-xl transition-all ${
                     active
-                      ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/20 border border-white/10'
+                      ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/20 border border-[#2A2640]'
                       : 'hover:bg-white/5 border border-transparent'
                   }`}
                 >
@@ -563,7 +563,7 @@ export function FocusView({
                     <button
                       onClick={handleAiBreakdown}
                       disabled={aiLoading}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-300 border border-white/10 hover:bg-purple-600/30 transition-colors disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 text-purple-300 border border-[#2A2640] hover:bg-purple-600/30 transition-colors disabled:opacity-50"
                     >
                       {aiLoading
                         ? <><Loader2 size={12} className="animate-spin" />Breaking down…</>

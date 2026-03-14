@@ -78,7 +78,7 @@ export function OKRView({ okrs, onAddOKR, onUpdateOKR, onDeleteOKR }: OKRViewPro
       </div>
 
       {showForm && (
-        <div className="mb-4 p-4 rounded-2xl border border-white/10 bg-purple-500/5 animate-[fadeIn_0.15s_ease-out]">
+        <div className="mb-4 p-4 rounded-2xl border border-[#2A2640] bg-purple-500/5 animate-[fadeIn_0.15s_ease-out]">
           <div className="flex gap-3 items-end">
             <div className="flex-1 space-y-2">
               <input

@@ -214,9 +214,9 @@ export function SearchOverlay({ open, onClose, onNavigate, data }: SearchOverlay
   let flatIndex = 0;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-start justify-center pt-[15vh] px-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[70] flex items-start justify-center pt-[15vh] px-4 animate-[fadeIn_0.15s_ease-out]" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-      <div className="relative w-full max-w-xl rounded-2xl bg-[#1A1824] border border-white/10 shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+      <div className="relative w-full max-w-xl rounded-2xl bg-[#1A1824] border border-[#2A2640] shadow-2xl overflow-hidden animate-[slideIn_0.18s_ease-out]" onClick={e => e.stopPropagation()}>
         {/* Input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-[#2A2640]">
           <Search size={16} className="text-gray-500 shrink-0" />

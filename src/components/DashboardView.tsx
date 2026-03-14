@@ -268,7 +268,7 @@ export function DashboardView({
 
       {/* ── AI Recommendation ── */}
       {(whatNowResult || whatNowError) && (
-        <div className={`relative rounded-2xl p-4 border ${whatNowError ? 'bg-red-500/5 border-red-500/20' : 'bg-purple-500/10 border-white/10'}`}>
+        <div className={`relative rounded-2xl p-4 border ${whatNowError ? 'bg-red-500/5 border-red-500/20' : 'bg-purple-500/10 border-[#2A2640]'}`}>
           <button onClick={() => { setWhatNowResult(null); setWhatNowError(''); }} className="absolute top-3 right-3 text-gray-600 hover:text-gray-400">
             <X size={14} />
           </button>

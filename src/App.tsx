@@ -15,6 +15,7 @@ import { LoginView } from './components/LoginView';
 import { DashboardView } from './components/DashboardView';
 import { DecisionLogView } from './components/DecisionLogView';
 import { QuickCapture, QuickCaptureButton } from './components/QuickCapture';
+import { ViewSkeleton } from './components/ViewSkeleton';
 import { SearchOverlay } from './components/SearchOverlay';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { AICoach } from './components/AICoach';
@@ -258,6 +259,7 @@ export default function App() {
         )}
 
         <div className="flex-1 overflow-hidden p-4 md:p-6">
+          <div key={view} className="h-full animate-[fadeIn_0.18s_ease-out]">
           {view === 'dashboard' && (
             <DashboardView
               tasks={store.tasks}
@@ -307,7 +309,7 @@ export default function App() {
             />
           )}
           {view === 'swot' && (
-            <Suspense fallback={<div className="flex-1 flex items-center justify-center text-gray-600 text-sm">Loading…</div>}>
+            <Suspense fallback={<ViewSkeleton />}>
               <SwotView
                 items={store.swotItems}
                 onAdd={store.addSwotItem}
@@ -337,7 +339,7 @@ export default function App() {
               onClearInbox={store.clearDumpInbox}
             />
           )}
-          {view === 'frameworks' && <Suspense fallback={<div className="flex-1 flex items-center justify-center text-gray-600 text-sm">Loading…</div>}><FrameworksLibrary /></Suspense>}
+          {view === 'frameworks' && <Suspense fallback={<ViewSkeleton />}><FrameworksLibrary /></Suspense>}
           {view === 'focus' && (
             <FocusView
               tasks={store.tasks}
@@ -366,7 +368,7 @@ export default function App() {
             />
           )}
           {view === 'north-star' && (
-            <Suspense fallback={<div className="flex-1 flex items-center justify-center text-gray-600 text-sm">Loading…</div>}>
+            <Suspense fallback={<ViewSkeleton />}>
               <NorthStarView northStar={store.northStar} onSave={store.saveNorthStar} />
             </Suspense>
           )}
@@ -383,7 +385,7 @@ export default function App() {
             />
           )}
           {view === 'weekly-review' && (
-            <Suspense fallback={<div className="flex-1 flex items-center justify-center text-gray-600 text-sm">Loading…</div>}>
+            <Suspense fallback={<ViewSkeleton />}>
               <WeeklyReviewView reviews={store.weeklyReviews} tasks={store.tasks} onSave={store.saveWeeklyReview} />
             </Suspense>
           )}
@@ -395,7 +397,7 @@ export default function App() {
             />
           )}
           {view === 'stakeholders' && (
-            <Suspense fallback={<div className="flex-1 flex items-center justify-center text-gray-600 text-sm">Loading…</div>}>
+            <Suspense fallback={<ViewSkeleton />}>
             <StakeholderMapView
               stakeholders={store.stakeholders}
               onAdd={store.addStakeholder}
@@ -410,7 +412,7 @@ export default function App() {
             </Suspense>
           )}
           {view === 'direct-reports' && (
-            <Suspense fallback={<div className="flex-1 flex items-center justify-center text-gray-600 text-sm">Loading…</div>}>
+            <Suspense fallback={<ViewSkeleton />}>
             <DirectReportsView
               people={store.updatePeople}
               updates={store.updates}
@@ -423,6 +425,7 @@ export default function App() {
             />
             </Suspense>
           )}
+          </div>
         </div>
       </main>
 
