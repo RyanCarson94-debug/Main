@@ -1,13 +1,14 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Zap, Clock, CheckCircle2, AlertTriangle, BrainCircuit, Target,
   Bell, UserCheck, TrendingUp, ChevronRight, Sparkles, X, RefreshCw,
-  CalendarClock, Video, FolderKanban, Telescope, Circle,
+  CalendarClock, Video, FolderKanban, Telescope, Circle, Sun, ArrowRight,
+  MessageSquareWarning, ShieldAlert,
 } from 'lucide-react';
-import type { Task, OKR, Update, Project, Meeting, QuarterlyPlan, HardConversation, Decision } from '../types';
+import type { Task, OKR, Update, Project, Meeting, QuarterlyPlan, HardConversation, Decision, Commitment } from '../types';
 import { QUADRANTS, PRIORITY_CONFIG, ENERGY_CONFIG } from '../types';
 import type { View } from '../types';
-import { streamSituationReport } from '../services/claudeApi';
+import { streamSituationReport, recommendNextTask } from '../services/claudeApi';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -20,6 +21,7 @@ interface DashboardViewProps {
   quarterlyPlans:     QuarterlyPlan[];
   hardConversations:  HardConversation[];
   decisions:          Decision[];
+  commitments:        Commitment[];
   dumpInboxCount:     number;
   delegationAlerts:   number;
   onViewChange:       (view: View) => void;
@@ -155,6 +157,175 @@ function QuickNavTile({ icon, label, badge, onClick }: { icon: React.ReactNode; 
   );
 }
 
+// ─── Focus Recommendation Card ────────────────────────────────────────────────
+
+function FocusRecommendationCard({ task, reason, loading, onDismiss, onFocus }: {
+  task?: string; reason?: string; loading: boolean;
+  onDismiss: () => void; onFocus: () => void;
+}) {
+  if (!loading && !task) return null;
+  return (
+    <div className="relative rounded-2xl border overflow-hidden bg-gradient-to-r from-violet-500/10 to-sky-500/10 border-violet-500/25">
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-500 via-sky-400 to-violet-500" />
+      <div className="px-4 py-3 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-xl bg-violet-500/20 border border-violet-500/30 flex items-center justify-center shrink-0">
+          <Zap size={14} className="text-violet-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-black text-violet-400 uppercase tracking-widest mb-0.5">Focus on this now</p>
+          {loading ? (
+            <div className="flex items-center gap-2">
+              <Circle size={10} className="text-violet-500 animate-pulse" />
+              <p className="text-xs text-gray-500">Finding your best next task…</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm font-bold text-white truncate">{task}</p>
+              {reason && <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-1">{reason}</p>}
+            </>
+          )}
+        </div>
+        {!loading && task && (
+          <button onClick={onFocus}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-colors shrink-0">
+            Focus <ArrowRight size={11} />
+          </button>
+        )}
+        <button onClick={onDismiss} className="text-gray-700 hover:text-gray-400 transition-colors shrink-0">
+          <X size={13} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Start My Day Modal ────────────────────────────────────────────────────────
+
+function StartMyDayModal({
+  step, onNext, onClose, onViewChange,
+  overdueTasks, dumpInboxCount, delegationAlerts,
+  focusTask, focusReason,
+}: {
+  step: number; onNext: () => void; onClose: () => void; onViewChange: (v: View) => void;
+  overdueTasks: number; dumpInboxCount: number; delegationAlerts: number;
+  focusTask?: string; focusReason?: string;
+}) {
+  const totalAlerts = overdueTasks + dumpInboxCount + delegationAlerts;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="relative w-full max-w-md rounded-2xl border border-[#2A2640] bg-[#1A1826] shadow-2xl overflow-hidden"
+        onClick={e => e.stopPropagation()}>
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-500 via-sky-400 to-emerald-400" />
+
+        {/* Step indicators */}
+        <div className="flex gap-1 px-5 pt-4">
+          {[1,2,3].map(s => (
+            <div key={s} className={`h-0.5 flex-1 rounded-full transition-all ${s <= step ? 'bg-violet-500' : 'bg-white/10'}`} />
+          ))}
+        </div>
+
+        <button onClick={onClose} className="absolute top-3 right-4 text-gray-600 hover:text-gray-400 transition-colors">
+          <X size={16} />
+        </button>
+
+        <div className="px-5 py-4">
+          {step === 1 && (
+            <>
+              <div className="flex items-center gap-2 mb-3">
+                <Sun size={16} className="text-amber-400" />
+                <p className="text-sm font-black text-white">Morning catch-up</p>
+              </div>
+              {totalAlerts === 0 ? (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 mb-4">
+                  <CheckCircle2 size={14} className="text-emerald-400" />
+                  <p className="text-sm text-emerald-300 font-medium">All clear — nothing urgent overnight.</p>
+                </div>
+              ) : (
+                <div className="space-y-2 mb-4">
+                  {overdueTasks > 0 && (
+                    <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20">
+                      <span className="text-sm text-red-300">{overdueTasks} overdue task{overdueTasks > 1 ? 's' : ''}</span>
+                      <span className="text-[10px] font-bold text-red-400 uppercase tracking-wide">needs action</span>
+                    </div>
+                  )}
+                  {dumpInboxCount > 0 && (
+                    <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                      <span className="text-sm text-purple-300">{dumpInboxCount} item{dumpInboxCount > 1 ? 's' : ''} in brain dump</span>
+                      <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wide">to triage</span>
+                    </div>
+                  )}
+                  {delegationAlerts > 0 && (
+                    <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                      <span className="text-sm text-amber-300">{delegationAlerts} delegation{delegationAlerts > 1 ? 's' : ''} need follow-up</span>
+                      <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wide">overdue</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              <p className="text-xs text-gray-500 mb-4">You'll handle these — let's find your ONE focus first.</p>
+              <button onClick={onNext}
+                className="w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold transition-colors flex items-center justify-center gap-2">
+                Pick my focus <ArrowRight size={14} />
+              </button>
+            </>
+          )}
+
+          {step === 2 && (
+            <>
+              <div className="flex items-center gap-2 mb-3">
+                <Zap size={16} className="text-violet-400" />
+                <p className="text-sm font-black text-white">Your ONE focus today</p>
+              </div>
+              {focusTask ? (
+                <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/20 mb-4">
+                  <p className="text-sm font-bold text-white mb-1">{focusTask}</p>
+                  {focusReason && <p className="text-[11px] text-gray-400">{focusReason}</p>}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-white/[0.03] border border-white/5 mb-4">
+                  <Circle size={12} className="text-violet-500 animate-pulse" />
+                  <p className="text-sm text-gray-500">Finding your best task…</p>
+                </div>
+              )}
+              <p className="text-xs text-gray-500 mb-4">Everything else can wait. This is the one thing that moves the needle today.</p>
+              <button onClick={onNext}
+                className="w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold transition-colors flex items-center justify-center gap-2">
+                Let's go <ArrowRight size={14} />
+              </button>
+            </>
+          )}
+
+          {step === 3 && (
+            <>
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle2 size={16} className="text-emerald-400" />
+                <p className="text-sm font-black text-white">You're set</p>
+              </div>
+              <p className="text-sm text-gray-300 mb-4">
+                {focusTask
+                  ? <>Start with <span className="text-white font-semibold">"{focusTask}"</span>. Use Focus Mode to break it down and run a Pomodoro.</>
+                  : <>Open Focus Mode to pick a task, break it into steps, and start your first Pomodoro.</>
+                }
+              </p>
+              <div className="space-y-2">
+                <button onClick={() => { onViewChange('focus'); onClose(); }}
+                  className="w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold transition-colors flex items-center justify-center gap-2">
+                  Open Focus Mode <ArrowRight size={14} />
+                </button>
+                <button onClick={onClose}
+                  className="w-full py-2 rounded-xl text-gray-500 hover:text-gray-300 text-sm transition-colors">
+                  Go to dashboard
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Situation Report Panel ───────────────────────────────────────────────────
 
 function SituationReportPanel({ text, loading, error, onClose }: {
@@ -271,13 +442,22 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function DashboardView({
-  tasks, okrs, updates, projects, meetings, quarterlyPlans, hardConversations, decisions,
+  tasks, okrs, updates, projects, meetings, quarterlyPlans, hardConversations, decisions, commitments,
   dumpInboxCount, delegationAlerts, onViewChange, onEditTask, onSelectProject,
 }: DashboardViewProps) {
   const [reportText,    setReportText]    = useState('');
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError,   setReportError]   = useState('');
   const [reportVisible, setReportVisible] = useState(false);
+
+  // Focus recommendation
+  const [focusRec,          setFocusRec]          = useState<{ taskId: string; task: string; reason: string } | null>(null);
+  const [focusRecLoading,   setFocusRecLoading]   = useState(false);
+  const [focusRecDismissed, setFocusRecDismissed] = useState(false);
+
+  // Start My Day modal
+  const [showStartMyDay, setShowStartMyDay] = useState(false);
+  const [startStep,      setStartStep]      = useState(1);
 
   const now      = new Date();
   const todayStr = now.toISOString().split('T')[0];
@@ -352,6 +532,30 @@ export function DashboardView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tasks, updates, okrs, projects, meetings, delegationAlerts, dumpInboxCount, todayStr]);
 
+  // Auto-load focus recommendation on mount
+  useEffect(() => {
+    const activeTasks = tasks.filter(t => t.column !== 'done');
+    if (activeTasks.length === 0) return;
+    setFocusRecLoading(true);
+    recommendNextTask(
+      activeTasks,
+      rec => { setFocusRec(rec); setFocusRecLoading(false); },
+      ()  => { setFocusRecLoading(false); },
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Leadership pulse: hard conversations needing action
+  const { overdueConvos, readyConvos, overdueCommitmentsCount } = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const overdueC  = hardConversations.filter(c =>
+      (c.status === 'planning' || c.status === 'ready') && c.targetDate && c.targetDate < today
+    );
+    const readyC = hardConversations.filter(c => c.status === 'ready' && (!c.targetDate || c.targetDate >= today));
+    const overdueCommit = commitments.filter(c => !c.done && c.dueDate && c.dueDate < today).length;
+    return { overdueConvos: overdueC, readyConvos: readyC, overdueCommitmentsCount: overdueCommit };
+  }, [hardConversations, commitments]);
+
   const handleGetBriefed = async () => {
     setReportVisible(true);
     setReportLoading(true);
@@ -393,6 +597,15 @@ export function DashboardView({
               <span className="text-xs font-bold text-emerald-400">{doneThisWeek} done this week</span>
             </button>
           )}
+          {hour < 12 && (
+            <button
+              onClick={() => { setStartStep(1); setShowStartMyDay(true); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/15 text-amber-400 text-xs font-bold transition-colors animate-pulse"
+            >
+              <Sun size={13} />
+              Start my day
+            </button>
+          )}
           <button
             onClick={reportVisible ? () => setReportVisible(false) : handleGetBriefed}
             disabled={reportLoading}
@@ -407,6 +620,17 @@ export function DashboardView({
       {/* ── Quarter Banner ── */}
       {currentQuarterPlan && (
         <QuarterBanner plan={currentQuarterPlan} onClick={() => onViewChange('quarterly-planning')} />
+      )}
+
+      {/* ── Focus Recommendation ── */}
+      {!focusRecDismissed && (focusRecLoading || focusRec) && (
+        <FocusRecommendationCard
+          task={focusRec?.task}
+          reason={focusRec?.reason}
+          loading={focusRecLoading}
+          onDismiss={() => setFocusRecDismissed(true)}
+          onFocus={() => onViewChange('focus')}
+        />
       )}
 
       {/* ── Situation Report ── */}
@@ -564,6 +788,39 @@ export function DashboardView({
             </section>
           )}
 
+          {/* Leadership Pulse */}
+          {(overdueConvos.length > 0 || readyConvos.length > 0 || overdueCommitmentsCount > 0) && (
+            <section>
+              <SectionHeader icon={<ShieldAlert size={13} className="text-rose-400" />} title="Leadership Pulse" />
+              <div className="space-y-1.5">
+                {overdueCommitmentsCount > 0 && (
+                  <AlertRow
+                    label={`${overdueCommitmentsCount} overdue commitment${overdueCommitmentsCount > 1 ? 's' : ''}`}
+                    color="red"
+                    onClick={() => onViewChange('decision-log')}
+                  />
+                )}
+                {overdueConvos.length > 0 && (
+                  <AlertRow
+                    label={`${overdueConvos.length} hard convo${overdueConvos.length > 1 ? 's' : ''} past target date`}
+                    color="amber"
+                    onClick={() => onViewChange('hard-conversations')}
+                  />
+                )}
+                {readyConvos.length > 0 && (
+                  <button onClick={() => onViewChange('hard-conversations')}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all hover:opacity-90 bg-blue-500/10 border-blue-500/20 text-blue-400">
+                    <div className="flex items-center gap-2">
+                      <MessageSquareWarning size={12} />
+                      <span>{readyConvos.length} conversation{readyConvos.length > 1 ? 's' : ''} ready to have</span>
+                    </div>
+                    <ChevronRight size={13} className="opacity-60" />
+                  </button>
+                )}
+              </div>
+            </section>
+          )}
+
           {/* Quick Access */}
           <section>
             <SectionHeader icon={<TrendingUp size={13} className="text-gray-500" />} title="Quick Access" />
@@ -576,6 +833,21 @@ export function DashboardView({
           </section>
         </div>
       </div>
+
+      {/* ── Start My Day Modal ── */}
+      {showStartMyDay && (
+        <StartMyDayModal
+          step={startStep}
+          onNext={() => setStartStep(s => s + 1)}
+          onClose={() => { setShowStartMyDay(false); setStartStep(1); }}
+          onViewChange={onViewChange}
+          overdueTasks={overdueTasks.length}
+          dumpInboxCount={dumpInboxCount}
+          delegationAlerts={delegationAlerts}
+          focusTask={focusRec?.task}
+          focusReason={focusRec?.reason}
+        />
+      )}
     </div>
   );
 }

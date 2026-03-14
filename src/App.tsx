@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
-import { Search, Bot, Zap } from 'lucide-react';
+import { Search, Bot, Zap, CheckCircle2 } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { KanbanBoard } from './components/KanbanBoard';
 import { EisenhowerMatrix } from './components/EisenhowerMatrix';
@@ -80,6 +80,7 @@ export default function App() {
   const [selectedQuarterlyPlanId, setSelectedQuarterlyPlanId] = useState<string | null>(null);
   const [selectedRoleCharterId,   setSelectedRoleCharterId]   = useState<string | null>(null);
   const [notifBanner, setNotifBanner] = useState(false);
+  const [celebrationTask, setCelebrationTask] = useState<string | null>(null);
   const csvImportRef = useRef<HTMLInputElement>(null);
 
   const store = useAppStore();
@@ -151,6 +152,17 @@ export default function App() {
       store.addTask({ ...taskData, quadrant: taskData.quadrant ?? defaultQuadrant });
     }
   }, [editTask, defaultQuadrant, store.updateTask, store.addTask]);
+
+  const handleMoveColumn = useCallback((id: string, col: import('./types').KanbanColumnId) => {
+    if (col === 'done') {
+      const task = store.tasks.find(t => t.id === id);
+      if (task) {
+        setCelebrationTask(task.title);
+        setTimeout(() => setCelebrationTask(null), 2500);
+      }
+    }
+    store.moveTaskColumn(id, col);
+  }, [store.tasks, store.moveTaskColumn]);
 
   const handleDelegate = useCallback((delegatedTo: string, followUpDate?: string, emailDraft?: string) => {
     if (!delegatingTask) return;
@@ -286,6 +298,7 @@ export default function App() {
               quarterlyPlans={store.quarterlyPlans}
               hardConversations={store.hardConversations}
               decisions={store.decisions}
+              commitments={store.commitments}
               dumpInboxCount={taskCounts.dumpInbox}
               delegationAlerts={taskCounts.delegationAlerts}
               onViewChange={setView}
@@ -299,7 +312,7 @@ export default function App() {
               onAddTask={openAddTask}
               onEditTask={openEditTask}
               onDeleteTask={store.deleteTask}
-              onMoveColumn={store.moveTaskColumn}
+              onMoveColumn={handleMoveColumn}
               onDelegateTask={task => setDelegatingTask(task)}
               onImportCSV={() => csvImportRef.current?.click()}
             />
@@ -574,6 +587,21 @@ export default function App() {
       )}
 
       {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
+
+      {/* Task completion celebration */}
+      {celebrationTask && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+          <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 backdrop-blur-sm shadow-2xl shadow-emerald-900/40 animate-[fadeIn_0.2s_ease-out]">
+            <div className="w-7 h-7 rounded-xl bg-emerald-500/30 border border-emerald-500/40 flex items-center justify-center">
+              <CheckCircle2 size={14} className="text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-emerald-400 uppercase tracking-widest">Done!</p>
+              <p className="text-sm font-semibold text-white truncate max-w-[240px]">{celebrationTask}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showAICoach && (
         <AICoach

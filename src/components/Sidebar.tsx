@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import {
   LayoutDashboard, Grid2x2, Target, BarChart2, Users, Zap, UserCheck,
   BookOpen, Bell, BrainCircuit, Home, Compass, BookMarked, CalendarCheck,
   LogOut, Network, Search, UserCog, Bot, Keyboard, CalendarDays, X, Video,
   FolderKanban, MessageSquareWarning, Telescope, ScrollText, BadgeCheck,
+  ChevronDown, ChevronRight,
 } from 'lucide-react';
 import type { View } from '../types';
 
@@ -87,6 +89,9 @@ export function Sidebar({
   aiCoachOpen, mobileOpen, onMobileClose, taskCounts,
 }: SidebarProps) {
   const navigate = (v: View) => { onViewChange(v); onMobileClose(); };
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(['Strategy', 'Thinking']));
+  const toggleGroup = (label: string) =>
+    setCollapsed(prev => { const n = new Set(prev); n.has(label) ? n.delete(label) : n.add(label); return n; });
 
   const inner = (
     <aside className="w-[200px] shrink-0 flex flex-col h-full border-r border-[#2A2640] bg-[#1A1826]">
@@ -147,38 +152,58 @@ export function Sidebar({
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto">
-        {NAV_GROUPS.map(group => (
-          <div key={group.label}>
-            <p className="text-[10px] font-semibold text-gray-700 uppercase tracking-widest px-2 mb-1">{group.label}</p>
-            <div className="space-y-px">
-              {group.items.map(item => {
-                const active = view === item.id;
-                const badgeCount = item.badge ? item.badge(taskCounts) : 0;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => navigate(item.id)}
-                    className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-sm transition-colors ${
-                      active
-                        ? 'bg-violet-500/15 border border-violet-500/20 text-white'
-                        : 'border border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/[0.05]'
-                    }`}
-                  >
-                    <span className={`shrink-0 ${active ? 'text-violet-400' : ''}`}>{item.icon}</span>
-                    <span className="flex-1 text-left text-[13px]">{item.label}</span>
-                    {badgeCount > 0 && (
-                      <span className={`text-[10px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full ${
-                        active ? 'bg-violet-500/20 text-violet-300' : 'bg-white/[0.06] text-gray-500'
-                      }`}>
-                        {badgeCount}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+        {NAV_GROUPS.map(group => {
+          const isCollapsed = collapsed.has(group.label);
+          const groupBadge = group.items.reduce((sum, item) => sum + (item.badge ? item.badge(taskCounts) : 0), 0);
+          return (
+            <div key={group.label}>
+              <button
+                onClick={() => toggleGroup(group.label)}
+                className="w-full flex items-center justify-between px-2 mb-1 group"
+              >
+                <p className="text-[10px] font-semibold text-gray-700 group-hover:text-gray-500 uppercase tracking-widest transition-colors">{group.label}</p>
+                <div className="flex items-center gap-1">
+                  {isCollapsed && groupBadge > 0 && (
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-500">{groupBadge}</span>
+                  )}
+                  {isCollapsed
+                    ? <ChevronRight size={10} className="text-gray-700 group-hover:text-gray-500 transition-colors" />
+                    : <ChevronDown size={10} className="text-gray-700 group-hover:text-gray-500 transition-colors" />
+                  }
+                </div>
+              </button>
+              {!isCollapsed && (
+                <div className="space-y-px">
+                  {group.items.map(item => {
+                    const active = view === item.id;
+                    const badgeCount = item.badge ? item.badge(taskCounts) : 0;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => navigate(item.id)}
+                        className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-sm transition-colors ${
+                          active
+                            ? 'bg-violet-500/15 border border-violet-500/20 text-white'
+                            : 'border border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/[0.05]'
+                        }`}
+                      >
+                        <span className={`shrink-0 ${active ? 'text-violet-400' : ''}`}>{item.icon}</span>
+                        <span className="flex-1 text-left text-[13px]">{item.label}</span>
+                        {badgeCount > 0 && (
+                          <span className={`text-[10px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full ${
+                            active ? 'bg-violet-500/20 text-violet-300' : 'bg-white/[0.06] text-gray-500'
+                          }`}>
+                            {badgeCount}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* Footer */}
