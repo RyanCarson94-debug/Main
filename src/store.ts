@@ -172,7 +172,29 @@ export function useAppStore() {
   const [personalReadme,        setPersonalReadme]        = useState<PersonalReadme>(() => loadFromStorage(STORAGE_KEYS.personalReadme, {}));
   const [oneOnOneNotes,         setOneOnOneNotes]         = useState<OneOnOneNote[]>(() => loadFromStorage(STORAGE_KEYS.oneOnOneNotes, []));
 
-  // localStorage is now updated as a cache inside triggerCloudSave (after Supabase write).
+  // Immediate localStorage saves — keeps local cache always current, independent of Supabase
+  useEffect(() => { saveToStorage(STORAGE_KEYS.tasks,         tasks);         }, [tasks]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.okrs,          okrs);          }, [okrs]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.swot,          swotItems);     }, [swotItems]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.team,          teamMembers);   }, [teamMembers]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.updatePeople,  updatePeople);  }, [updatePeople]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.updates,       updates);       }, [updates]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.focusMap,      focusMap);      }, [focusMap]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.dump,          dumpItems);     }, [dumpItems]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.decisions,     decisions);     }, [decisions]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.commitments,   commitments);   }, [commitments]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.weeklyReviews, weeklyReviews); }, [weeklyReviews]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.northStar,             northStar);             }, [northStar]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.stakeholders,          stakeholders);          }, [stakeholders]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.directReportProfiles,  directReportProfiles);  }, [directReportProfiles]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.meetings,              meetings);              }, [meetings]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.projects,              projects);              }, [projects]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.hardConversations,     hardConversations);     }, [hardConversations]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.quarterlyPlans,        quarterlyPlans);        }, [quarterlyPlans]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.roleClarityDoc,        roleClarityDoc);        }, [roleClarityDoc]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.roleCharters,          roleCharters);          }, [roleCharters]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.personalReadme,        personalReadme);        }, [personalReadme]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.oneOnOneNotes,         oneOnOneNotes);         }, [oneOnOneNotes]);
 
   // ── Cloud sync (Supabase — primary source of truth) ───────────────────────
   // Strategy:
@@ -213,17 +235,21 @@ export function useAppStore() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // On mount: load from Supabase (cloud is the source of truth)
+  // On mount: load from Supabase if it has data we haven't seen yet.
+  // We track the timestamp of the last snapshot we saved to Supabase in localStorage.
+  // If cloud.saved_at > that timestamp, another device/session saved something newer — apply it.
+  // If cloud.saved_at <= that timestamp, our local data already matches or is ahead — skip.
+  // This prevents the cloud from overwriting local-only changes that haven't synced yet.
+  const LAST_CLOUD_SAVE_KEY = 'adhd-leader-cloud-saved-at';
   useEffect(() => {
     void (async () => {
       const cloud = await loadFromCloud();
-      if (!isMounted.current) return;
-      if (cloud) {
-        applyCloudPayload(cloud.payload as Record<string, unknown>);
-        console.info('[sync] Loaded from cloud');
-      }
-      // If cloud is null (offline / Supabase not configured), localStorage data
-      // already loaded via useState initializers — nothing more to do.
+      if (!isMounted.current || !cloud) return;
+      const cloudDate = new Date(cloud.saved_at);
+      const lastSaveDate = new Date(loadFromStorage<string>(LAST_CLOUD_SAVE_KEY, '1970-01-01'));
+      if (cloudDate <= lastSaveDate) return; // local is current — nothing new from cloud
+      applyCloudPayload(cloud.payload as Record<string, unknown>);
+      console.info('[sync] Applied newer cloud data:', cloud.saved_at);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -255,35 +281,15 @@ export function useAppStore() {
       try {
         await saveToCloud(snapshot);
         if (isMounted.current) {
+          // Record the timestamp so we know what the cloud has — prevents overwriting on next startup
+          saveToStorage(LAST_CLOUD_SAVE_KEY, snapshot.cloudSavedAt);
           setSaveSyncStatus('saved');
           setTimeout(() => { if (isMounted.current) setSaveSyncStatus('idle'); }, 2500);
         }
       } catch {
         if (isMounted.current) setSaveSyncStatus('error');
       }
-      // Update localStorage as offline cache
-      saveToStorage(STORAGE_KEYS.tasks,                 snapshot.tasks);
-      saveToStorage(STORAGE_KEYS.okrs,                  snapshot.okrs);
-      saveToStorage(STORAGE_KEYS.swot,                  snapshot.swotItems);
-      saveToStorage(STORAGE_KEYS.team,                  snapshot.teamMembers);
-      saveToStorage(STORAGE_KEYS.updatePeople,          snapshot.updatePeople);
-      saveToStorage(STORAGE_KEYS.updates,               snapshot.updates);
-      saveToStorage(STORAGE_KEYS.focusMap,              snapshot.focusMap);
-      saveToStorage(STORAGE_KEYS.dump,                  snapshot.dumpItems);
-      saveToStorage(STORAGE_KEYS.decisions,             snapshot.decisions);
-      saveToStorage(STORAGE_KEYS.commitments,           snapshot.commitments);
-      saveToStorage(STORAGE_KEYS.weeklyReviews,         snapshot.weeklyReviews);
-      saveToStorage(STORAGE_KEYS.northStar,             snapshot.northStar);
-      saveToStorage(STORAGE_KEYS.stakeholders,          snapshot.stakeholders);
-      saveToStorage(STORAGE_KEYS.directReportProfiles,  snapshot.directReportProfiles);
-      saveToStorage(STORAGE_KEYS.meetings,              snapshot.meetings);
-      saveToStorage(STORAGE_KEYS.projects,              snapshot.projects);
-      saveToStorage(STORAGE_KEYS.hardConversations,     snapshot.hardConversations);
-      saveToStorage(STORAGE_KEYS.quarterlyPlans,        snapshot.quarterlyPlans);
-      saveToStorage(STORAGE_KEYS.roleClarityDoc,        snapshot.roleClarityDoc);
-      saveToStorage(STORAGE_KEYS.roleCharters,          snapshot.roleCharters);
-      saveToStorage(STORAGE_KEYS.personalReadme,        snapshot.personalReadme);
-      saveToStorage(STORAGE_KEYS.oneOnOneNotes,         snapshot.oneOnOneNotes);
+      // localStorage is updated immediately by the per-field useEffects above — no need to batch here
     }, 800);
   }, [tasks, okrs, swotItems, teamMembers, updatePeople, updates,
       focusMap, dumpItems, decisions, commitments, weeklyReviews,
