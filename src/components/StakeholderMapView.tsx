@@ -159,11 +159,17 @@ export function StakeholderMapView({
       </div>
 
       <div className="flex-1 overflow-hidden flex gap-4">
-        {/* 2x2 Grid */}
-        <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-3 min-h-0">
-          {/* Axis labels */}
-          <div className="col-span-2 grid grid-cols-2 gap-3 shrink-0" style={{ height: 0 }}>
+        {/* 2x2 Grid + axis labels */}
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex items-center justify-center mb-1 shrink-0">
+            <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">Interest →</span>
           </div>
+          <div className="flex-1 flex gap-3 min-h-0">
+            {/* Influence label */}
+            <div className="flex items-center justify-center shrink-0 w-4">
+              <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>Influence →</span>
+            </div>
+            <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-3 min-h-0">
           {QUADRANTS.map(q => {
             const inQuadrant = stakeholders.filter(s => s.influence === q.influence && s.interest === q.interest);
             return (
@@ -198,6 +204,8 @@ export function StakeholderMapView({
               </div>
             );
           })}
+            </div>
+          </div>
         </div>
 
         {/* Detail panel */}
