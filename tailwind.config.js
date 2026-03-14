@@ -2,7 +2,10 @@
 export default {
   content: [
     "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
+    // Only scan files that can contain Tailwind classes (JSX/TSX).
+    // Pure .ts utility files (store, utils, types) don't have class names
+    // and scanning them can produce false-positive CSS that breaks the minifier.
+    "./src/**/*.{jsx,tsx}",
   ],
   theme: {
     extend: {

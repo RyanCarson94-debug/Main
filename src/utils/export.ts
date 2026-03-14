@@ -145,3 +145,78 @@ function parseCSVRow(line: string): string[] {
 function today() {
   return new Date().toISOString().split('T')[0];
 }
+
+// ─── ICS / iCalendar export ───────────────────────────────────────────────────
+
+function icsLine(text: string): string {
+  const out: string[] = [];
+  while (text.length > 75) { out.push(text.slice(0, 75)); text = ' ' + text.slice(75); }
+  out.push(text);
+  return out.join('\r\n');
+}
+
+function icsEscape(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+}
+
+function icsDate(iso: string): string { return iso.replace(/-/g, ''); }
+
+function nextDay(iso: string): string {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().split('T')[0];
+}
+
+const ICS_PRIORITY: Record<Task['priority'], number> = { critical: 1, high: 2, medium: 5, low: 9 };
+
+const QUADRANT_LABEL: Record<string, string> = {
+  'do-now': 'Do Now', schedule: 'Schedule', delegate: 'Delegate', drop: 'Drop',
+};
+
+export function exportTasksICS(
+  tasks: Task[],
+  { includeDone = false, alarmMinutes = 0 }: { includeDone?: boolean; alarmMinutes?: number } = {},
+) {
+  const exportable = tasks.filter(t => t.dueDate && (includeDone || t.column !== 'done'));
+  if (exportable.length === 0) { alert('No tasks with due dates found to export.'); return; }
+
+  const nowStamp = new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';
+  const lines: string[] = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0',
+    'PRODID:-//ADHD Leader//adhd-leader.app//EN',
+    'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'X-WR-CALNAME:ADHD Leader Tasks', 'X-WR-TIMEZONE:UTC',
+  ];
+
+  for (const t of exportable) {
+    const descParts: string[] = [];
+    if (t.description)    descParts.push(t.description);
+    if (t.quadrant)       descParts.push('Quadrant: ' + (QUADRANT_LABEL[t.quadrant] ?? t.quadrant));
+    if (t.energy)         descParts.push('Energy: ' + t.energy);
+    if (t.delegatedTo)    descParts.push('Delegated to: ' + t.delegatedTo);
+    if (t.commitmentNote) descParts.push('Commitment: ' + t.commitmentNote);
+    if (t.tags.length)    descParts.push('Tags: ' + t.tags.join(', '));
+
+    const trigger = alarmMinutes > 0 ? '-PT' + alarmMinutes + 'M' : 'PT0S';
+    lines.push(
+      'BEGIN:VEVENT',
+      icsLine('UID:' + t.id + '@adhd-leader'),
+      icsLine('DTSTAMP:' + nowStamp),
+      icsLine('DTSTART;VALUE=DATE:' + icsDate(t.dueDate!)),
+      icsLine('DTEND;VALUE=DATE:' + icsDate(nextDay(t.dueDate!))),
+      icsLine('SUMMARY:' + icsEscape(t.title)),
+      icsLine('PRIORITY:' + ICS_PRIORITY[t.priority]),
+      icsLine('STATUS:' + (t.column === 'done' ? 'COMPLETED' : 'CONFIRMED')),
+      icsLine('CATEGORIES:' + icsEscape(QUADRANT_LABEL[t.quadrant] ?? t.quadrant)),
+      ...(descParts.length ? [icsLine('DESCRIPTION:' + icsEscape(descParts.join('\\n')))] : []),
+      'BEGIN:VALARM', 'ACTION:DISPLAY',
+      icsLine('DESCRIPTION:Due: ' + icsEscape(t.title)),
+      'TRIGGER:' + trigger,
+      'END:VALARM', 'END:VEVENT',
+    );
+  }
+
+  lines.push('END:VCALENDAR');
+  // Split mime type to avoid Tailwind content-scan treating 'text/calendar;charset=utf-8' as a class
+  downloadFile(lines.join('\r\n'), 'adhd-leader-tasks-' + today() + '.ics', 'text/calendar' + ';charset=utf-8');
+}
