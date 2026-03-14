@@ -5,6 +5,7 @@ import type {
   Update, UpdatePerson, TaskFocus, FocusStep, DumpItem, DumpItemStatus,
   Decision, Commitment, WeeklyReview, NorthStar, RecurrenceRule,
   Stakeholder, DirectReportProfile, Meeting, AgendaItem, MeetingActionItem,
+  Project, ProjectMilestone, HardConversation,
 } from './types';
 
 const STORAGE_KEYS = {
@@ -23,6 +24,8 @@ const STORAGE_KEYS = {
   stakeholders:       'adhd-leader-stakeholders',
   directReportProfiles: 'adhd-leader-direct-report-profiles',
   meetings:           'adhd-leader-meetings',
+  projects:           'adhd-leader-projects',
+  hardConversations:  'adhd-leader-hard-conversations',
 };
 
 // Dual-write: primary key + backup key for resilience
@@ -152,6 +155,8 @@ export function useAppStore() {
   const [stakeholders,          setStakeholders]          = useState<Stakeholder[]>(() => loadFromStorage(STORAGE_KEYS.stakeholders, []));
   const [directReportProfiles,  setDirectReportProfiles]  = useState<DirectReportProfile[]>(() => loadFromStorage(STORAGE_KEYS.directReportProfiles, []));
   const [meetings,              setMeetings]              = useState<Meeting[]>(() => loadFromStorage(STORAGE_KEYS.meetings, []));
+  const [projects,              setProjects]              = useState<Project[]>(() => loadFromStorage(STORAGE_KEYS.projects, []));
+  const [hardConversations,     setHardConversations]     = useState<HardConversation[]>(() => loadFromStorage(STORAGE_KEYS.hardConversations, []));
 
   useEffect(() => { saveToStorage(STORAGE_KEYS.tasks,         tasks);         }, [tasks]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.okrs,          okrs);          }, [okrs]);
@@ -168,6 +173,8 @@ export function useAppStore() {
   useEffect(() => { saveToStorage(STORAGE_KEYS.stakeholders,          stakeholders);          }, [stakeholders]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.directReportProfiles,  directReportProfiles);  }, [directReportProfiles]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.meetings,              meetings);              }, [meetings]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.projects,              projects);              }, [projects]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.hardConversations,     hardConversations);     }, [hardConversations]);
 
   // ── Cloud sync (Supabase) ──────────────────────────────────────────────────
   // Debounced save: 3s after last change, push full state to cloud
@@ -181,13 +188,15 @@ export function useAppStore() {
         tasks, okrs, swotItems, teamMembers, updatePeople, updates,
         focusMap, dumpItems, decisions, commitments, weeklyReviews,
         northStar, stakeholders, directReportProfiles, meetings,
+        projects, hardConversations,
         cloudSavedAt: new Date().toISOString(),
       };
       void saveToCloud(snapshot);
     }, 3000);
   }, [tasks, okrs, swotItems, teamMembers, updatePeople, updates,
       focusMap, dumpItems, decisions, commitments, weeklyReviews,
-      northStar, stakeholders, directReportProfiles, meetings]);
+      northStar, stakeholders, directReportProfiles, meetings,
+      projects, hardConversations]);
 
   useEffect(() => { triggerCloudSave(); }, [triggerCloudSave]);
 
@@ -217,6 +226,8 @@ export function useAppStore() {
       if (Array.isArray(p.stakeholders))        setStakeholders(p.stakeholders as Stakeholder[]);
       if (Array.isArray(p.directReportProfiles)) setDirectReportProfiles(p.directReportProfiles as DirectReportProfile[]);
       if (Array.isArray(p.meetings))            setMeetings(p.meetings as Meeting[]);
+      if (Array.isArray(p.projects))            setProjects(p.projects as Project[]);
+      if (Array.isArray(p.hardConversations))   setHardConversations(p.hardConversations as HardConversation[]);
 
       saveToStorage('adhd-leader-last-cloud-load', cloud.saved_at);
       console.info('[sync] Restored data from cloud (newer than local)');
@@ -239,13 +250,22 @@ export function useAppStore() {
 
   const deleteTask = (id: string) => {
     setTasks(prev => prev.filter(t => t.id !== id));
-    // Cascade: remove this task from any meeting links and action item links
+    // Cascade: remove from meeting links and action item links
     setMeetings(prev => prev.map(m => ({
       ...m,
       linkedTaskIds: m.linkedTaskIds.filter(tid => tid !== id),
       actionItems: m.actionItems.map(a =>
         a.linkedTaskId === id ? { ...a, linkedTaskId: undefined } : a
       ),
+    })));
+    // Cascade: remove from project links and milestone links
+    setProjects(prev => prev.map(p => ({
+      ...p,
+      linkedTaskIds: p.linkedTaskIds.filter(tid => tid !== id),
+      milestones: p.milestones.map(m => ({
+        ...m,
+        linkedTaskIds: m.linkedTaskIds.filter(tid => tid !== id),
+      })),
     })));
   };
 
@@ -612,6 +632,95 @@ export function useAppStore() {
     ));
   };
 
+  // ── Projects ───────────────────────────────────────────────────────────────
+
+  const addProject = (p: Omit<Project, 'id' | 'createdAt'>) => {
+    const project: Project = { ...p, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+    setProjects(prev => [project, ...prev]);
+    return project;
+  };
+
+  const updateProject = (id: string, updates: Partial<Project>) => {
+    setProjects(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+  };
+
+  const deleteProject = (id: string) => {
+    setProjects(prev => prev.filter(p => p.id !== id));
+  };
+
+  const addMilestone = (projectId: string, m: Omit<ProjectMilestone, 'id'>) => {
+    setProjects(prev => prev.map(p =>
+      p.id === projectId
+        ? { ...p, milestones: [...p.milestones, { ...m, id: crypto.randomUUID() }] }
+        : p
+    ));
+  };
+
+  const updateMilestone = (projectId: string, milestoneId: string, updates: Partial<ProjectMilestone>) => {
+    setProjects(prev => prev.map(p =>
+      p.id === projectId
+        ? { ...p, milestones: p.milestones.map(m => m.id === milestoneId ? { ...m, ...updates } : m) }
+        : p
+    ));
+  };
+
+  const deleteMilestone = (projectId: string, milestoneId: string) => {
+    setProjects(prev => prev.map(p =>
+      p.id === projectId ? { ...p, milestones: p.milestones.filter(m => m.id !== milestoneId) } : p
+    ));
+  };
+
+  const linkTaskToProject = (projectId: string, taskId: string) => {
+    setProjects(prev => prev.map(p =>
+      p.id === projectId && !p.linkedTaskIds.includes(taskId)
+        ? { ...p, linkedTaskIds: [...p.linkedTaskIds, taskId] }
+        : p
+    ));
+  };
+
+  const unlinkTaskFromProject = (projectId: string, taskId: string) => {
+    setProjects(prev => prev.map(p =>
+      p.id === projectId
+        ? { ...p, linkedTaskIds: p.linkedTaskIds.filter(id => id !== taskId) }
+        : p
+    ));
+  };
+
+  const linkOKRToProject = (projectId: string, okrId: string) => {
+    setProjects(prev => prev.map(p =>
+      p.id === projectId && !p.linkedOKRIds.includes(okrId)
+        ? { ...p, linkedOKRIds: [...p.linkedOKRIds, okrId] }
+        : p
+    ));
+  };
+
+  const unlinkOKRFromProject = (projectId: string, okrId: string) => {
+    setProjects(prev => prev.map(p =>
+      p.id === projectId
+        ? { ...p, linkedOKRIds: p.linkedOKRIds.filter(id => id !== okrId) }
+        : p
+    ));
+  };
+
+  // Cascade cleanup: when a task is deleted, remove from project links too
+  // (already handled in deleteTask above via setMeetings — mirror for projects)
+
+  // ── Hard Conversations ─────────────────────────────────────────────────────
+
+  const addHardConversation = (c: Omit<HardConversation, 'id' | 'createdAt'>) => {
+    const conv: HardConversation = { ...c, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+    setHardConversations(prev => [conv, ...prev]);
+    return conv;
+  };
+
+  const updateHardConversation = (id: string, updates: Partial<HardConversation>) => {
+    setHardConversations(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+  };
+
+  const deleteHardConversation = (id: string) => {
+    setHardConversations(prev => prev.filter(c => c.id !== id));
+  };
+
   return {
     tasks, okrs, swotItems, teamMembers, updatePeople, updates, focusMap, dumpItems,
     decisions, commitments, weeklyReviews, northStar,
@@ -634,5 +743,9 @@ export function useAppStore() {
     addMeetingActionItem, updateMeetingActionItem, deleteMeetingActionItem,
     convertActionItemToTask, linkTaskToMeeting, unlinkTaskFromMeeting,
     linkDecisionToMeeting, unlinkDecisionFromMeeting,
+    projects, addProject, updateProject, deleteProject,
+    addMilestone, updateMilestone, deleteMilestone,
+    linkTaskToProject, unlinkTaskFromProject, linkOKRToProject, unlinkOKRFromProject,
+    hardConversations, addHardConversation, updateHardConversation, deleteHardConversation,
   };
 }

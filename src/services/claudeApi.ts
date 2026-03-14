@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { Task, FocusStep, DumpItem, WeeklyReview, Decision, OKR, Meeting } from '../types';
+import type { Task, FocusStep, DumpItem, WeeklyReview, Decision, OKR, Meeting, HardConversation } from '../types';
 
 const client = new Anthropic({
   apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY ?? '',
@@ -403,4 +403,64 @@ Keep it tight — max 4 bullets per section. ADHD-friendly: no fluff, no filler,
   const block = response.content[0];
   if (block.type !== 'text') throw new Error('Unexpected response type');
   return block.text;
+}
+
+// ─── Hard Conversation Prep Generator ─────────────────────────────────────────
+
+/**
+ * Generate structured prep content for a hard conversation.
+ * Returns a Partial<HardConversation> with suggested text for each prep field.
+ */
+export async function generateConversationPrep(conv: HardConversation): Promise<Partial<HardConversation>> {
+  const prompt = `You are an executive coach helping a leader prepare for a difficult conversation.
+
+Conversation type: ${conv.type.replace(/-/g, ' ')}
+Title / situation: ${conv.title}
+${conv.person ? `Person: ${conv.person}` : ''}
+${conv.context ? `Context already captured: ${conv.context}` : ''}
+${conv.desiredOutcome ? `Desired outcome: ${conv.desiredOutcome}` : ''}
+
+Generate prep content in this EXACT JSON format — no markdown, no preamble, just valid JSON:
+{
+  "context": "...",
+  "desiredOutcome": "...",
+  "openingLine": "...",
+  "keyPoints": "...",
+  "anticipatedReaction": "...",
+  "yourResponse": "..."
+}
+
+Rules:
+- context: 2-3 sentences framing the situation and why the conversation is needed
+- desiredOutcome: 1-2 sentences stating the concrete result to aim for
+- openingLine: ONE specific, direct sentence to open with — not generic, not soft
+- keyPoints: 3-4 bullet points of the main things to communicate, in order
+- anticipatedReaction: honest prediction of their emotional response and why
+- yourResponse: specific tactics for handling pushback or defensiveness
+
+Be direct, ADHD-friendly (no waffle), and psychologically safe. Preserve any context/outcome the leader has already written by incorporating it.`;
+
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 800,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const block = response.content[0];
+  if (block.type !== 'text') throw new Error('Unexpected response type');
+
+  // Strip any accidental markdown code fences
+  const cleaned = block.text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  const parsed = JSON.parse(cleaned) as Partial<HardConversation>;
+
+  // Only fill fields that are currently empty
+  const result: Partial<HardConversation> = {};
+  if (!conv.context             && parsed.context)             result.context             = parsed.context;
+  if (!conv.desiredOutcome      && parsed.desiredOutcome)      result.desiredOutcome      = parsed.desiredOutcome;
+  if (!conv.openingLine         && parsed.openingLine)         result.openingLine         = parsed.openingLine;
+  if (!conv.keyPoints           && parsed.keyPoints)           result.keyPoints           = parsed.keyPoints;
+  if (!conv.anticipatedReaction && parsed.anticipatedReaction) result.anticipatedReaction = parsed.anticipatedReaction;
+  if (!conv.yourResponse        && parsed.yourResponse)        result.yourResponse        = parsed.yourResponse;
+
+  return result;
 }

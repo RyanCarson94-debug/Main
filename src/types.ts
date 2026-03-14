@@ -7,6 +7,61 @@ export type InfluenceLevel = 'high' | 'medium' | 'low';
 export type InterestLevel  = 'high' | 'medium' | 'low';
 export type MeetingType = 'team' | 'standup' | 'all-hands' | 'client' | 'board' | 'strategy' | 'retrospective' | 'workshop' | 'one-on-one' | 'other';
 export type MeetingStatus = 'upcoming' | 'completed' | 'cancelled';
+export type ProjectStatus = 'not-started' | 'on-track' | 'at-risk' | 'blocked' | 'completed' | 'cancelled';
+export type MilestoneStatus = 'pending' | 'in-progress' | 'completed' | 'blocked';
+export type ConversationType =
+  | 'feedback-positive' | 'feedback-constructive' | 'performance-issue'
+  | 'role-change' | 'conflict-resolution' | 'stakeholder-pushback'
+  | 'letting-go' | 'boundary-setting' | 'difficult-ask' | 'other';
+export type ConversationStatus = 'planning' | 'ready' | 'had' | 'postponed';
+
+export interface ProjectMilestone {
+  id: string;
+  title: string;
+  dueDate?: string;
+  status: MilestoneStatus;
+  notes?: string;
+  linkedTaskIds: string[];
+}
+
+export interface Project {
+  id: string;
+  title: string;
+  description?: string;
+  status: ProjectStatus;
+  owner?: string;
+  startDate?: string;
+  dueDate?: string;
+  successCriteria?: string;
+  risks?: string;
+  notes?: string;
+  milestones: ProjectMilestone[];
+  linkedOKRIds: string[];
+  linkedTaskIds: string[];
+  createdAt: string;
+  completedAt?: string;
+}
+
+export interface HardConversation {
+  id: string;
+  title: string;
+  type: ConversationType;
+  person?: string;
+  targetDate?: string;
+  status: ConversationStatus;
+  // Prep
+  context?: string;
+  desiredOutcome?: string;
+  openingLine?: string;
+  keyPoints?: string;
+  anticipatedReaction?: string;
+  yourResponse?: string;
+  // Post-conversation
+  actualOutcome?: string;
+  followUpActions?: string;
+  createdAt: string;
+  hadAt?: string;
+}
 
 export type View =
   | 'dashboard'
@@ -26,7 +81,9 @@ export type View =
   | 'stakeholders'
   | 'direct-reports'
   | 'day-planner'
-  | 'meetings';
+  | 'meetings'
+  | 'projects'
+  | 'hard-conversations';
 
 export type DumpItemStatus = 'inbox' | 'task' | 'idea' | 'archived';
 

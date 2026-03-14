@@ -2,6 +2,7 @@ import {
   LayoutDashboard, Grid2x2, Target, BarChart2, Users, Zap, UserCheck,
   BookOpen, Bell, BrainCircuit, Home, Compass, BookMarked, CalendarCheck,
   LogOut, Network, Search, UserCog, Bot, Keyboard, CalendarDays, X, Video,
+  FolderKanban, MessageSquareWarning,
 } from 'lucide-react';
 import type { View } from '../types';
 
@@ -42,18 +43,20 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: 'Tasks',
+    label: 'Tasks & Projects',
     items: [
       { id: 'kanban',      label: 'Task Board',   icon: <LayoutDashboard size={14} /> },
       { id: 'eisenhower',  label: 'Eisenhower',   icon: <Grid2x2 size={14} /> },
       { id: 'delegations', label: 'Delegations',  icon: <UserCheck size={14} />, badge: c => c.delegationAlerts },
+      { id: 'projects',    label: 'Projects',     icon: <FolderKanban size={14} /> },
     ],
   },
   {
     label: 'People',
     items: [
-      { id: 'updates',        label: '1:1 Briefings',  icon: <Bell size={14} />,    badge: c => c.pendingUpdates },
-      { id: 'first-team',     label: 'First Team',     icon: <Users size={14} /> },
+      { id: 'updates',             label: '1:1 Briefings',       icon: <Bell size={14} />,                badge: c => c.pendingUpdates },
+      { id: 'first-team',          label: 'First Team',          icon: <Users size={14} /> },
+      { id: 'hard-conversations',  label: 'Hard Conversations',  icon: <MessageSquareWarning size={14} /> },
       { id: 'direct-reports', label: 'Direct Reports', icon: <UserCog size={14} /> },
       { id: 'stakeholders',   label: 'Stakeholders',   icon: <Network size={14} /> },
     ],

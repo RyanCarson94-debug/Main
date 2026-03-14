@@ -21,6 +21,8 @@ import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { AICoach } from './components/AICoach';
 import { DayPlannerView } from './components/DayPlannerView';
 import { MeetingsView } from './components/MeetingsView';
+import { ProjectsView } from './components/ProjectsView';
+import { HardConversationsView } from './components/HardConversationsView';
 
 // Lazy-load infrequently-visited views so they're excluded from the initial bundle
 const SwotView          = lazy(() => import('./components/SwotView').then(m => ({ default: m.SwotView })));
@@ -69,7 +71,9 @@ export default function App() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showAICoach, setShowAICoach] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
-  const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null);
+  const [selectedMeetingId,       setSelectedMeetingId]       = useState<string | null>(null);
+  const [selectedProjectId,       setSelectedProjectId]       = useState<string | null>(null);
+  const [selectedConversationId,  setSelectedConversationId]  = useState<string | null>(null);
   const [notifBanner, setNotifBanner] = useState(false);
   const csvImportRef = useRef<HTMLInputElement>(null);
 
@@ -155,7 +159,9 @@ export default function App() {
 
   const handleSearchNavigate = useCallback((targetView: View) => {
     setView(targetView);
-    if (targetView !== 'meetings') setSelectedMeetingId(null);
+    if (targetView !== 'meetings')           setSelectedMeetingId(null);
+    if (targetView !== 'projects')           setSelectedProjectId(null);
+    if (targetView !== 'hard-conversations') setSelectedConversationId(null);
   }, []);
 
   const handleCSVImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -420,6 +426,35 @@ export default function App() {
               onUnlinkDecision={store.unlinkDecisionFromMeeting}
               selectedMeetingId={selectedMeetingId}
               onSelectMeeting={setSelectedMeetingId}
+            />
+          )}
+          {view === 'projects' && (
+            <ProjectsView
+              projects={store.projects}
+              tasks={store.tasks}
+              okrs={store.okrs}
+              onAdd={store.addProject}
+              onUpdate={store.updateProject}
+              onDelete={store.deleteProject}
+              onAddMilestone={store.addMilestone}
+              onUpdateMilestone={store.updateMilestone}
+              onDeleteMilestone={store.deleteMilestone}
+              onLinkTask={store.linkTaskToProject}
+              onUnlinkTask={store.unlinkTaskFromProject}
+              onLinkOKR={store.linkOKRToProject}
+              onUnlinkOKR={store.unlinkOKRFromProject}
+              selectedProjectId={selectedProjectId}
+              onSelectProject={setSelectedProjectId}
+            />
+          )}
+          {view === 'hard-conversations' && (
+            <HardConversationsView
+              conversations={store.hardConversations}
+              onAdd={store.addHardConversation}
+              onUpdate={store.updateHardConversation}
+              onDelete={store.deleteHardConversation}
+              selectedId={selectedConversationId}
+              onSelect={setSelectedConversationId}
             />
           )}
           {view === 'stakeholders' && (
