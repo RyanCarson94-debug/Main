@@ -15,6 +15,34 @@ export type ConversationType =
   | 'letting-go' | 'boundary-setting' | 'difficult-ask' | 'other';
 export type ConversationStatus = 'planning' | 'ready' | 'had' | 'postponed';
 export type QuarterlyPlanStatus = 'draft' | 'active' | 'complete';
+
+export interface PersonalReadme {
+  myRole?:             string;
+  myWhy?:              string;
+  currentFocus?:       string;
+  preferredChannels?:  string;
+  responseTime?:       string;
+  meetingPreferences?: string;
+  bringMeProblems?:    string;
+  howIDecide?:         string;
+  myQuirks?:           string;
+  bestWork?:           string;
+  drainsMe?:           string;
+  greenFlags?:         string;
+  redFlags?:           string;
+  updatedAt?:          string;
+}
+
+export interface OneOnOneNote {
+  id:          string;
+  personId:    string;
+  personName:  string;
+  date:        string;
+  agenda?:     string;
+  notes?:      string;
+  actionItems?: string;
+  createdAt:   string;
+}
 export type RoleCharterStatus = 'draft' | 'active' | 'vacant' | 'being-hired';
 
 export interface QuarterlyPlan {
@@ -140,7 +168,9 @@ export type View =
   | 'hard-conversations'
   | 'quarterly-planning'
   | 'role-clarity'
-  | 'role-charters';
+  | 'role-charters'
+  | 'personal-readme'
+  | 'one-on-one';
 
 export type DumpItemStatus = 'inbox' | 'task' | 'idea' | 'archived';
 

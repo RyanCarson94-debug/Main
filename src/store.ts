@@ -7,6 +7,7 @@ import type {
   Stakeholder, DirectReportProfile, Meeting, AgendaItem, MeetingActionItem,
   Project, ProjectMilestone, HardConversation,
   QuarterlyPlan, RoleClarityDoc, RoleCharter,
+  PersonalReadme, OneOnOneNote,
 } from './types';
 
 const STORAGE_KEYS = {
@@ -30,6 +31,8 @@ const STORAGE_KEYS = {
   quarterlyPlans:     'adhd-leader-quarterly-plans',
   roleClarityDoc:     'adhd-leader-role-clarity',
   roleCharters:       'adhd-leader-role-charters',
+  personalReadme:     'adhd-leader-personal-readme',
+  oneOnOneNotes:      'adhd-leader-one-on-one-notes',
 };
 
 // Dual-write: primary key + backup key for resilience
@@ -164,6 +167,8 @@ export function useAppStore() {
   const [quarterlyPlans,        setQuarterlyPlans]        = useState<QuarterlyPlan[]>(() => loadFromStorage(STORAGE_KEYS.quarterlyPlans, []));
   const [roleClarityDoc,        setRoleClarityDoc]        = useState<RoleClarityDoc>(() => loadFromStorage(STORAGE_KEYS.roleClarityDoc, {}));
   const [roleCharters,          setRoleCharters]          = useState<RoleCharter[]>(() => loadFromStorage(STORAGE_KEYS.roleCharters, []));
+  const [personalReadme,        setPersonalReadme]        = useState<PersonalReadme>(() => loadFromStorage(STORAGE_KEYS.personalReadme, {}));
+  const [oneOnOneNotes,         setOneOnOneNotes]         = useState<OneOnOneNote[]>(() => loadFromStorage(STORAGE_KEYS.oneOnOneNotes, []));
 
   useEffect(() => { saveToStorage(STORAGE_KEYS.tasks,         tasks);         }, [tasks]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.okrs,          okrs);          }, [okrs]);
@@ -185,6 +190,8 @@ export function useAppStore() {
   useEffect(() => { saveToStorage(STORAGE_KEYS.quarterlyPlans,        quarterlyPlans);        }, [quarterlyPlans]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.roleClarityDoc,        roleClarityDoc);        }, [roleClarityDoc]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.roleCharters,          roleCharters);          }, [roleCharters]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.personalReadme,        personalReadme);        }, [personalReadme]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.oneOnOneNotes,         oneOnOneNotes);         }, [oneOnOneNotes]);
 
   // ── Cloud sync (Supabase) ──────────────────────────────────────────────────
   // Debounced save: 3s after last change, push full state to cloud
@@ -200,6 +207,7 @@ export function useAppStore() {
         northStar, stakeholders, directReportProfiles, meetings,
         projects, hardConversations,
         quarterlyPlans, roleClarityDoc, roleCharters,
+        personalReadme, oneOnOneNotes,
         cloudSavedAt: new Date().toISOString(),
       };
       void saveToCloud(snapshot);
@@ -207,7 +215,8 @@ export function useAppStore() {
   }, [tasks, okrs, swotItems, teamMembers, updatePeople, updates,
       focusMap, dumpItems, decisions, commitments, weeklyReviews,
       northStar, stakeholders, directReportProfiles, meetings,
-      projects, hardConversations, quarterlyPlans, roleClarityDoc, roleCharters]);
+      projects, hardConversations, quarterlyPlans, roleClarityDoc, roleCharters,
+      personalReadme, oneOnOneNotes]);
 
   useEffect(() => { triggerCloudSave(); }, [triggerCloudSave]);
 
@@ -242,6 +251,8 @@ export function useAppStore() {
       if (Array.isArray(p.quarterlyPlans))      setQuarterlyPlans(p.quarterlyPlans as QuarterlyPlan[]);
       if (p.roleClarityDoc && typeof p.roleClarityDoc === 'object') setRoleClarityDoc(p.roleClarityDoc as RoleClarityDoc);
       if (Array.isArray(p.roleCharters))        setRoleCharters(p.roleCharters as RoleCharter[]);
+      if (p.personalReadme && typeof p.personalReadme === 'object') setPersonalReadme(p.personalReadme as PersonalReadme);
+      if (Array.isArray(p.oneOnOneNotes))       setOneOnOneNotes(p.oneOnOneNotes as OneOnOneNote[]);
 
       saveToStorage('adhd-leader-last-cloud-load', cloud.saved_at);
       console.info('[sync] Restored data from cloud (newer than local)');
@@ -719,6 +730,28 @@ export function useAppStore() {
   // Cascade cleanup: when a task is deleted, remove from project links too
   // (already handled in deleteTask above via setMeetings — mirror for projects)
 
+  // ── Personal README ────────────────────────────────────────────────────────
+
+  const savePersonalReadme = (updates: Partial<PersonalReadme>) => {
+    setPersonalReadme(prev => ({ ...prev, ...updates, updatedAt: new Date().toISOString() }));
+  };
+
+  // ── 1:1 Notes ──────────────────────────────────────────────────────────────
+
+  const addOneOnOneNote = (n: Omit<OneOnOneNote, 'id' | 'createdAt'>) => {
+    const note: OneOnOneNote = { ...n, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+    setOneOnOneNotes(prev => [note, ...prev]);
+    return note;
+  };
+
+  const updateOneOnOneNote = (id: string, updates: Partial<OneOnOneNote>) => {
+    setOneOnOneNotes(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
+  };
+
+  const deleteOneOnOneNote = (id: string) => {
+    setOneOnOneNotes(prev => prev.filter(n => n.id !== id));
+  };
+
   // ── Quarterly Plans ────────────────────────────────────────────────────────
 
   const addQuarterlyPlan = (p: Omit<QuarterlyPlan, 'id' | 'createdAt'>) => {
@@ -802,5 +835,7 @@ export function useAppStore() {
     quarterlyPlans, addQuarterlyPlan, updateQuarterlyPlan, deleteQuarterlyPlan,
     roleClarityDoc, saveRoleClarityDoc,
     roleCharters, addRoleCharter, updateRoleCharter, deleteRoleCharter,
+    personalReadme, savePersonalReadme,
+    oneOnOneNotes, addOneOnOneNote, updateOneOnOneNote, deleteOneOnOneNote,
   };
 }

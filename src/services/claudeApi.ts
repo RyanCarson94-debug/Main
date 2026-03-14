@@ -532,6 +532,71 @@ Keep it tight — max 4 bullets per section. ADHD-friendly: no fluff, no filler,
   return block.text;
 }
 
+// ─── 1:1 Agenda Generator ─────────────────────────────────────────────────────
+
+export interface OneOnOneContext {
+  personName:     string;
+  personRole?:    string;
+  growthGoals?:   string;
+  strengths?:     string[];
+  challenges?:    string;
+  pendingItems:   string[];    // briefing items pending discussion
+  hardConvos:     string[];    // hard conversation titles ready to have
+  lastDate?:      string;      // ISO date of last 1:1
+  previousNotes?: string;      // notes from last 1:1
+}
+
+export async function streamOneOnOneAgenda(
+  ctx: OneOnOneContext,
+  onChunk: (text: string) => void,
+  onDone: () => void,
+  onError: (err: string) => void,
+): Promise<void> {
+  const daysSince = ctx.lastDate
+    ? Math.floor((Date.now() - new Date(ctx.lastDate).getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  const prompt = `You are an ADHD-aware leadership coach helping a leader prepare for a 1:1.
+
+Person: ${ctx.personName}${ctx.personRole ? `, ${ctx.personRole}` : ''}
+${ctx.growthGoals ? `Growth goals: ${ctx.growthGoals}` : ''}
+${ctx.strengths?.length ? `Strengths: ${ctx.strengths.join(', ')}` : ''}
+${ctx.challenges ? `Current challenges: ${ctx.challenges}` : ''}
+${daysSince !== null ? `Last 1:1: ${daysSince} days ago` : 'First 1:1'}
+${ctx.previousNotes ? `Notes from last time: ${ctx.previousNotes}` : ''}
+${ctx.pendingItems.length ? `Pending briefing items to discuss:\n${ctx.pendingItems.map(i => `  - ${i}`).join('\n')}` : ''}
+${ctx.hardConvos.length ? `Hard conversations ready to have:\n${ctx.hardConvos.map(c => `  - ${c}`).join('\n')}` : ''}
+
+Generate a tight 1:1 agenda with 4–6 talking points. Each should include what to cover and why it matters now.
+
+Format:
+1. [Topic] — [what to cover / what you want to leave with]
+2. ...
+
+Rules:
+- Lead with their wellbeing/check-in as point 1
+- Include any hard conversations if present — name them directly
+- Pull from pending briefing items that need discussion
+- Reference growth goals where relevant
+- End with "Their agenda" — always leave space for what they bring
+- Keep it tight. No fluff. ADHD-friendly: specific over generic.`;
+
+  try {
+    const stream = client.messages.stream({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 600,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    stream.on('text', onChunk);
+    await stream.finalMessage();
+    onDone();
+  } catch (err) {
+    if (err instanceof Anthropic.AuthenticationError) onError('Invalid API key.');
+    else if (err instanceof Anthropic.RateLimitError) onError('Rate limited — try again.');
+    else onError('Could not generate agenda.');
+  }
+}
+
 // ─── Hard Conversation Prep Generator ─────────────────────────────────────────
 
 /**
