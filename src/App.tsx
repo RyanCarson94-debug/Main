@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense, Component } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import { Search, Bot, Zap, CheckCircle2, Home, Plus, UserCheck as UserCheckIcon, LayoutDashboard as LayoutDashboardIcon } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { KanbanBoard } from './components/KanbanBoard';
@@ -56,6 +57,55 @@ function fireNotificationsIfGranted(tasks: Task[]) {
     fired.add(t.id);
   });
   sessionStorage.setItem('notified-tasks', JSON.stringify([...fired]));
+}
+
+// ─── Error boundary ───────────────────────────────────────────────────────────
+
+class ViewErrorBoundary extends Component<
+  { children: ReactNode; viewKey: string },
+  { hasError: boolean; error: Error | null }
+> {
+  state = { hasError: false, error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('[ViewErrorBoundary] Render error:', error, info.componentStack);
+  }
+
+  componentDidUpdate(prev: { viewKey: string }) {
+    // Reset when user navigates to a new view
+    if (prev.viewKey !== this.props.viewKey && this.state.hasError) {
+      this.setState({ hasError: false, error: null });
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-6">
+          <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <div>
+            <p className="text-white font-bold mb-1">Something went wrong here</p>
+            <p className="text-gray-500 text-sm">
+              {(this.state.error as Error | null)?.message ?? 'Unknown error'}
+            </p>
+          </div>
+          <button
+            onClick={() => this.setState({ hasError: false, error: null })}
+            className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold transition-colors"
+          >
+            Try again
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
@@ -299,6 +349,7 @@ export default function App() {
         )}
 
         <div className="flex-1 overflow-hidden p-4 md:p-6 pb-20 md:pb-6">
+          <ViewErrorBoundary viewKey={view}>
           <div key={view} className="h-full animate-[fadeIn_0.18s_ease-out]">
           {view === 'dashboard' && (
             <DashboardView
@@ -565,6 +616,7 @@ export default function App() {
             </Suspense>
           )}
           </div>
+          </ViewErrorBoundary>
         </div>
       </main>
 
