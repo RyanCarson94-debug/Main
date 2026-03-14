@@ -236,11 +236,14 @@ function MeetingCard({
             {isToday && (
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-violet-500/20 text-violet-300 border border-violet-500/30">TODAY</span>
             )}
-            {isOverdue && (
+            {isOverdue && meeting.status !== 'cancelled' && (
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">PAST</span>
             )}
             {meeting.status === 'completed' && (
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">DONE</span>
+            )}
+            {meeting.status === 'cancelled' && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-gray-500/20 text-gray-400 border border-gray-500/30">CANCELLED</span>
             )}
             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${cfg.bg} ${cfg.color} ${cfg.border}`}>
               {cfg.label}
@@ -346,8 +349,8 @@ export function MeetingsView({
   const { upcoming, past } = useMemo(() => {
     const sorted = [...meetings].sort((a, b) => a.date.localeCompare(b.date));
     return {
-      upcoming: sorted.filter(m => m.status !== 'cancelled' && (m.status === 'upcoming') && m.date >= today),
-      past:     sorted.filter(m => m.status === 'completed' || m.date < today).reverse(),
+      upcoming: sorted.filter(m => m.status === 'upcoming' && m.date >= today),
+      past:     sorted.filter(m => m.status === 'completed' || m.status === 'cancelled' || m.date < today).reverse(),
     };
   }, [meetings, today]);
 
@@ -580,6 +583,9 @@ function MeetingDetail({
               {meeting.status === 'completed' && (
                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">Completed</span>
               )}
+              {meeting.status === 'cancelled' && (
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-gray-500/10 text-gray-400 border border-gray-500/30">Cancelled</span>
+              )}
             </div>
             <h2 className="text-xl font-black text-white leading-tight">{meeting.title}</h2>
             <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500 flex-wrap">
@@ -596,16 +602,25 @@ function MeetingDetail({
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
             {isUpcoming && (
-              <button
-                onClick={() => onUpdate({ status: 'completed' })}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 text-xs font-semibold transition-colors"
-              >
-                <CheckCircle2 size={13} /> Mark Done
-              </button>
+              <>
+                <button
+                  onClick={() => onUpdate({ status: 'completed' })}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 text-xs font-semibold transition-colors"
+                >
+                  <CheckCircle2 size={13} /> Mark Done
+                </button>
+                <button
+                  onClick={() => onUpdate({ status: 'cancelled' })}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#2A2640] text-gray-500 hover:text-red-400 text-xs font-semibold transition-colors"
+                  title="Cancel this meeting"
+                >
+                  Cancel
+                </button>
+              </>
             )}
-            {meeting.status === 'completed' && (
+            {(meeting.status === 'completed' || meeting.status === 'cancelled') && (
               <button
                 onClick={() => onUpdate({ status: 'upcoming' })}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#2A2640] text-gray-400 hover:text-gray-200 text-xs font-semibold transition-colors"
@@ -855,7 +870,7 @@ function AgendaTab({
   const handleAdd = () => {
     const topic = newTopic.trim();
     if (!topic) return;
-    onAdd({ topic, owner: newOwner.trim() || undefined, durationMinutes: newDuration ? parseInt(newDuration) : undefined, notes: '', done: false });
+    onAdd({ topic, owner: newOwner.trim() || undefined, durationMinutes: newDuration ? parseInt(newDuration) : undefined, done: false });
     setNewTopic(''); setNewOwner(''); setNewDuration('');
   };
 
@@ -1129,6 +1144,8 @@ function ActionItemRow({
   onConvertToTask: (taskData: Omit<Task, 'id' | 'createdAt'>) => void;
 }) {
   const linkedTask = item.linkedTaskId ? tasks.find(t => t.id === item.linkedTaskId) : null;
+  // linkedTaskId set but task was deleted — stale reference
+  const hasStaleLink = !!item.linkedTaskId && !linkedTask;
   const today = new Date().toISOString().split('T')[0];
   const isOverdue = !item.done && item.dueDate && item.dueDate < today;
 
@@ -1167,10 +1184,19 @@ function ActionItemRow({
                 <CheckCircle2 size={10} /> Task: {linkedTask.title.slice(0, 30)}{linkedTask.title.length > 30 ? '…' : ''}
               </span>
             )}
+            {hasStaleLink && (
+              <button
+                onClick={() => onUpdate({ linkedTaskId: undefined })}
+                className="text-xs text-gray-600 hover:text-amber-400 transition-colors flex items-center gap-1"
+                title="Linked task was deleted — click to clear"
+              >
+                <X size={10} /> Task deleted
+              </button>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          {!linkedTask && !item.done && (
+          {!linkedTask && !hasStaleLink && !item.done && (
             <button
               onClick={handleConvert}
               title="Convert to task"

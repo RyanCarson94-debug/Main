@@ -239,6 +239,14 @@ export function useAppStore() {
 
   const deleteTask = (id: string) => {
     setTasks(prev => prev.filter(t => t.id !== id));
+    // Cascade: remove this task from any meeting links and action item links
+    setMeetings(prev => prev.map(m => ({
+      ...m,
+      linkedTaskIds: m.linkedTaskIds.filter(tid => tid !== id),
+      actionItems: m.actionItems.map(a =>
+        a.linkedTaskId === id ? { ...a, linkedTaskId: undefined } : a
+      ),
+    })));
   };
 
   const moveTaskColumn = (id: string, column: KanbanColumnId) => {
@@ -428,6 +436,11 @@ export function useAppStore() {
   };
   const deleteDecision = (id: string) => {
     setDecisions(prev => prev.filter(d => d.id !== id));
+    // Cascade: remove this decision from any meeting links
+    setMeetings(prev => prev.map(m => ({
+      ...m,
+      linkedDecisionIds: m.linkedDecisionIds.filter(did => did !== id),
+    })));
   };
 
   // ── Commitments ────────────────────────────────────────────────────────────
