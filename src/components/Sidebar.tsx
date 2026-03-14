@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Grid2x2, Target, BarChart2, Users, Zap, UserCheck,
   BookOpen, Bell, BrainCircuit, Home, Compass, BookMarked, CalendarCheck,
   LogOut, Network, Search, UserCog, Bot, Keyboard, CalendarDays, X, Video,
   FolderKanban, MessageSquareWarning, Telescope, ScrollText, BadgeCheck,
-  ChevronDown, ChevronRight,
+  ChevronDown, ChevronRight, Flame, FileText,
 } from 'lucide-react';
 import type { View } from '../types';
 
@@ -56,12 +56,11 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'People',
     items: [
-      { id: 'updates',             label: '1:1 Briefings',       icon: <Bell size={14} />,                badge: c => c.pendingUpdates },
-      { id: 'first-team',          label: 'First Team',          icon: <Users size={14} /> },
-      { id: 'hard-conversations',  label: 'Hard Conversations',  icon: <MessageSquareWarning size={14} /> },
-      { id: 'direct-reports',      label: 'Direct Reports',      icon: <UserCog size={14} /> },
-      { id: 'stakeholders',        label: 'Stakeholders',        icon: <Network size={14} /> },
-      { id: 'role-charters',       label: 'Role Charters',       icon: <BadgeCheck size={14} /> },
+      { id: 'updates',            label: '1:1 Briefings',      icon: <Bell size={14} />,                badge: c => c.pendingUpdates },
+      { id: 'first-team',         label: 'First Team',         icon: <Users size={14} /> },
+      { id: 'hard-conversations', label: 'Hard Conversations', icon: <MessageSquareWarning size={14} /> },
+      { id: 'direct-reports',     label: 'Direct Reports',     icon: <UserCog size={14} /> },
+      { id: 'stakeholders',       label: 'Stakeholders',       icon: <Network size={14} /> },
     ],
   },
   {
@@ -71,27 +70,54 @@ const NAV_GROUPS: NavGroup[] = [
       { id: 'okrs',               label: 'OKRs',               icon: <Target size={14} /> },
       { id: 'quarterly-planning', label: 'Quarterly Planning', icon: <Telescope size={14} /> },
       { id: 'weekly-review',      label: 'Weekly Review',      icon: <CalendarCheck size={14} /> },
-      { id: 'role-clarity',       label: 'Role Clarity',       icon: <ScrollText size={14} /> },
+      { id: 'decision-log',       label: 'Decision Log',       icon: <BookMarked size={14} />, badge: c => c.overdueCommitments },
     ],
   },
   {
-    label: 'Thinking',
+    label: 'Reference',
     items: [
-      { id: 'decision-log', label: 'Decision Log', icon: <BookMarked size={14} />, badge: c => c.overdueCommitments },
-      { id: 'swot',         label: 'SWOT',          icon: <BarChart2 size={14} /> },
-      { id: 'frameworks',   label: 'Frameworks',    icon: <BookOpen size={14} /> },
+      { id: 'role-clarity',    label: 'Role Clarity',    icon: <ScrollText size={14} /> },
+      { id: 'role-charters',   label: 'Role Charters',   icon: <BadgeCheck size={14} /> },
+      { id: 'personal-readme', label: 'Personal README', icon: <FileText size={14} /> },
+      { id: 'swot',            label: 'SWOT',            icon: <BarChart2 size={14} /> },
+      { id: 'frameworks',      label: 'Frameworks',      icon: <BookOpen size={14} /> },
     ],
   },
 ];
+
+// ─── Streak helper ────────────────────────────────────────────────────────────
+
+function getStreak(): number {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const last  = localStorage.getItem('adhd-streak-last');
+    const count = parseInt(localStorage.getItem('adhd-streak-count') ?? '0', 10);
+
+    if (last === today) return count;
+
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    const newCount  = last === yesterday ? count + 1 : 1;
+    localStorage.setItem('adhd-streak-last', today);
+    localStorage.setItem('adhd-streak-count', String(newCount));
+    return newCount;
+  } catch {
+    return 0;
+  }
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function Sidebar({
   view, onViewChange, onLogout, onSearch, onToggleAICoach, onShowShortcuts,
   aiCoachOpen, mobileOpen, onMobileClose, taskCounts,
 }: SidebarProps) {
   const navigate = (v: View) => { onViewChange(v); onMobileClose(); };
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(['Strategy', 'Thinking']));
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(['Strategy', 'Reference']));
   const toggleGroup = (label: string) =>
     setCollapsed(prev => { const n = new Set(prev); n.has(label) ? n.delete(label) : n.add(label); return n; });
+
+  const [streak, setStreak] = useState(0);
+  useEffect(() => { setStreak(getStreak()); }, []);
 
   const inner = (
     <aside className="w-[200px] shrink-0 flex flex-col h-full border-r border-[#2A2640] bg-[#1A1826]">
@@ -103,7 +129,6 @@ export function Sidebar({
           </div>
           <p className="text-sm font-semibold text-white tracking-tight">ADHD Leader</p>
         </div>
-        {/* Mobile close button */}
         <button onClick={onMobileClose} className="md:hidden p-1 text-gray-600 hover:text-gray-300 transition-colors">
           <X size={16} />
         </button>
@@ -168,14 +193,14 @@ export function Sidebar({
                   )}
                   {isCollapsed
                     ? <ChevronRight size={10} className="text-gray-700 group-hover:text-gray-500 transition-colors" />
-                    : <ChevronDown size={10} className="text-gray-700 group-hover:text-gray-500 transition-colors" />
+                    : <ChevronDown  size={10} className="text-gray-700 group-hover:text-gray-500 transition-colors" />
                   }
                 </div>
               </button>
               {!isCollapsed && (
                 <div className="space-y-px">
                   {group.items.map(item => {
-                    const active = view === item.id;
+                    const active     = view === item.id;
                     const badgeCount = item.badge ? item.badge(taskCounts) : 0;
                     return (
                       <button
@@ -208,6 +233,16 @@ export function Sidebar({
 
       {/* Footer */}
       <div className="px-3 py-3 border-t border-[#2A2640] space-y-px">
+        {/* Streak */}
+        {streak > 0 && (
+          <div className="flex items-center gap-2 px-2.5 py-1.5 mb-1">
+            <Flame size={13} className={streak >= 7 ? 'text-orange-400' : streak >= 3 ? 'text-amber-400' : 'text-gray-600'} />
+            <span className="text-[12px] text-gray-600">
+              <span className={`font-bold ${streak >= 7 ? 'text-orange-400' : streak >= 3 ? 'text-amber-400' : 'text-gray-500'}`}>{streak}</span>
+              {' '}day streak
+            </span>
+          </div>
+        )}
         <button
           onClick={() => { onShowShortcuts(); onMobileClose(); }}
           className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] text-gray-700 hover:text-gray-400 hover:bg-white/[0.04] transition-colors"

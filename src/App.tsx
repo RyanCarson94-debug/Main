@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
-import { Search, Bot, Zap, CheckCircle2 } from 'lucide-react';
+import { Search, Bot, Zap, CheckCircle2, Home, Plus, UserCheck as UserCheckIcon, LayoutDashboard as LayoutDashboardIcon } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { KanbanBoard } from './components/KanbanBoard';
 import { EisenhowerMatrix } from './components/EisenhowerMatrix';
@@ -81,6 +81,7 @@ export default function App() {
   const [selectedRoleCharterId,   setSelectedRoleCharterId]   = useState<string | null>(null);
   const [notifBanner, setNotifBanner] = useState(false);
   const [celebrationTask, setCelebrationTask] = useState<string | null>(null);
+  const [loopCelebration, setLoopCelebration] = useState<string | null>(null);
   const csvImportRef = useRef<HTMLInputElement>(null);
 
   const store = useAppStore();
@@ -163,6 +164,15 @@ export default function App() {
     }
     store.moveTaskColumn(id, col);
   }, [store.tasks, store.moveTaskColumn]);
+
+  const handleMarkFollowUpDone = useCallback((id: string) => {
+    const task = store.tasks.find(t => t.id === id);
+    store.markFollowUpDone(id);
+    if (task?.delegatedTo) {
+      setLoopCelebration(task.delegatedTo);
+      setTimeout(() => setLoopCelebration(null), 2800);
+    }
+  }, [store.tasks, store.markFollowUpDone]);
 
   const handleDelegate = useCallback((delegatedTo: string, followUpDate?: string, emailDraft?: string) => {
     if (!delegatingTask) return;
@@ -286,7 +296,7 @@ export default function App() {
           </div>
         )}
 
-        <div className="flex-1 overflow-hidden p-4 md:p-6">
+        <div className="flex-1 overflow-hidden p-4 md:p-6 pb-20 md:pb-6">
           <div key={view} className="h-full animate-[fadeIn_0.18s_ease-out]">
           {view === 'dashboard' && (
             <DashboardView
@@ -331,7 +341,7 @@ export default function App() {
             <DelegationsView
               tasks={store.tasks}
               onOpenDelegationModal={task => setDelegatingTask(task)}
-              onMarkFollowUpDone={store.markFollowUpDone}
+              onMarkFollowUpDone={handleMarkFollowUpDone}
               onDeleteTask={store.deleteTask}
             />
           )}
@@ -590,7 +600,7 @@ export default function App() {
 
       {/* Task completion celebration */}
       {celebrationTask && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
           <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 backdrop-blur-sm shadow-2xl shadow-emerald-900/40 animate-[fadeIn_0.2s_ease-out]">
             <div className="w-7 h-7 rounded-xl bg-emerald-500/30 border border-emerald-500/40 flex items-center justify-center">
               <CheckCircle2 size={14} className="text-emerald-400" />
@@ -602,6 +612,65 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Loop-closed celebration */}
+      {loopCelebration && (
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+          <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-sky-500/20 border border-sky-500/40 backdrop-blur-sm shadow-2xl shadow-sky-900/40 animate-[fadeIn_0.2s_ease-out]">
+            <div className="w-7 h-7 rounded-xl bg-sky-500/30 border border-sky-500/40 flex items-center justify-center">
+              <UserCheckIcon size={14} className="text-sky-400" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-sky-400 uppercase tracking-widest">Loop closed!</p>
+              <p className="text-sm font-semibold text-white truncate max-w-[240px]">Follow-up with {loopCelebration} done</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile bottom navigation bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around px-2 py-2 bg-[#1A1826]/95 backdrop-blur-md border-t border-[#2A2640]">
+        {[
+          { id: 'dashboard' as const, icon: <Home size={20} />, label: 'Home' },
+          { id: 'focus' as const, icon: <Zap size={20} />, label: 'Focus' },
+        ].map(item => (
+          <button key={item.id} onClick={() => setView(item.id)}
+            className={`flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl transition-all ${
+              view === item.id ? 'text-violet-400' : 'text-gray-600 hover:text-gray-400'
+            }`}>
+            {item.icon}
+            <span className="text-[10px] font-semibold">{item.label}</span>
+          </button>
+        ))}
+
+        {/* Quick Capture FAB */}
+        <button
+          onClick={() => setShowQuickCapture(true)}
+          className="flex flex-col items-center gap-0.5 -mt-4 px-4 py-2 rounded-2xl bg-violet-600 border-2 border-[#12111A] text-white shadow-lg shadow-violet-900/60 transition-all active:scale-95"
+        >
+          <Plus size={22} />
+          <span className="text-[10px] font-semibold">Capture</span>
+        </button>
+
+        <button onClick={() => setView('delegations')}
+          className={`relative flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl transition-all ${
+            view === 'delegations' ? 'text-violet-400' : 'text-gray-600 hover:text-gray-400'
+          }`}>
+          <UserCheckIcon size={20} />
+          <span className="text-[10px] font-semibold">Loops</span>
+          {taskCounts.delegationAlerts > 0 && (
+            <span className="absolute top-1 right-2 w-4 h-4 rounded-full bg-amber-500 text-[9px] font-black text-black flex items-center justify-center">{taskCounts.delegationAlerts}</span>
+          )}
+        </button>
+
+        <button onClick={() => setView('kanban')}
+          className={`flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl transition-all ${
+            view === 'kanban' ? 'text-violet-400' : 'text-gray-600 hover:text-gray-400'
+          }`}>
+          <LayoutDashboardIcon size={20} />
+          <span className="text-[10px] font-semibold">Tasks</span>
+        </button>
+      </nav>
 
       {showAICoach && (
         <AICoach

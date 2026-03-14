@@ -157,6 +157,46 @@ function QuickNavTile({ icon, label, badge, onClick }: { icon: React.ReactNode; 
   );
 }
 
+// ─── Weekly Rhythm Card ───────────────────────────────────────────────────────
+
+const RHYTHM_KEY = 'adhd-rhythm-dismissed';
+
+function WeeklyRhythmCard({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div className="relative rounded-2xl border border-[#2A2640] bg-[#1A1824] overflow-hidden">
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500 via-violet-500 to-sky-500" />
+      <div className="px-4 pt-4 pb-3">
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-0.5">Your Weekly Rhythm</p>
+            <p className="text-xs text-gray-500">The operating cadence that works for ADHD leaders</p>
+          </div>
+          <button onClick={onDismiss} className="text-gray-700 hover:text-gray-500 transition-colors ml-2 shrink-0 mt-0.5">
+            <X size={13} />
+          </button>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+          {[
+            { day: 'Mon', action: 'Triage Brain Dump', view: 'dump' as View, color: 'border-violet-500/20 bg-violet-500/5 text-violet-300' },
+            { day: 'Daily', action: 'Focus Mode · 1 Pomodoro', view: 'focus' as View, color: 'border-sky-500/20 bg-sky-500/5 text-sky-300' },
+            { day: 'Daily', action: 'Check Delegations', view: 'delegations' as View, color: 'border-amber-500/20 bg-amber-500/5 text-amber-300' },
+            { day: 'Fri', action: 'Weekly Review', view: 'weekly-review' as View, color: 'border-emerald-500/20 bg-emerald-500/5 text-emerald-300' },
+          ].map((item, i) => (
+            <div key={i} className={`rounded-xl border px-2.5 py-2 ${item.color}`}>
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-0.5">{item.day}</p>
+              <p className="text-[11px] font-semibold leading-snug">{item.action}</p>
+            </div>
+          ))}
+        </div>
+        <button onClick={onDismiss}
+          className="text-[11px] text-gray-600 hover:text-gray-400 transition-colors">
+          Got it — don't show again
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Focus Recommendation Card ────────────────────────────────────────────────
 
 function FocusRecommendationCard({ task, reason, loading, onDismiss, onFocus }: {
@@ -459,6 +499,15 @@ export function DashboardView({
   const [showStartMyDay, setShowStartMyDay] = useState(false);
   const [startStep,      setStartStep]      = useState(1);
 
+  // Weekly rhythm card
+  const [showRhythm, setShowRhythm] = useState(() => {
+    try { return localStorage.getItem(RHYTHM_KEY) !== '1'; } catch { return true; }
+  });
+  const dismissRhythm = () => {
+    setShowRhythm(false);
+    try { localStorage.setItem(RHYTHM_KEY, '1'); } catch { /* ignore */ }
+  };
+
   const now      = new Date();
   const todayStr = now.toISOString().split('T')[0];
   const hour     = now.getHours();
@@ -662,6 +711,9 @@ export function DashboardView({
           colorClass={atRiskProjects.length > 0 ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-white/[0.03] border-white/5 text-gray-500'}
           icon={<FolderKanban size={16} />} onClick={() => onViewChange('projects')} />
       </div>
+
+      {/* ── Weekly Rhythm Card (first-run onboarding) ── */}
+      {showRhythm && <WeeklyRhythmCard onDismiss={dismissRhythm} />}
 
       {/* ── Main Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
