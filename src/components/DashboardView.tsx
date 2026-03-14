@@ -1,48 +1,61 @@
 import { useState, useMemo } from 'react';
 import {
-  Zap,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
-  BrainCircuit,
-  Target,
-  Bell,
-  UserCheck,
-  TrendingUp,
-  ChevronRight,
-  Sparkles,
-  X,
-  RefreshCw,
-  CalendarClock,
+  Zap, Clock, CheckCircle2, AlertTriangle, BrainCircuit, Target,
+  Bell, UserCheck, TrendingUp, ChevronRight, Sparkles, X, RefreshCw,
+  CalendarClock, Video, FolderKanban, Telescope, Circle,
 } from 'lucide-react';
-import type { Task, OKR, Update } from '../types';
+import type { Task, OKR, Update, Project, Meeting, QuarterlyPlan, HardConversation, Decision } from '../types';
 import { QUADRANTS, PRIORITY_CONFIG, ENERGY_CONFIG } from '../types';
 import type { View } from '../types';
-import { recommendNextTask } from '../services/claudeApi';
+import { streamSituationReport } from '../services/claudeApi';
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface DashboardViewProps {
-  tasks: Task[];
-  okrs: OKR[];
-  updates: Update[];
-  dumpInboxCount: number;
-  delegationAlerts: number;
-  onViewChange: (view: View) => void;
-  onEditTask: (task: Task) => void;
+  tasks:              Task[];
+  okrs:               OKR[];
+  updates:            Update[];
+  projects:           Project[];
+  meetings:           Meeting[];
+  quarterlyPlans:     QuarterlyPlan[];
+  hardConversations:  HardConversation[];
+  decisions:          Decision[];
+  dumpInboxCount:     number;
+  delegationAlerts:   number;
+  onViewChange:       (view: View) => void;
+  onEditTask:         (task: Task) => void;
+  onSelectProject:    (id: string) => void;
 }
 
-// ─── Stat Card ────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function StatCard({
-  label, count, sub, colorClass, icon, onClick,
-}: {
+const OKR_STATUS_COLOR = (pct: number) =>
+  pct >= 70 ? 'text-emerald-300' : pct >= 40 ? 'text-amber-300' : 'text-red-400';
+
+const PROJECT_STATUS = {
+  'at-risk': { label: 'At Risk',  color: 'text-amber-300', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+  'blocked':  { label: 'Blocked', color: 'text-red-400',   bg: 'bg-red-500/10',   border: 'border-red-500/20'   },
+};
+
+const QUARTER_COLORS: Record<number, string> = { 1: 'text-sky-300', 2: 'text-emerald-300', 3: 'text-amber-300', 4: 'text-violet-300' };
+
+function formatTime(t: string | undefined): string {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  const ampm = h < 12 ? 'am' : 'pm';
+  const h12  = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, '0')}${ampm}`;
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function StatCard({ label, count, sub, colorClass, icon, onClick }: {
   label: string; count: number; sub?: string; colorClass: string;
   icon: React.ReactNode; onClick?: () => void;
 }) {
   return (
-    <button
-      onClick={onClick}
-      className={`text-left p-4 rounded-2xl border shadow-md shadow-black/40 transition-all hover:scale-[1.02] active:scale-[0.99] group ${colorClass}`}
-    >
+    <button onClick={onClick}
+      className={`text-left p-4 rounded-2xl border shadow-md shadow-black/40 transition-all hover:scale-[1.02] active:scale-[0.99] group ${colorClass}`}>
       <div className="flex items-start justify-between mb-3">
         <span className="opacity-70">{icon}</span>
         {onClick && <ChevronRight size={13} className="opacity-0 group-hover:opacity-50 transition-opacity" />}
@@ -54,11 +67,7 @@ function StatCard({
   );
 }
 
-// ─── Section Header ───────────────────────────────────────────────────────────
-
-function SectionHeader({
-  icon, title, count, onNavigate,
-}: {
+function SectionHeader({ icon, title, count, onNavigate }: {
   icon: React.ReactNode; title: string; count?: number; onNavigate?: () => void;
 }) {
   return (
@@ -79,26 +88,18 @@ function SectionHeader({
   );
 }
 
-// ─── Dashboard Task Card ──────────────────────────────────────────────────────
-
-function DashTaskCard({
-  task, onClick, urgent = false,
-}: {
+function DashTaskCard({ task, onClick, urgent = false }: {
   task: Task; onClick: () => void; urgent?: boolean;
 }) {
-  const q = QUADRANTS[task.quadrant];
-  const p = PRIORITY_CONFIG[task.priority];
+  const q      = QUADRANTS[task.quadrant];
+  const p      = PRIORITY_CONFIG[task.priority];
   const energy = task.energy ? ENERGY_CONFIG[task.energy] : null;
-
   return (
-    <button
-      onClick={onClick}
+    <button onClick={onClick}
       className={`w-full text-left px-3.5 py-2.5 rounded-xl border transition-all group ${
-        urgent
-          ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40'
-          : 'bg-[#1E1C28] border-[#2A2640] hover:border-purple-500/40 hover:bg-[#1a1540]'
-      }`}
-    >
+        urgent ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40'
+               : 'bg-[#1E1C28] border-[#2A2640] hover:border-purple-500/40'
+      }`}>
       <div className="flex items-center gap-2.5">
         <span className={`w-2 h-2 rounded-full ${p.dot} shrink-0`} />
         <p className={`flex-1 text-sm truncate group-hover:text-white transition-colors ${urgent ? 'text-red-200' : 'text-gray-200'}`}>
@@ -124,8 +125,6 @@ function DashTaskCard({
   );
 }
 
-// ─── Alert Row ────────────────────────────────────────────────────────────────
-
 const ALERT_COLORS = {
   red:    'bg-red-500/10 border-red-500/20 text-red-400',
   amber:  'bg-amber-500/10 border-amber-500/20 text-amber-400',
@@ -135,24 +134,18 @@ const ALERT_COLORS = {
 
 function AlertRow({ label, color, onClick }: { label: string; color: keyof typeof ALERT_COLORS; onClick: () => void }) {
   return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all hover:opacity-90 ${ALERT_COLORS[color]}`}
-    >
+    <button onClick={onClick}
+      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all hover:opacity-90 ${ALERT_COLORS[color]}`}>
       <span>{label}</span>
       <ChevronRight size={13} className="opacity-60" />
     </button>
   );
 }
 
-// ─── Quick Nav Tile ───────────────────────────────────────────────────────────
-
 function QuickNavTile({ icon, label, badge, onClick }: { icon: React.ReactNode; label: string; badge?: number; onClick: () => void }) {
   return (
-    <button
-      onClick={onClick}
-      className="relative flex flex-col items-start gap-2 p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.07] hover:border-purple-500/20 transition-all text-left"
-    >
+    <button onClick={onClick}
+      className="relative flex flex-col items-start gap-2 p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.07] hover:border-purple-500/20 transition-all text-left">
       <span className="text-gray-500">{icon}</span>
       <span className="text-xs font-semibold text-gray-400">{label}</span>
       {badge !== undefined && badge > 0 && (
@@ -162,34 +155,159 @@ function QuickNavTile({ icon, label, badge, onClick }: { icon: React.ReactNode; 
   );
 }
 
+// ─── Situation Report Panel ───────────────────────────────────────────────────
+
+function SituationReportPanel({ text, loading, error, onClose }: {
+  text: string; loading: boolean; error: string; onClose: () => void;
+}) {
+  if (!text && !loading && !error) return null;
+
+  // Render markdown headers as styled elements
+  const lines = text.split('\n');
+  return (
+    <div className="relative rounded-2xl border bg-[#1A1824] border-violet-500/25 overflow-hidden">
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-500 via-sky-400 to-emerald-400" />
+      <div className="px-5 py-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Sparkles size={13} className={`text-violet-400 ${loading ? 'animate-pulse' : ''}`} />
+            <span className="text-[11px] font-black text-violet-400 uppercase tracking-widest">Situation Report</span>
+          </div>
+          <button onClick={onClose} className="text-gray-600 hover:text-gray-400 transition-colors"><X size={14} /></button>
+        </div>
+        {error ? (
+          <p className="text-sm text-red-400">{error}</p>
+        ) : loading && !text ? (
+          <div className="flex items-center gap-2 py-2">
+            <Circle size={12} className="text-violet-500 animate-pulse" />
+            <p className="text-sm text-gray-500">Analysing your situation…</p>
+          </div>
+        ) : (
+          <div className="text-sm text-gray-200 leading-relaxed space-y-2">
+            {lines.map((line, i) => {
+              if (line.startsWith('## ')) return (
+                <p key={i} className="text-[11px] font-black text-violet-400 uppercase tracking-widest mt-3 first:mt-0">{line.slice(3)}</p>
+              );
+              if (line.startsWith('- ')) return (
+                <p key={i} className="text-sm text-gray-300 pl-3 relative before:content-['·'] before:absolute before:left-0 before:text-violet-500">{line.slice(2)}</p>
+              );
+              if (line.trim()) return <p key={i} className="text-sm text-white font-medium">{line}</p>;
+              return null;
+            })}
+            {loading && <span className="inline-block w-1.5 h-3.5 bg-violet-400 animate-pulse ml-0.5" />}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Quarter Banner ───────────────────────────────────────────────────────────
+
+function QuarterBanner({ plan, onClick }: { plan: QuarterlyPlan; onClick: () => void }) {
+  const qColor = QUARTER_COLORS[plan.quarterNum];
+  return (
+    <button onClick={onClick}
+      className="w-full text-left px-4 py-3 rounded-2xl bg-[#1A1824] border border-[#2A2640] hover:border-violet-500/40 transition-all group">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 flex-wrap min-w-0">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Telescope size={13} className="text-violet-400" />
+            <span className={`font-black text-base ${qColor}`}>Q{plan.quarterNum}</span>
+            <span className="text-gray-500 text-sm">{plan.year}</span>
+            {plan.theme && <span className="text-gray-400 text-sm italic">— "{plan.theme}"</span>}
+          </div>
+          {plan.focusAreas.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {plan.focusAreas.map((f, i) => (
+                <span key={i} className="text-[11px] px-2 py-0.5 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-300">{f}</span>
+              ))}
+            </div>
+          )}
+        </div>
+        <ChevronRight size={13} className="text-gray-700 group-hover:text-violet-400 transition-colors shrink-0 ml-2" />
+      </div>
+    </button>
+  );
+}
+
+// ─── Today's Meeting Card ─────────────────────────────────────────────────────
+
+function MeetingCard({ meeting, onClick }: { meeting: Meeting; onClick: () => void }) {
+  return (
+    <button onClick={onClick}
+      className="w-full text-left px-3.5 py-2.5 rounded-xl bg-[#1E1C28] border border-[#2A2640] hover:border-sky-500/30 transition-all group">
+      <div className="flex items-center gap-2.5">
+        <Video size={12} className="text-sky-400 shrink-0" />
+        <span className="flex-1 text-sm text-gray-200 truncate group-hover:text-white transition-colors">{meeting.title}</span>
+        {meeting.time && <span className="text-[11px] text-sky-400 font-semibold shrink-0">{formatTime(meeting.time)}</span>}
+      </div>
+      {meeting.attendees.length > 0 && (
+        <p className="text-[11px] text-gray-600 mt-0.5 ml-[22px] truncate">{meeting.attendees.slice(0, 4).join(', ')}</p>
+      )}
+    </button>
+  );
+}
+
+// ─── Project Card ─────────────────────────────────────────────────────────────
+
+function ProjectCard({ project, onClick }: { project: Project; onClick: () => void }) {
+  const cfg = PROJECT_STATUS[project.status as 'at-risk' | 'blocked'];
+  return (
+    <button onClick={onClick}
+      className={`w-full text-left px-3.5 py-2.5 rounded-xl border transition-all group ${cfg.bg} ${cfg.border} hover:opacity-90`}>
+      <div className="flex items-center gap-2.5">
+        <FolderKanban size={12} className={`${cfg.color} shrink-0`} />
+        <span className={`flex-1 text-sm truncate group-hover:text-white transition-colors ${cfg.color}`}>{project.title}</span>
+        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${cfg.bg} ${cfg.color} ${cfg.border} shrink-0`}>{cfg.label}</span>
+      </div>
+      {project.notes && (
+        <p className="text-[11px] text-gray-600 mt-0.5 ml-[22px] truncate">{project.notes}</p>
+      )}
+    </button>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function DashboardView({
-  tasks, okrs, updates, dumpInboxCount, delegationAlerts, onViewChange, onEditTask,
+  tasks, okrs, updates, projects, meetings, quarterlyPlans, hardConversations, decisions,
+  dumpInboxCount, delegationAlerts, onViewChange, onEditTask, onSelectProject,
 }: DashboardViewProps) {
-  const [whatNowLoading, setWhatNowLoading] = useState(false);
-  const [whatNowResult, setWhatNowResult] = useState<{ taskId: string; task: string; reason: string } | null>(null);
-  const [whatNowError, setWhatNowError] = useState('');
+  const [reportText,    setReportText]    = useState('');
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError,   setReportError]   = useState('');
+  const [reportVisible, setReportVisible] = useState(false);
 
-  const now = new Date();
+  const now      = new Date();
   const todayStr = now.toISOString().split('T')[0];
-  const hour = now.getHours();
+  const hour     = now.getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const dateStr = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  const dateStr  = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  const currentQuarterPlan = useMemo(() => {
+    const month = now.getMonth();
+    const year  = now.getFullYear();
+    const qNum  = Math.floor(month / 3) + 1;
+    const qStr  = `Q${qNum} ${year}`;
+    return quarterlyPlans.find(p => p.quarter === qStr && (p.status === 'active' || p.status === 'draft')) ?? null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quarterlyPlans]);
 
   const {
     overdueTasks, dueTodayTasks, doNowTasks, inProgressTasks,
     doneThisWeek, pendingUpdatesCount, totalAlerts, okrSnapshot,
+    todayMeetings, atRiskProjects,
   } = useMemo(() => {
     const weekStart = new Date(now);
     weekStart.setDate(now.getDate() - now.getDay());
     weekStart.setHours(0, 0, 0, 0);
 
-    const overdueSet = new Set<string>();
-    const dueTodaySet = new Set<string>();
-    const overdueArr: Task[] = [];
-    const dueTodayArr: Task[] = [];
-    const doNowArr: Task[] = [];
+    const overdueSet   = new Set<string>();
+    const dueTodaySet  = new Set<string>();
+    const overdueArr:   Task[] = [];
+    const dueTodayArr:  Task[] = [];
+    const doNowArr:     Task[] = [];
     const inProgressArr: Task[] = [];
     let doneCount = 0;
 
@@ -215,6 +333,10 @@ export function DashboardView({
         : 0,
     }));
 
+    const todayMtgs   = meetings.filter(m => m.date === todayStr && m.status === 'upcoming')
+      .sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''));
+    const atRisk = projects.filter(p => p.status === 'at-risk' || p.status === 'blocked');
+
     return {
       overdueTasks: overdueArr,
       dueTodayTasks: dueTodayArr,
@@ -224,20 +346,35 @@ export function DashboardView({
       pendingUpdatesCount: pendingCount,
       totalAlerts: delegationAlerts + pendingCount + dumpInboxCount + overdueArr.length,
       okrSnapshot: snapshot,
+      todayMeetings: todayMtgs,
+      atRiskProjects: atRisk,
     };
-  // todayStr and now are stable within a render; delegationAlerts/dumpInboxCount from parent memoized
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tasks, updates, okrs, delegationAlerts, dumpInboxCount]);
+  }, [tasks, updates, okrs, projects, meetings, delegationAlerts, dumpInboxCount, todayStr]);
 
-  const handleWhatNow = async () => {
-    setWhatNowLoading(true);
-    setWhatNowResult(null);
-    setWhatNowError('');
-    await recommendNextTask(
-      tasks.filter(t => t.column !== 'done'),
-      result => { setWhatNowResult(result); setWhatNowLoading(false); },
-      err => { setWhatNowError(err); setWhatNowLoading(false); },
+  const handleGetBriefed = async () => {
+    setReportVisible(true);
+    setReportLoading(true);
+    setReportText('');
+    setReportError('');
+    await streamSituationReport(
+      {
+        quarterlyPlan:    currentQuarterPlan,
+        okrs,
+        projects,
+        tasks,
+        decisions,
+        hardConversations,
+      },
+      chunk => setReportText(prev => prev + chunk),
+      ()    => setReportLoading(false),
+      err   => { setReportError(err); setReportLoading(false); },
     );
+  };
+
+  const handleProjectClick = (p: Project) => {
+    onSelectProject(p.id);
+    onViewChange('projects');
   };
 
   return (
@@ -250,61 +387,79 @@ export function DashboardView({
         </div>
         <div className="flex items-center gap-2">
           {doneThisWeek > 0 && (
-            <button onClick={() => onViewChange('kanban')} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/15 transition-colors">
+            <button onClick={() => onViewChange('kanban')}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/15 transition-colors">
               <CheckCircle2 size={13} className="text-emerald-400" />
               <span className="text-xs font-bold text-emerald-400">{doneThisWeek} done this week</span>
             </button>
           )}
           <button
-            onClick={handleWhatNow}
-            disabled={whatNowLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/15 text-purple-400 text-xs font-bold transition-colors disabled:opacity-50"
+            onClick={reportVisible ? () => setReportVisible(false) : handleGetBriefed}
+            disabled={reportLoading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/15 text-violet-400 text-xs font-bold transition-colors disabled:opacity-50"
           >
-            <Sparkles size={13} className={whatNowLoading ? 'animate-pulse' : ''} />
-            {whatNowLoading ? 'Thinking…' : 'What now?'}
+            <Sparkles size={13} className={reportLoading ? 'animate-pulse' : ''} />
+            {reportLoading ? 'Analysing…' : reportVisible ? 'Hide brief' : 'Get briefed'}
           </button>
         </div>
       </div>
 
-      {/* ── AI Recommendation ── */}
-      {(whatNowResult || whatNowError) && (
-        <div className={`relative rounded-2xl p-4 border ${whatNowError ? 'bg-red-500/5 border-red-500/20' : 'bg-purple-500/10 border-[#2A2640]'}`}>
-          <button onClick={() => { setWhatNowResult(null); setWhatNowError(''); }} className="absolute top-3 right-3 text-gray-600 hover:text-gray-400">
-            <X size={14} />
-          </button>
-          {whatNowError ? (
-            <p className="text-sm text-red-400">{whatNowError}</p>
-          ) : whatNowResult && (
-            <>
-              <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                <Sparkles size={10} /> AI Recommendation
-              </p>
-              <p className="text-sm font-bold text-white mb-1">{whatNowResult.task}</p>
-              <p className="text-xs text-gray-400">{whatNowResult.reason}</p>
-            </>
-          )}
-        </div>
+      {/* ── Quarter Banner ── */}
+      {currentQuarterPlan && (
+        <QuarterBanner plan={currentQuarterPlan} onClick={() => onViewChange('quarterly-planning')} />
       )}
 
-      {/* ── Stat Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <StatCard label="Overdue" count={overdueTasks.length} sub={overdueTasks.length === 0 ? 'all clear' : 'need attention'} colorClass={overdueTasks.length > 0 ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-white/[0.03] border-white/5 text-gray-500'} icon={<CalendarClock size={16} />} onClick={() => onViewChange('kanban')} />
-        <StatCard label="Do Now" count={doNowTasks.length + overdueTasks.length + dueTodayTasks.length} sub="urgent tasks" colorClass="bg-amber-500/10 border-amber-500/20 text-amber-400" icon={<Zap size={16} />} onClick={() => onViewChange('eisenhower')} />
-        <StatCard label="Done This Week" count={doneThisWeek} sub={doneThisWeek === 0 ? "let's go" : 'great work'} colorClass="bg-emerald-500/10 border-emerald-500/20 text-emerald-400" icon={<CheckCircle2 size={16} />} />
+      {/* ── Situation Report ── */}
+      {reportVisible && (
+        <SituationReportPanel
+          text={reportText}
+          loading={reportLoading}
+          error={reportError}
+          onClose={() => { setReportVisible(false); setReportText(''); setReportError(''); }}
+        />
+      )}
+
+      {/* ── Stats ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatCard label="Overdue"      count={overdueTasks.length}
+          sub={overdueTasks.length === 0 ? 'all clear' : 'need attention'}
+          colorClass={overdueTasks.length > 0 ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-white/[0.03] border-white/5 text-gray-500'}
+          icon={<CalendarClock size={16} />} onClick={() => onViewChange('kanban')} />
+        <StatCard label="Do Now"       count={doNowTasks.length + overdueTasks.length + dueTodayTasks.length}
+          sub="urgent tasks"
+          colorClass="bg-amber-500/10 border-amber-500/20 text-amber-400"
+          icon={<Zap size={16} />} onClick={() => onViewChange('eisenhower')} />
+        <StatCard label="Done This Week" count={doneThisWeek}
+          sub={doneThisWeek === 0 ? "let's go" : 'great work'}
+          colorClass="bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+          icon={<CheckCircle2 size={16} />} />
+        <StatCard label="Projects at Risk" count={atRiskProjects.length}
+          sub={atRiskProjects.length === 0 ? 'all healthy' : 'need attention'}
+          colorClass={atRiskProjects.length > 0 ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-white/[0.03] border-white/5 text-gray-500'}
+          icon={<FolderKanban size={16} />} onClick={() => onViewChange('projects')} />
       </div>
 
       {/* ── Main Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-        {/* Left: tasks */}
+        {/* Left: tasks + meetings */}
         <div className="lg:col-span-3 space-y-5">
+
+          {/* Today's Meetings */}
+          {todayMeetings.length > 0 && (
+            <section>
+              <SectionHeader icon={<Video size={13} className="text-sky-400" />} title="Today's Meetings" count={todayMeetings.length} onNavigate={() => onViewChange('meetings')} />
+              <div className="space-y-1.5">
+                {todayMeetings.map(m => <MeetingCard key={m.id} meeting={m} onClick={() => onViewChange('meetings')} />)}
+              </div>
+            </section>
+          )}
+
           {/* Overdue */}
           {overdueTasks.length > 0 && (
             <section>
               <SectionHeader icon={<CalendarClock size={13} className="text-red-400" />} title="Overdue" count={overdueTasks.length} onNavigate={() => onViewChange('kanban')} />
               <div className="space-y-1.5">
-                {overdueTasks.slice(0, 4).map(task => (
-                  <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} urgent />
-                ))}
+                {overdueTasks.slice(0, 4).map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} urgent />)}
               </div>
             </section>
           )}
@@ -314,9 +469,7 @@ export function DashboardView({
             <section>
               <SectionHeader icon={<Clock size={13} className="text-amber-400" />} title="Due Today" count={dueTodayTasks.length} />
               <div className="space-y-1.5">
-                {dueTodayTasks.map(task => (
-                  <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} />
-                ))}
+                {dueTodayTasks.map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} />)}
               </div>
             </section>
           )}
@@ -331,9 +484,7 @@ export function DashboardView({
               </div>
             ) : (
               <div className="space-y-1.5">
-                {doNowTasks.slice(0, 4).map(task => (
-                  <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} />
-                ))}
+                {doNowTasks.slice(0, 4).map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} />)}
                 {doNowTasks.length > 4 && (
                   <button onClick={() => onViewChange('eisenhower')} className="w-full text-center text-xs text-gray-600 hover:text-purple-400 py-1.5 transition-colors">
                     +{doNowTasks.length - 4} more →
@@ -352,16 +503,15 @@ export function DashboardView({
               </div>
             ) : (
               <div className="space-y-1.5">
-                {inProgressTasks.slice(0, 4).map(task => (
-                  <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} />
-                ))}
+                {inProgressTasks.slice(0, 4).map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} />)}
               </div>
             )}
           </section>
         </div>
 
-        {/* Right: alerts + OKRs + quick nav */}
+        {/* Right: alerts + OKRs + projects + quick nav */}
         <div className="lg:col-span-2 space-y-5">
+
           {/* Needs Attention */}
           {totalAlerts > 0 && (
             <section>
@@ -389,13 +539,14 @@ export function DashboardView({
               <SectionHeader icon={<Target size={13} className="text-pink-400" />} title="OKR Snapshot" onNavigate={() => onViewChange('okrs')} />
               <div className="space-y-2">
                 {okrSnapshot.map(okr => (
-                  <button key={okr.id} onClick={() => onViewChange('okrs')} className="w-full text-left p-3 rounded-xl bg-[#1E1C28] border border-[#2A2640] hover:border-white/10 transition-all">
+                  <button key={okr.id} onClick={() => onViewChange('okrs')}
+                    className="w-full text-left p-3 rounded-xl bg-[#1E1C28] border border-[#2A2640] hover:border-white/10 transition-all">
                     <p className="text-xs font-semibold text-gray-300 truncate mb-2">{okr.objective}</p>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
                         <div className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all" style={{ width: `${okr.avgProgress}%` }} />
                       </div>
-                      <span className="text-[11px] font-black text-purple-400 shrink-0 tabular-nums">{okr.avgProgress}%</span>
+                      <span className={`text-[11px] font-black shrink-0 tabular-nums ${OKR_STATUS_COLOR(okr.avgProgress)}`}>{okr.avgProgress}%</span>
                     </div>
                   </button>
                 ))}
@@ -403,10 +554,20 @@ export function DashboardView({
             </section>
           )}
 
+          {/* Projects at Risk / Blocked */}
+          {atRiskProjects.length > 0 && (
+            <section>
+              <SectionHeader icon={<FolderKanban size={13} className="text-amber-400" />} title="Projects Needing Attention" onNavigate={() => onViewChange('projects')} />
+              <div className="space-y-1.5">
+                {atRiskProjects.slice(0, 4).map(p => <ProjectCard key={p.id} project={p} onClick={() => handleProjectClick(p)} />)}
+              </div>
+            </section>
+          )}
+
           {/* Quick Access */}
           <section>
             <SectionHeader icon={<TrendingUp size={13} className="text-gray-500" />} title="Quick Access" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <QuickNavTile icon={<BrainCircuit size={15} />} label="Brain Dump" badge={dumpInboxCount || undefined} onClick={() => onViewChange('dump')} />
               <QuickNavTile icon={<Zap size={15} />} label="Focus Mode" onClick={() => onViewChange('focus')} />
               <QuickNavTile icon={<UserCheck size={15} />} label="Delegations" badge={delegationAlerts || undefined} onClick={() => onViewChange('delegations')} />

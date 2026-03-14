@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Send, Bot, Loader2, Trash2 } from 'lucide-react';
-import type { Task, OKR, Decision } from '../types';
+import type { Task, OKR, Decision, Project, QuarterlyPlan } from '../types';
 import { streamAICoach, type ChatMessage } from '../services/claudeApi';
 
 interface AICoachProps {
   tasks: Task[];
   okrs: OKR[];
   decisions: Decision[];
+  projects?: Project[];
+  quarterlyPlan?: QuarterlyPlan | null;
   onClose: () => void;
 }
 
@@ -18,7 +20,7 @@ const STARTERS = [
   'Give me an ADHD tip for deep work',
 ];
 
-export function AICoach({ tasks, okrs, decisions, onClose }: AICoachProps) {
+export function AICoach({ tasks, okrs, decisions, projects, quarterlyPlan, onClose }: AICoachProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
@@ -49,7 +51,7 @@ export function AICoach({ tasks, okrs, decisions, onClose }: AICoachProps) {
 
     await streamAICoach(
       newMessages,
-      { tasks, okrs, decisions },
+      { tasks, okrs, decisions, projects, quarterlyPlan },
       (chunk) => {
         setMessages(msgs => {
           const updated = [...msgs];

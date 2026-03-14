@@ -281,10 +281,16 @@ export default function App() {
               tasks={store.tasks}
               okrs={store.okrs}
               updates={store.updates}
+              projects={store.projects}
+              meetings={store.meetings}
+              quarterlyPlans={store.quarterlyPlans}
+              hardConversations={store.hardConversations}
+              decisions={store.decisions}
               dumpInboxCount={taskCounts.dumpInbox}
               delegationAlerts={taskCounts.delegationAlerts}
               onViewChange={setView}
               onEditTask={openEditTask}
+              onSelectProject={id => { setSelectedProjectId(id); setView('projects'); }}
             />
           )}
           {view === 'kanban' && (
@@ -402,7 +408,17 @@ export default function App() {
           )}
           {view === 'weekly-review' && (
             <Suspense fallback={<ViewSkeleton />}>
-              <WeeklyReviewView reviews={store.weeklyReviews} tasks={store.tasks} onSave={store.saveWeeklyReview} />
+              <WeeklyReviewView
+                reviews={store.weeklyReviews}
+                tasks={store.tasks}
+                quarterlyPlan={(() => {
+                  const now = new Date();
+                  const qNum = Math.floor(now.getMonth() / 3) + 1;
+                  const qStr = `Q${qNum} ${now.getFullYear()}`;
+                  return store.quarterlyPlans.find(p => p.quarter === qStr && (p.status === 'active' || p.status === 'draft')) ?? null;
+                })()}
+                onSave={store.saveWeeklyReview}
+              />
             </Suspense>
           )}
           {view === 'day-planner' && (
@@ -564,6 +580,13 @@ export default function App() {
           tasks={store.tasks}
           okrs={store.okrs}
           decisions={store.decisions}
+          projects={store.projects}
+          quarterlyPlan={(() => {
+            const now = new Date();
+            const qNum = Math.floor(now.getMonth() / 3) + 1;
+            const qStr = `Q${qNum} ${now.getFullYear()}`;
+            return store.quarterlyPlans.find(p => p.quarter === qStr && (p.status === 'active' || p.status === 'draft')) ?? null;
+          })()}
           onClose={() => setShowAICoach(false)}
         />
       )}

@@ -276,6 +276,7 @@ export interface WeeklyReview {
   nextWeekFocus: string;
   energyRating: number;
   notes?: string;
+  quarterlyAlignment?: string;
   completedAt: string;
 }
 
