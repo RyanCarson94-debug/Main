@@ -6,6 +6,7 @@ import type {
   Decision, Commitment, WeeklyReview, NorthStar, RecurrenceRule,
   Stakeholder, DirectReportProfile, Meeting, AgendaItem, MeetingActionItem,
   Project, ProjectMilestone, HardConversation,
+  QuarterlyPlan, RoleClarityDoc, RoleCharter,
 } from './types';
 
 const STORAGE_KEYS = {
@@ -26,6 +27,9 @@ const STORAGE_KEYS = {
   meetings:           'adhd-leader-meetings',
   projects:           'adhd-leader-projects',
   hardConversations:  'adhd-leader-hard-conversations',
+  quarterlyPlans:     'adhd-leader-quarterly-plans',
+  roleClarityDoc:     'adhd-leader-role-clarity',
+  roleCharters:       'adhd-leader-role-charters',
 };
 
 // Dual-write: primary key + backup key for resilience
@@ -157,6 +161,9 @@ export function useAppStore() {
   const [meetings,              setMeetings]              = useState<Meeting[]>(() => loadFromStorage(STORAGE_KEYS.meetings, []));
   const [projects,              setProjects]              = useState<Project[]>(() => loadFromStorage(STORAGE_KEYS.projects, []));
   const [hardConversations,     setHardConversations]     = useState<HardConversation[]>(() => loadFromStorage(STORAGE_KEYS.hardConversations, []));
+  const [quarterlyPlans,        setQuarterlyPlans]        = useState<QuarterlyPlan[]>(() => loadFromStorage(STORAGE_KEYS.quarterlyPlans, []));
+  const [roleClarityDoc,        setRoleClarityDoc]        = useState<RoleClarityDoc>(() => loadFromStorage(STORAGE_KEYS.roleClarityDoc, {}));
+  const [roleCharters,          setRoleCharters]          = useState<RoleCharter[]>(() => loadFromStorage(STORAGE_KEYS.roleCharters, []));
 
   useEffect(() => { saveToStorage(STORAGE_KEYS.tasks,         tasks);         }, [tasks]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.okrs,          okrs);          }, [okrs]);
@@ -175,6 +182,9 @@ export function useAppStore() {
   useEffect(() => { saveToStorage(STORAGE_KEYS.meetings,              meetings);              }, [meetings]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.projects,              projects);              }, [projects]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.hardConversations,     hardConversations);     }, [hardConversations]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.quarterlyPlans,        quarterlyPlans);        }, [quarterlyPlans]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.roleClarityDoc,        roleClarityDoc);        }, [roleClarityDoc]);
+  useEffect(() => { saveToStorage(STORAGE_KEYS.roleCharters,          roleCharters);          }, [roleCharters]);
 
   // ── Cloud sync (Supabase) ──────────────────────────────────────────────────
   // Debounced save: 3s after last change, push full state to cloud
@@ -189,6 +199,7 @@ export function useAppStore() {
         focusMap, dumpItems, decisions, commitments, weeklyReviews,
         northStar, stakeholders, directReportProfiles, meetings,
         projects, hardConversations,
+        quarterlyPlans, roleClarityDoc, roleCharters,
         cloudSavedAt: new Date().toISOString(),
       };
       void saveToCloud(snapshot);
@@ -196,7 +207,7 @@ export function useAppStore() {
   }, [tasks, okrs, swotItems, teamMembers, updatePeople, updates,
       focusMap, dumpItems, decisions, commitments, weeklyReviews,
       northStar, stakeholders, directReportProfiles, meetings,
-      projects, hardConversations]);
+      projects, hardConversations, quarterlyPlans, roleClarityDoc, roleCharters]);
 
   useEffect(() => { triggerCloudSave(); }, [triggerCloudSave]);
 
@@ -228,6 +239,9 @@ export function useAppStore() {
       if (Array.isArray(p.meetings))            setMeetings(p.meetings as Meeting[]);
       if (Array.isArray(p.projects))            setProjects(p.projects as Project[]);
       if (Array.isArray(p.hardConversations))   setHardConversations(p.hardConversations as HardConversation[]);
+      if (Array.isArray(p.quarterlyPlans))      setQuarterlyPlans(p.quarterlyPlans as QuarterlyPlan[]);
+      if (p.roleClarityDoc && typeof p.roleClarityDoc === 'object') setRoleClarityDoc(p.roleClarityDoc as RoleClarityDoc);
+      if (Array.isArray(p.roleCharters))        setRoleCharters(p.roleCharters as RoleCharter[]);
 
       saveToStorage('adhd-leader-last-cloud-load', cloud.saved_at);
       console.info('[sync] Restored data from cloud (newer than local)');
@@ -705,6 +719,44 @@ export function useAppStore() {
   // Cascade cleanup: when a task is deleted, remove from project links too
   // (already handled in deleteTask above via setMeetings — mirror for projects)
 
+  // ── Quarterly Plans ────────────────────────────────────────────────────────
+
+  const addQuarterlyPlan = (p: Omit<QuarterlyPlan, 'id' | 'createdAt'>) => {
+    const plan: QuarterlyPlan = { ...p, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+    setQuarterlyPlans(prev => [plan, ...prev]);
+    return plan;
+  };
+
+  const updateQuarterlyPlan = (id: string, updates: Partial<QuarterlyPlan>) => {
+    setQuarterlyPlans(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+  };
+
+  const deleteQuarterlyPlan = (id: string) => {
+    setQuarterlyPlans(prev => prev.filter(p => p.id !== id));
+  };
+
+  // ── Role Clarity Doc ───────────────────────────────────────────────────────
+
+  const saveRoleClarityDoc = (updates: Partial<RoleClarityDoc>) => {
+    setRoleClarityDoc(prev => ({ ...prev, ...updates, updatedAt: new Date().toISOString() }));
+  };
+
+  // ── Role Charters ──────────────────────────────────────────────────────────
+
+  const addRoleCharter = (c: Omit<RoleCharter, 'id' | 'createdAt'>) => {
+    const charter: RoleCharter = { ...c, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+    setRoleCharters(prev => [charter, ...prev]);
+    return charter;
+  };
+
+  const updateRoleCharter = (id: string, updates: Partial<RoleCharter>) => {
+    setRoleCharters(prev => prev.map(c => c.id === id ? { ...c, ...updates, updatedAt: new Date().toISOString() } : c));
+  };
+
+  const deleteRoleCharter = (id: string) => {
+    setRoleCharters(prev => prev.filter(c => c.id !== id));
+  };
+
   // ── Hard Conversations ─────────────────────────────────────────────────────
 
   const addHardConversation = (c: Omit<HardConversation, 'id' | 'createdAt'>) => {
@@ -747,5 +799,8 @@ export function useAppStore() {
     addMilestone, updateMilestone, deleteMilestone,
     linkTaskToProject, unlinkTaskFromProject, linkOKRToProject, unlinkOKRFromProject,
     hardConversations, addHardConversation, updateHardConversation, deleteHardConversation,
+    quarterlyPlans, addQuarterlyPlan, updateQuarterlyPlan, deleteQuarterlyPlan,
+    roleClarityDoc, saveRoleClarityDoc,
+    roleCharters, addRoleCharter, updateRoleCharter, deleteRoleCharter,
   };
 }

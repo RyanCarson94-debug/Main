@@ -23,6 +23,9 @@ import { DayPlannerView } from './components/DayPlannerView';
 import { MeetingsView } from './components/MeetingsView';
 import { ProjectsView } from './components/ProjectsView';
 import { HardConversationsView } from './components/HardConversationsView';
+import { QuarterlyPlanningView } from './components/QuarterlyPlanningView';
+import { RoleClarityView } from './components/RoleClarityView';
+import { RoleChartersView } from './components/RoleChartersView';
 
 // Lazy-load infrequently-visited views so they're excluded from the initial bundle
 const SwotView          = lazy(() => import('./components/SwotView').then(m => ({ default: m.SwotView })));
@@ -74,6 +77,8 @@ export default function App() {
   const [selectedMeetingId,       setSelectedMeetingId]       = useState<string | null>(null);
   const [selectedProjectId,       setSelectedProjectId]       = useState<string | null>(null);
   const [selectedConversationId,  setSelectedConversationId]  = useState<string | null>(null);
+  const [selectedQuarterlyPlanId, setSelectedQuarterlyPlanId] = useState<string | null>(null);
+  const [selectedRoleCharterId,   setSelectedRoleCharterId]   = useState<string | null>(null);
   const [notifBanner, setNotifBanner] = useState(false);
   const csvImportRef = useRef<HTMLInputElement>(null);
 
@@ -162,6 +167,8 @@ export default function App() {
     if (targetView !== 'meetings')           setSelectedMeetingId(null);
     if (targetView !== 'projects')           setSelectedProjectId(null);
     if (targetView !== 'hard-conversations') setSelectedConversationId(null);
+    if (targetView !== 'quarterly-planning') setSelectedQuarterlyPlanId(null);
+    if (targetView !== 'role-charters')      setSelectedRoleCharterId(null);
   }, []);
 
   const handleCSVImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -455,6 +462,34 @@ export default function App() {
               onDelete={store.deleteHardConversation}
               selectedId={selectedConversationId}
               onSelect={setSelectedConversationId}
+            />
+          )}
+          {view === 'quarterly-planning' && (
+            <QuarterlyPlanningView
+              plans={store.quarterlyPlans}
+              okrs={store.okrs}
+              projects={store.projects}
+              onAdd={store.addQuarterlyPlan}
+              onUpdate={store.updateQuarterlyPlan}
+              onDelete={store.deleteQuarterlyPlan}
+              selectedId={selectedQuarterlyPlanId}
+              onSelect={setSelectedQuarterlyPlanId}
+            />
+          )}
+          {view === 'role-clarity' && (
+            <RoleClarityView
+              doc={store.roleClarityDoc}
+              onSave={store.saveRoleClarityDoc}
+            />
+          )}
+          {view === 'role-charters' && (
+            <RoleChartersView
+              charters={store.roleCharters}
+              onAdd={store.addRoleCharter}
+              onUpdate={store.updateRoleCharter}
+              onDelete={store.deleteRoleCharter}
+              selectedId={selectedRoleCharterId}
+              onSelect={setSelectedRoleCharterId}
             />
           )}
           {view === 'stakeholders' && (

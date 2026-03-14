@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Grid2x2, Target, BarChart2, Users, Zap, UserCheck,
   BookOpen, Bell, BrainCircuit, Home, Compass, BookMarked, CalendarCheck,
   LogOut, Network, Search, UserCog, Bot, Keyboard, CalendarDays, X, Video,
-  FolderKanban, MessageSquareWarning,
+  FolderKanban, MessageSquareWarning, Telescope, ScrollText, BadgeCheck,
 } from 'lucide-react';
 import type { View } from '../types';
 
@@ -57,16 +57,19 @@ const NAV_GROUPS: NavGroup[] = [
       { id: 'updates',             label: '1:1 Briefings',       icon: <Bell size={14} />,                badge: c => c.pendingUpdates },
       { id: 'first-team',          label: 'First Team',          icon: <Users size={14} /> },
       { id: 'hard-conversations',  label: 'Hard Conversations',  icon: <MessageSquareWarning size={14} /> },
-      { id: 'direct-reports', label: 'Direct Reports', icon: <UserCog size={14} /> },
-      { id: 'stakeholders',   label: 'Stakeholders',   icon: <Network size={14} /> },
+      { id: 'direct-reports',      label: 'Direct Reports',      icon: <UserCog size={14} /> },
+      { id: 'stakeholders',        label: 'Stakeholders',        icon: <Network size={14} /> },
+      { id: 'role-charters',       label: 'Role Charters',       icon: <BadgeCheck size={14} /> },
     ],
   },
   {
     label: 'Strategy',
     items: [
-      { id: 'north-star',    label: 'North Star',    icon: <Compass size={14} /> },
-      { id: 'okrs',          label: 'OKRs',          icon: <Target size={14} /> },
-      { id: 'weekly-review', label: 'Weekly Review', icon: <CalendarCheck size={14} /> },
+      { id: 'north-star',         label: 'North Star',         icon: <Compass size={14} /> },
+      { id: 'okrs',               label: 'OKRs',               icon: <Target size={14} /> },
+      { id: 'quarterly-planning', label: 'Quarterly Planning', icon: <Telescope size={14} /> },
+      { id: 'weekly-review',      label: 'Weekly Review',      icon: <CalendarCheck size={14} /> },
+      { id: 'role-clarity',       label: 'Role Clarity',       icon: <ScrollText size={14} /> },
     ],
   },
   {

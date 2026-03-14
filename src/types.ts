@@ -14,6 +14,60 @@ export type ConversationType =
   | 'role-change' | 'conflict-resolution' | 'stakeholder-pushback'
   | 'letting-go' | 'boundary-setting' | 'difficult-ask' | 'other';
 export type ConversationStatus = 'planning' | 'ready' | 'had' | 'postponed';
+export type QuarterlyPlanStatus = 'draft' | 'active' | 'complete';
+export type RoleCharterStatus = 'draft' | 'active' | 'vacant' | 'being-hired';
+
+export interface QuarterlyPlan {
+  id: string;
+  quarter: string;          // e.g. "Q2 2026"
+  quarterNum: 1 | 2 | 3 | 4;
+  year: number;
+  status: QuarterlyPlanStatus;
+  theme?: string;
+  focusAreas: string[];     // max 3
+  notList?: string;
+  teamPriorities?: string;
+  personalDevelopment?: string;
+  blockers?: string;
+  upwardCommitments?: string;
+  successMeasures?: string;
+  reflectionNotes?: string; // filled in when completing
+  linkedOKRIds: string[];
+  linkedProjectIds: string[];
+  createdAt: string;
+  completedAt?: string;
+}
+
+export interface RoleClarityDoc {
+  roleTitle?: string;
+  teamSize?: string;
+  reportsTo?: string;
+  scope?: string;
+  coreAccountabilities?: string;
+  iOwn?: string;
+  iDontOwn?: string;
+  decisionRights?: string;
+  keyInterfaces?: string;
+  successLooksLike?: string;
+  workingPrinciples?: string;
+  updatedAt?: string;
+}
+
+export interface RoleCharter {
+  id: string;
+  title: string;
+  summary?: string;
+  coreAccountabilities?: string;
+  decisionRights?: string;
+  successCriteria?: string;
+  keyInterfaces?: string;
+  growthPath?: string;
+  filledBy?: string;
+  status: RoleCharterStatus;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
 
 export interface ProjectMilestone {
   id: string;
@@ -83,7 +137,10 @@ export type View =
   | 'day-planner'
   | 'meetings'
   | 'projects'
-  | 'hard-conversations';
+  | 'hard-conversations'
+  | 'quarterly-planning'
+  | 'role-clarity'
+  | 'role-charters';
 
 export type DumpItemStatus = 'inbox' | 'task' | 'idea' | 'archived';
 
