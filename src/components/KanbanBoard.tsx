@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Upload, Download } from 'lucide-react';
 import type { Task, KanbanColumnId } from '../types';
 import { COLUMNS } from '../types';
@@ -21,8 +21,13 @@ export function KanbanBoard({ tasks, onAddTask, onEditTask, onDeleteTask, onMove
 
   const columnOrder: KanbanColumnId[] = ['backlog', 'in-progress', 'done'];
 
-  const columnTasks = (col: KanbanColumnId) =>
-    tasks.filter(t => t.column === col);
+  const tasksByColumn = useMemo(() => {
+    const map: Record<KanbanColumnId, Task[]> = { backlog: [], 'in-progress': [], done: [] };
+    for (const t of tasks) map[t.column].push(t);
+    return map;
+  }, [tasks]);
+
+  const columnTasks = (col: KanbanColumnId) => tasksByColumn[col];
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedId(id);

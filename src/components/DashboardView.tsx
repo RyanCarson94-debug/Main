@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Zap,
   Clock,
@@ -177,25 +177,57 @@ export function DashboardView({
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const dateStr = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  const overdueTasks = tasks.filter(t => t.column !== 'done' && t.dueDate && t.dueDate < todayStr);
-  const dueTodayTasks = tasks.filter(t => t.column !== 'done' && t.dueDate === todayStr);
-  const doNowTasks = tasks.filter(t => t.quadrant === 'do-now' && t.column !== 'done' && !overdueTasks.includes(t) && !dueTodayTasks.includes(t));
-  const inProgressTasks = tasks.filter(t => t.column === 'in-progress');
+  const {
+    overdueTasks, dueTodayTasks, doNowTasks, inProgressTasks,
+    doneThisWeek, pendingUpdatesCount, totalAlerts, okrSnapshot,
+  } = useMemo(() => {
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    weekStart.setHours(0, 0, 0, 0);
 
-  const weekStart = new Date();
-  weekStart.setDate(now.getDate() - now.getDay());
-  weekStart.setHours(0, 0, 0, 0);
-  const doneThisWeek = tasks.filter(t => t.column === 'done' && t.completedAt && new Date(t.completedAt) >= weekStart).length;
+    const overdueSet = new Set<string>();
+    const dueTodaySet = new Set<string>();
+    const overdueArr: Task[] = [];
+    const dueTodayArr: Task[] = [];
+    const doNowArr: Task[] = [];
+    const inProgressArr: Task[] = [];
+    let doneCount = 0;
 
-  const pendingUpdatesCount = updates.reduce((sum, u) => sum + (u.recipientIds.some(id => !u.discussedWith.includes(id)) ? 1 : 0), 0);
-  const totalAlerts = delegationAlerts + pendingUpdatesCount + dumpInboxCount + overdueTasks.length;
+    for (const t of tasks) {
+      if (t.column === 'done') {
+        if (t.completedAt && new Date(t.completedAt) >= weekStart) doneCount++;
+        continue;
+      }
+      if (t.column === 'in-progress') inProgressArr.push(t);
+      if (t.dueDate && t.dueDate < todayStr) { overdueArr.push(t); overdueSet.add(t.id); }
+      else if (t.dueDate === todayStr) { dueTodayArr.push(t); dueTodaySet.add(t.id); }
+      if (t.quadrant === 'do-now' && !overdueSet.has(t.id) && !dueTodaySet.has(t.id)) doNowArr.push(t);
+    }
 
-  const okrSnapshot = okrs.slice(0, 3).map(okr => ({
-    ...okr,
-    avgProgress: okr.keyResults.length > 0
-      ? Math.round(okr.keyResults.reduce((s, kr) => s + kr.progress, 0) / okr.keyResults.length)
-      : 0,
-  }));
+    const pendingCount = updates.reduce(
+      (sum, u) => sum + (u.recipientIds.some(id => !u.discussedWith.includes(id)) ? 1 : 0), 0,
+    );
+
+    const snapshot = okrs.slice(0, 3).map(okr => ({
+      ...okr,
+      avgProgress: okr.keyResults.length > 0
+        ? Math.round(okr.keyResults.reduce((s, kr) => s + kr.progress, 0) / okr.keyResults.length)
+        : 0,
+    }));
+
+    return {
+      overdueTasks: overdueArr,
+      dueTodayTasks: dueTodayArr,
+      doNowTasks: doNowArr,
+      inProgressTasks: inProgressArr,
+      doneThisWeek: doneCount,
+      pendingUpdatesCount: pendingCount,
+      totalAlerts: delegationAlerts + pendingCount + dumpInboxCount + overdueArr.length,
+      okrSnapshot: snapshot,
+    };
+  // todayStr and now are stable within a render; delegationAlerts/dumpInboxCount from parent memoized
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks, updates, okrs, delegationAlerts, dumpInboxCount]);
 
   const handleWhatNow = async () => {
     setWhatNowLoading(true);

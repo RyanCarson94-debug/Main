@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, X, CheckSquare, BookMarked, Target, Zap, BrainCircuit, CalendarCheck } from 'lucide-react';
 import type {
   Task, Decision, Commitment, Update, WeeklyReview, OKR, DumpItem, View,
@@ -168,10 +168,17 @@ interface SearchOverlayProps {
 
 export function SearchOverlay({ open, onClose, onNavigate, data }: SearchOverlayProps) {
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selected, setSelected] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const results = searchAll(query, data);
+  // Debounce: only run search 120ms after the user stops typing
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQuery(query), 120);
+    return () => clearTimeout(id);
+  }, [query]);
+
+  const results = useMemo(() => searchAll(debouncedQuery, data), [debouncedQuery, data]);
 
   useEffect(() => {
     if (open) {

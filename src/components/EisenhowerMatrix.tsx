@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Plus } from 'lucide-react';
 import type { Task, QuadrantId } from '../types';
 import { QUADRANTS } from '../types';
@@ -27,8 +28,15 @@ export function EisenhowerMatrix({
   onMoveQuadrant,
   onDelegateTask,
 }: EisenhowerMatrixProps) {
-  const quadrantTasks = (qId: QuadrantId) =>
-    tasks.filter(t => t.quadrant === qId && t.column !== 'done');
+  const tasksByQuadrant = useMemo(() => {
+    const map: Record<QuadrantId, Task[]> = { 'do-now': [], schedule: [], delegate: [], drop: [] };
+    for (const t of tasks) {
+      if (t.column !== 'done') map[t.quadrant].push(t);
+    }
+    return map;
+  }, [tasks]);
+
+  const quadrantTasks = (qId: QuadrantId) => tasksByQuadrant[qId];
 
   return (
     <div className="flex flex-col h-full">

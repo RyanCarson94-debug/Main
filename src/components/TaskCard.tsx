@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Trash2, CheckCircle2, Tag, Calendar, UserCheck, AlertTriangle } from 'lucide-react';
 import type { Task, KanbanColumnId } from '../types';
 import { QUADRANTS, PRIORITY_CONFIG } from '../types';
@@ -12,7 +12,7 @@ interface TaskCardProps {
   compact?: boolean;
 }
 
-export function TaskCard({ task, onDelete, onMoveColumn, onEdit, onDelegate, compact }: TaskCardProps) {
+export const TaskCard = memo(function TaskCard({ task, onDelete, onMoveColumn, onEdit, onDelegate, compact }: TaskCardProps) {
   const [hover, setHover] = useState(false);
   const p = PRIORITY_CONFIG[task.priority];
   const q = QUADRANTS[task.quadrant];
@@ -112,4 +112,4 @@ export function TaskCard({ task, onDelete, onMoveColumn, onEdit, onDelegate, com
       </div>
     </div>
   );
-}
+});

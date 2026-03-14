@@ -1,30 +1,32 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import { Search, Bot, Zap } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { KanbanBoard } from './components/KanbanBoard';
 import { EisenhowerMatrix } from './components/EisenhowerMatrix';
 import { OKRView } from './components/OKRView';
-import { SwotView } from './components/SwotView';
 import { FirstTeamView } from './components/FirstTeamView';
 import { TaskModal } from './components/TaskModal';
 import { DelegationModal } from './components/DelegationModal';
 import { DelegationsView } from './components/DelegationsView';
-import { FrameworksLibrary } from './components/FrameworksLibrary';
 import { UpdatesView } from './components/UpdatesView';
 import { FocusView } from './components/FocusView';
 import { BrainDumpView } from './components/BrainDumpView';
 import { LoginView } from './components/LoginView';
 import { DashboardView } from './components/DashboardView';
-import { NorthStarView } from './components/NorthStarView';
 import { DecisionLogView } from './components/DecisionLogView';
-import { WeeklyReviewView } from './components/WeeklyReviewView';
-import { StakeholderMapView } from './components/StakeholderMapView';
-import { DirectReportsView } from './components/DirectReportsView';
 import { QuickCapture, QuickCaptureButton } from './components/QuickCapture';
 import { SearchOverlay } from './components/SearchOverlay';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { AICoach } from './components/AICoach';
 import { DayPlannerView } from './components/DayPlannerView';
+
+// Lazy-load infrequently-visited views so they're excluded from the initial bundle
+const SwotView          = lazy(() => import('./components/SwotView').then(m => ({ default: m.SwotView })));
+const FrameworksLibrary = lazy(() => import('./components/FrameworksLibrary').then(m => ({ default: m.FrameworksLibrary })));
+const NorthStarView     = lazy(() => import('./components/NorthStarView').then(m => ({ default: m.NorthStarView })));
+const WeeklyReviewView  = lazy(() => import('./components/WeeklyReviewView').then(m => ({ default: m.WeeklyReviewView })));
+const StakeholderMapView = lazy(() => import('./components/StakeholderMapView').then(m => ({ default: m.StakeholderMapView })));
+const DirectReportsView = lazy(() => import('./components/DirectReportsView').then(m => ({ default: m.DirectReportsView })));
 import { useAppStore } from './store';
 import type { View, Task, QuadrantId } from './types';
 import { parseTasksCSV } from './utils/export';
@@ -113,46 +115,46 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn]);
 
-  const enableNotifications = async () => {
+  const enableNotifications = useCallback(async () => {
     const permission = await Notification.requestPermission();
     setNotifBanner(false);
     if (permission === 'granted') fireNotificationsIfGranted(store.tasks);
-  };
+  }, [store.tasks]);
 
-  const openAddTask = (quadrant?: QuadrantId) => {
+  const openAddTask = useCallback((quadrant?: QuadrantId) => {
     setEditTask(null);
     setDefaultQuadrant(quadrant ?? 'do-now');
     setShowTaskModal(true);
-  };
+  }, []);
 
-  const openEditTask = (task: Task) => {
+  const openEditTask = useCallback((task: Task) => {
     setEditTask(task);
     setShowTaskModal(true);
-  };
+  }, []);
 
-  const handleSaveTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+  const handleSaveTask = useCallback((taskData: Omit<Task, 'id' | 'createdAt'>) => {
     if (editTask) {
       store.updateTask(editTask.id, taskData);
     } else {
       store.addTask({ ...taskData, quadrant: taskData.quadrant ?? defaultQuadrant });
     }
-  };
+  }, [editTask, defaultQuadrant, store.updateTask, store.addTask]);
 
-  const handleDelegate = (delegatedTo: string, followUpDate?: string, emailDraft?: string) => {
+  const handleDelegate = useCallback((delegatedTo: string, followUpDate?: string, emailDraft?: string) => {
     if (!delegatingTask) return;
     store.markDelegated(delegatingTask.id, delegatedTo, followUpDate, emailDraft);
-  };
+  }, [delegatingTask, store.markDelegated]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     sessionStorage.removeItem('adhd-leader-session');
     setIsLoggedIn(false);
-  };
+  }, []);
 
-  const handleSearchNavigate = (targetView: View) => {
+  const handleSearchNavigate = useCallback((targetView: View) => {
     setView(targetView);
-  };
+  }, []);
 
-  const handleCSVImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCSVImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -167,30 +169,36 @@ export default function App() {
     };
     reader.readAsText(file);
     e.target.value = '';
-  };
+  }, [store.addTask]);
 
-  const delegationAlerts = store.tasks.filter(t => {
-    if (!t.delegatedTo || t.followUpDone || !t.followUpDate) return false;
-    const followUp = new Date(t.followUpDate);
-    followUp.setHours(23, 59, 59, 999);
-    return followUp <= new Date();
-  }).length;
+  const taskCounts = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    return {
+      doNow:              store.tasks.filter(t => t.quadrant === 'do-now' && t.column !== 'done').length,
+      inProgress:         store.tasks.filter(t => t.column === 'in-progress').length,
+      delegationAlerts:   store.tasks.filter(t => {
+        if (!t.delegatedTo || t.followUpDone || !t.followUpDate) return false;
+        const d = new Date(t.followUpDate);
+        d.setHours(23, 59, 59, 999);
+        return d <= now;
+      }).length,
+      pendingUpdates:     store.updates.reduce((sum, u) =>
+        sum + (u.recipientIds.some(id => !u.discussedWith.includes(id)) ? 1 : 0), 0),
+      dumpInbox:          store.dumpItems.filter(d => d.status === 'inbox').length,
+      overdueCommitments: store.commitments.filter(c => !c.done && c.dueDate && c.dueDate < today).length,
+    };
+  }, [store.tasks, store.updates, store.dumpItems, store.commitments]);
 
-  const pendingUpdates = store.updates.reduce((sum, u) => {
-    return sum + (u.recipientIds.some(id => !u.discussedWith.includes(id)) ? 1 : 0);
-  }, 0);
-
-  const today = new Date().toISOString().split('T')[0];
-  const overdueCommitments = store.commitments.filter(c => !c.done && c.dueDate && c.dueDate < today).length;
-
-  const taskCounts = {
-    doNow:              store.tasks.filter(t => t.quadrant === 'do-now' && t.column !== 'done').length,
-    inProgress:         store.tasks.filter(t => t.column === 'in-progress').length,
-    delegationAlerts,
-    pendingUpdates,
-    dumpInbox:          store.dumpItems.filter(d => d.status === 'inbox').length,
-    overdueCommitments,
-  };
+  const searchData = useMemo(() => ({
+    tasks:        store.tasks,
+    decisions:    store.decisions,
+    commitments:  store.commitments,
+    updates:      store.updates,
+    weeklyReviews: store.weeklyReviews,
+    okrs:         store.okrs,
+    dumpItems:    store.dumpItems,
+  }), [store.tasks, store.decisions, store.commitments, store.updates, store.weeklyReviews, store.okrs, store.dumpItems]);
 
   if (!isLoggedIn) {
     return <LoginView onLogin={() => setIsLoggedIn(true)} />;
@@ -299,11 +307,13 @@ export default function App() {
             />
           )}
           {view === 'swot' && (
-            <SwotView
-              items={store.swotItems}
-              onAdd={store.addSwotItem}
-              onDelete={store.deleteSwotItem}
-            />
+            <Suspense fallback={<div className="flex-1 flex items-center justify-center text-gray-600 text-sm">Loading…</div>}>
+              <SwotView
+                items={store.swotItems}
+                onAdd={store.addSwotItem}
+                onDelete={store.deleteSwotItem}
+              />
+            </Suspense>
           )}
           {view === 'first-team' && (
             <FirstTeamView
@@ -327,7 +337,7 @@ export default function App() {
               onClearInbox={store.clearDumpInbox}
             />
           )}
-          {view === 'frameworks' && <FrameworksLibrary />}
+          {view === 'frameworks' && <Suspense fallback={<div className="flex-1 flex items-center justify-center text-gray-600 text-sm">Loading…</div>}><FrameworksLibrary /></Suspense>}
           {view === 'focus' && (
             <FocusView
               tasks={store.tasks}
@@ -356,7 +366,9 @@ export default function App() {
             />
           )}
           {view === 'north-star' && (
-            <NorthStarView northStar={store.northStar} onSave={store.saveNorthStar} />
+            <Suspense fallback={<div className="flex-1 flex items-center justify-center text-gray-600 text-sm">Loading…</div>}>
+              <NorthStarView northStar={store.northStar} onSave={store.saveNorthStar} />
+            </Suspense>
           )}
           {view === 'decision-log' && (
             <DecisionLogView
@@ -371,7 +383,9 @@ export default function App() {
             />
           )}
           {view === 'weekly-review' && (
-            <WeeklyReviewView reviews={store.weeklyReviews} tasks={store.tasks} onSave={store.saveWeeklyReview} />
+            <Suspense fallback={<div className="flex-1 flex items-center justify-center text-gray-600 text-sm">Loading…</div>}>
+              <WeeklyReviewView reviews={store.weeklyReviews} tasks={store.tasks} onSave={store.saveWeeklyReview} />
+            </Suspense>
           )}
           {view === 'day-planner' && (
             <DayPlannerView
@@ -381,6 +395,7 @@ export default function App() {
             />
           )}
           {view === 'stakeholders' && (
+            <Suspense fallback={<div className="flex-1 flex items-center justify-center text-gray-600 text-sm">Loading…</div>}>
             <StakeholderMapView
               stakeholders={store.stakeholders}
               onAdd={store.addStakeholder}
@@ -392,8 +407,10 @@ export default function App() {
               tasks={store.tasks}
               teamMembers={store.teamMembers}
             />
+            </Suspense>
           )}
           {view === 'direct-reports' && (
+            <Suspense fallback={<div className="flex-1 flex items-center justify-center text-gray-600 text-sm">Loading…</div>}>
             <DirectReportsView
               people={store.updatePeople}
               updates={store.updates}
@@ -404,6 +421,7 @@ export default function App() {
               tasks={store.tasks}
               teamMembers={store.teamMembers}
             />
+            </Suspense>
           )}
         </div>
       </main>
@@ -421,15 +439,7 @@ export default function App() {
         open={showSearch}
         onClose={() => setShowSearch(false)}
         onNavigate={handleSearchNavigate}
-        data={{
-          tasks:        store.tasks,
-          decisions:    store.decisions,
-          commitments:  store.commitments,
-          updates:      store.updates,
-          weeklyReviews: store.weeklyReviews,
-          okrs:         store.okrs,
-          dumpItems:    store.dumpItems,
-        }}
+        data={searchData}
       />
 
       {showTaskModal && (
