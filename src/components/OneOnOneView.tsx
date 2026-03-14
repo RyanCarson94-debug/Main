@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import {
-  Users, ChevronRight, Plus, Sparkles, Loader2, Save,
-  Clock, CheckCircle2, X, Trash2, CalendarDays,
+  Users, ChevronRight, Sparkles, Loader2, Save,
+  Clock, CheckCircle2, Trash2, CalendarDays,
 } from 'lucide-react';
 import type {
   FirstTeamMember, DirectReportProfile, UpdatePerson, Update,
@@ -172,9 +172,9 @@ function OneOnOnePrepPanel({
                 <p className="text-sm text-gray-300">{person.profile.growthGoals}</p>
               </div>
             )}
-            {person.profile?.strengths.length > 0 && (
+            {(person.profile?.strengths?.length ?? 0) > 0 && (
               <div className="flex flex-wrap gap-1.5">
-                {person.profile.strengths.map((s, i) => (
+                {person.profile?.strengths.map((s, i) => (
                   <span key={i} className="text-[11px] px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">{s}</span>
                 ))}
               </div>
