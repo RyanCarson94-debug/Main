@@ -34,7 +34,9 @@ const FrameworksLibrary = lazy(() => import('./components/FrameworksLibrary').th
 const NorthStarView     = lazy(() => import('./components/NorthStarView').then(m => ({ default: m.NorthStarView })));
 const WeeklyReviewView  = lazy(() => import('./components/WeeklyReviewView').then(m => ({ default: m.WeeklyReviewView })));
 const StakeholderMapView = lazy(() => import('./components/StakeholderMapView').then(m => ({ default: m.StakeholderMapView })));
-const DirectReportsView = lazy(() => import('./components/DirectReportsView').then(m => ({ default: m.DirectReportsView })));
+const DirectReportsView    = lazy(() => import('./components/DirectReportsView').then(m => ({ default: m.DirectReportsView })));
+const PersonalReadmeView   = lazy(() => import('./components/PersonalReadmeView').then(m => ({ default: m.PersonalReadmeView })));
+const OneOnOneView         = lazy(() => import('./components/OneOnOneView').then(m => ({ default: m.OneOnOneView })));
 import { useAppStore } from './store';
 import type { View, Task, QuadrantId } from './types';
 import { parseTasksCSV } from './utils/export';
@@ -612,6 +614,28 @@ export default function App() {
               decisions={store.decisions}
               tasks={store.tasks}
               teamMembers={store.teamMembers}
+            />
+            </Suspense>
+          )}
+          {view === 'personal-readme' && (
+            <Suspense fallback={<ViewSkeleton />}>
+            <PersonalReadmeView
+              doc={store.personalReadme}
+              onSave={store.savePersonalReadme}
+            />
+            </Suspense>
+          )}
+          {view === 'one-on-one' && (
+            <Suspense fallback={<ViewSkeleton />}>
+            <OneOnOneView
+              teamMembers={store.teamMembers}
+              directReportProfiles={store.directReportProfiles}
+              updatePeople={store.updatePeople}
+              updates={store.updates}
+              hardConversations={store.hardConversations}
+              oneOnOneNotes={store.oneOnOneNotes}
+              onAddNote={store.addOneOnOneNote}
+              onDeleteNote={store.deleteOneOnOneNote}
             />
             </Suspense>
           )}
