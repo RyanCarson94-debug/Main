@@ -51,8 +51,8 @@ function StakeholderFormModal({
     name:      stakeholder?.name      ?? '',
     role:      stakeholder?.role      ?? '',
     org:       stakeholder?.org       ?? '',
-    influence: stakeholder?.influence ?? 'medium' as InfluenceLevel,
-    interest:  stakeholder?.interest  ?? 'medium' as InterestLevel,
+    influence: stakeholder?.influence ?? 'high' as InfluenceLevel,
+    interest:  stakeholder?.interest  ?? 'high' as InterestLevel,
     strategy:  stakeholder?.strategy  ?? '',
     notes:     stakeholder?.notes     ?? '',
   });
@@ -86,14 +86,12 @@ function StakeholderFormModal({
             <SField label="Influence">
               <select value={form.influence} onChange={e => setForm(f => ({ ...f, influence: e.target.value as InfluenceLevel }))} className={INPUT}>
                 <option value="high">High</option>
-                <option value="medium">Medium</option>
                 <option value="low">Low</option>
               </select>
             </SField>
             <SField label="Interest">
               <select value={form.interest} onChange={e => setForm(f => ({ ...f, interest: e.target.value as InterestLevel }))} className={INPUT}>
                 <option value="high">High</option>
-                <option value="medium">Medium</option>
                 <option value="low">Low</option>
               </select>
             </SField>
