@@ -46,3 +46,27 @@ export async function loadFromCloud(): Promise<{ payload: object; saved_at: stri
     return null;
   }
 }
+
+/**
+ * Subscribe to Realtime changes on the app_state row.
+ * Returns an unsubscribe function.
+ * Used for live multi-device sync — when another tab/device saves,
+ * this fires with the new payload so local state can be updated.
+ */
+export function subscribeToCloudChanges(
+  callback: (payload: object) => void,
+): () => void {
+  if (!supabase) return () => {};
+  const channel = supabase
+    .channel('cloud-sync')
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'app_state', filter: `id=eq.${ROW_ID}` },
+      (change) => {
+        const row = change.new as { payload: object };
+        if (row?.payload) callback(row.payload);
+      },
+    )
+    .subscribe();
+  return () => { void supabase?.removeChannel(channel); };
+}

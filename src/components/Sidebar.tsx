@@ -4,9 +4,10 @@ import {
   BookOpen, Bell, BrainCircuit, Home, Compass, BookMarked, CalendarCheck,
   LogOut, Network, Search, UserCog, Bot, Keyboard, CalendarDays, X, Video,
   FolderKanban, MessageSquareWarning, Telescope, ScrollText, BadgeCheck,
-  ChevronDown, ChevronRight, Flame, FileText,
+  ChevronDown, ChevronRight, Flame, FileText, Cloud, CloudOff, Loader,
 } from 'lucide-react';
 import type { View } from '../types';
+import type { SaveSyncStatus } from '../store';
 
 interface SidebarProps {
   view: View;
@@ -18,6 +19,7 @@ interface SidebarProps {
   aiCoachOpen: boolean;
   mobileOpen: boolean;
   onMobileClose: () => void;
+  saveSyncStatus?: SaveSyncStatus;
   taskCounts: {
     doNow: number;
     inProgress: number;
@@ -109,7 +111,7 @@ function getStreak(): number {
 
 export function Sidebar({
   view, onViewChange, onLogout, onSearch, onToggleAICoach, onShowShortcuts,
-  aiCoachOpen, mobileOpen, onMobileClose, taskCounts,
+  aiCoachOpen, mobileOpen, onMobileClose, taskCounts, saveSyncStatus = 'idle',
 }: SidebarProps) {
   const navigate = (v: View) => { onViewChange(v); onMobileClose(); };
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(['Strategy', 'Reference']));
@@ -233,6 +235,33 @@ export function Sidebar({
 
       {/* Footer */}
       <div className="px-3 py-3 border-t border-[#2A2640] space-y-px">
+        {/* Cloud sync indicator */}
+        <div className="flex items-center gap-2 px-2.5 py-1 mb-0.5">
+          {saveSyncStatus === 'saving' && (
+            <>
+              <Loader size={11} className="text-violet-400 animate-spin" />
+              <span className="text-[11px] text-gray-600">Saving…</span>
+            </>
+          )}
+          {saveSyncStatus === 'saved' && (
+            <>
+              <Cloud size={11} className="text-emerald-500" />
+              <span className="text-[11px] text-emerald-600">Saved to cloud</span>
+            </>
+          )}
+          {saveSyncStatus === 'error' && (
+            <>
+              <CloudOff size={11} className="text-red-500" />
+              <span className="text-[11px] text-red-500">Sync failed</span>
+            </>
+          )}
+          {saveSyncStatus === 'idle' && (
+            <>
+              <Cloud size={11} className="text-gray-700" />
+              <span className="text-[11px] text-gray-700">Cloud sync on</span>
+            </>
+          )}
+        </div>
         {/* Streak */}
         {streak > 0 && (
           <div className="flex items-center gap-2 px-2.5 py-1.5 mb-1">

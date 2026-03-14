@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { saveToCloud, loadFromCloud } from './services/supabase';
+import { saveToCloud, loadFromCloud, subscribeToCloudChanges } from './services/supabase';
+
+export type SaveSyncStatus = 'idle' | 'saving' | 'saved' | 'error';
 import type {
   Task, OKR, SwotItem, FirstTeamMember, KanbanColumnId, QuadrantId,
   Update, UpdatePerson, TaskFocus, FocusStep, DumpItem, DumpItemStatus,
@@ -170,37 +172,77 @@ export function useAppStore() {
   const [personalReadme,        setPersonalReadme]        = useState<PersonalReadme>(() => loadFromStorage(STORAGE_KEYS.personalReadme, {}));
   const [oneOnOneNotes,         setOneOnOneNotes]         = useState<OneOnOneNote[]>(() => loadFromStorage(STORAGE_KEYS.oneOnOneNotes, []));
 
-  useEffect(() => { saveToStorage(STORAGE_KEYS.tasks,         tasks);         }, [tasks]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.okrs,          okrs);          }, [okrs]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.swot,          swotItems);     }, [swotItems]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.team,          teamMembers);   }, [teamMembers]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.updatePeople,  updatePeople);  }, [updatePeople]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.updates,       updates);       }, [updates]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.focusMap,      focusMap);      }, [focusMap]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.dump,          dumpItems);     }, [dumpItems]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.decisions,     decisions);     }, [decisions]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.commitments,   commitments);   }, [commitments]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.weeklyReviews, weeklyReviews); }, [weeklyReviews]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.northStar,             northStar);             }, [northStar]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.stakeholders,          stakeholders);          }, [stakeholders]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.directReportProfiles,  directReportProfiles);  }, [directReportProfiles]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.meetings,              meetings);              }, [meetings]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.projects,              projects);              }, [projects]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.hardConversations,     hardConversations);     }, [hardConversations]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.quarterlyPlans,        quarterlyPlans);        }, [quarterlyPlans]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.roleClarityDoc,        roleClarityDoc);        }, [roleClarityDoc]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.roleCharters,          roleCharters);          }, [roleCharters]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.personalReadme,        personalReadme);        }, [personalReadme]);
-  useEffect(() => { saveToStorage(STORAGE_KEYS.oneOnOneNotes,         oneOnOneNotes);         }, [oneOnOneNotes]);
+  // localStorage is now updated as a cache inside triggerCloudSave (after Supabase write).
 
-  // ── Cloud sync (Supabase) ──────────────────────────────────────────────────
-  // Debounced save: 3s after last change, push full state to cloud
+  // ── Cloud sync (Supabase — primary source of truth) ───────────────────────
+  // Strategy:
+  //   • On mount: fetch from Supabase and apply it (cloud IS the truth).
+  //     localStorage is only used as an instant-boot cache while we wait.
+  //   • On change: debounced 800ms save to Supabase, then update localStorage cache.
+  //   • Realtime: subscribe so other tabs/devices push changes here live.
 
-  const cloudSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [saveSyncStatus, setSaveSyncStatus] = useState<SaveSyncStatus>('idle');
+  const cloudSaveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMounted       = useRef(true);
+  useEffect(() => { isMounted.current = true; return () => { isMounted.current = false; }; }, []);
 
+  // Helper: apply a cloud payload to all state setters
+  const applyCloudPayload = useCallback((p: Record<string, unknown>) => {
+    if (Array.isArray(p.tasks))               setTasks(p.tasks as Task[]);
+    if (Array.isArray(p.okrs))                setOkrs(p.okrs as OKR[]);
+    if (Array.isArray(p.swotItems))           setSwotItems(p.swotItems as SwotItem[]);
+    if (Array.isArray(p.teamMembers))         setTeamMembers(p.teamMembers as FirstTeamMember[]);
+    if (Array.isArray(p.updatePeople))        setUpdatePeople(p.updatePeople as UpdatePerson[]);
+    if (Array.isArray(p.updates))             setUpdates(p.updates as Update[]);
+    if (p.focusMap && typeof p.focusMap === 'object') setFocusMap(p.focusMap as Record<string, TaskFocus>);
+    if (Array.isArray(p.dumpItems))           setDumpItems(p.dumpItems as DumpItem[]);
+    if (Array.isArray(p.decisions))           setDecisions(p.decisions as Decision[]);
+    if (Array.isArray(p.commitments))         setCommitments(p.commitments as Commitment[]);
+    if (Array.isArray(p.weeklyReviews))       setWeeklyReviews(p.weeklyReviews as WeeklyReview[]);
+    if (p.northStar)                          setNorthStar(p.northStar as NorthStar);
+    if (Array.isArray(p.stakeholders))        setStakeholders(p.stakeholders as Stakeholder[]);
+    if (Array.isArray(p.directReportProfiles)) setDirectReportProfiles(p.directReportProfiles as DirectReportProfile[]);
+    if (Array.isArray(p.meetings))            setMeetings(p.meetings as Meeting[]);
+    if (Array.isArray(p.projects))            setProjects(p.projects as Project[]);
+    if (Array.isArray(p.hardConversations))   setHardConversations(p.hardConversations as HardConversation[]);
+    if (Array.isArray(p.quarterlyPlans))      setQuarterlyPlans(p.quarterlyPlans as QuarterlyPlan[]);
+    if (p.roleClarityDoc && typeof p.roleClarityDoc === 'object') setRoleClarityDoc(p.roleClarityDoc as RoleClarityDoc);
+    if (Array.isArray(p.roleCharters))        setRoleCharters(p.roleCharters as RoleCharter[]);
+    if (p.personalReadme && typeof p.personalReadme === 'object') setPersonalReadme(p.personalReadme as PersonalReadme);
+    if (Array.isArray(p.oneOnOneNotes))       setOneOnOneNotes(p.oneOnOneNotes as OneOnOneNote[]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // On mount: load from Supabase (cloud is the source of truth)
+  useEffect(() => {
+    void (async () => {
+      const cloud = await loadFromCloud();
+      if (!isMounted.current) return;
+      if (cloud) {
+        applyCloudPayload(cloud.payload as Record<string, unknown>);
+        console.info('[sync] Loaded from cloud');
+      }
+      // If cloud is null (offline / Supabase not configured), localStorage data
+      // already loaded via useState initializers — nothing more to do.
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Realtime: apply changes pushed from other tabs/devices
+  useEffect(() => {
+    const unsub = subscribeToCloudChanges((payload) => {
+      if (!isMounted.current) return;
+      applyCloudPayload(payload as Record<string, unknown>);
+      console.info('[sync] Realtime update applied');
+    });
+    return unsub;
+  }, [applyCloudPayload]);
+
+  // Debounced cloud save (800ms) — also updates localStorage cache
   const triggerCloudSave = useCallback(() => {
     if (cloudSaveTimer.current) clearTimeout(cloudSaveTimer.current);
-    cloudSaveTimer.current = setTimeout(() => {
+    setSaveSyncStatus('saving');
+    cloudSaveTimer.current = setTimeout(async () => {
       const snapshot = {
         tasks, okrs, swotItems, teamMembers, updatePeople, updates,
         focusMap, dumpItems, decisions, commitments, weeklyReviews,
@@ -210,8 +252,39 @@ export function useAppStore() {
         personalReadme, oneOnOneNotes,
         cloudSavedAt: new Date().toISOString(),
       };
-      void saveToCloud(snapshot);
-    }, 3000);
+      try {
+        await saveToCloud(snapshot);
+        if (isMounted.current) {
+          setSaveSyncStatus('saved');
+          setTimeout(() => { if (isMounted.current) setSaveSyncStatus('idle'); }, 2500);
+        }
+      } catch {
+        if (isMounted.current) setSaveSyncStatus('error');
+      }
+      // Update localStorage as offline cache
+      saveToStorage(STORAGE_KEYS.tasks,                 snapshot.tasks);
+      saveToStorage(STORAGE_KEYS.okrs,                  snapshot.okrs);
+      saveToStorage(STORAGE_KEYS.swot,                  snapshot.swotItems);
+      saveToStorage(STORAGE_KEYS.team,                  snapshot.teamMembers);
+      saveToStorage(STORAGE_KEYS.updatePeople,          snapshot.updatePeople);
+      saveToStorage(STORAGE_KEYS.updates,               snapshot.updates);
+      saveToStorage(STORAGE_KEYS.focusMap,              snapshot.focusMap);
+      saveToStorage(STORAGE_KEYS.dump,                  snapshot.dumpItems);
+      saveToStorage(STORAGE_KEYS.decisions,             snapshot.decisions);
+      saveToStorage(STORAGE_KEYS.commitments,           snapshot.commitments);
+      saveToStorage(STORAGE_KEYS.weeklyReviews,         snapshot.weeklyReviews);
+      saveToStorage(STORAGE_KEYS.northStar,             snapshot.northStar);
+      saveToStorage(STORAGE_KEYS.stakeholders,          snapshot.stakeholders);
+      saveToStorage(STORAGE_KEYS.directReportProfiles,  snapshot.directReportProfiles);
+      saveToStorage(STORAGE_KEYS.meetings,              snapshot.meetings);
+      saveToStorage(STORAGE_KEYS.projects,              snapshot.projects);
+      saveToStorage(STORAGE_KEYS.hardConversations,     snapshot.hardConversations);
+      saveToStorage(STORAGE_KEYS.quarterlyPlans,        snapshot.quarterlyPlans);
+      saveToStorage(STORAGE_KEYS.roleClarityDoc,        snapshot.roleClarityDoc);
+      saveToStorage(STORAGE_KEYS.roleCharters,          snapshot.roleCharters);
+      saveToStorage(STORAGE_KEYS.personalReadme,        snapshot.personalReadme);
+      saveToStorage(STORAGE_KEYS.oneOnOneNotes,         snapshot.oneOnOneNotes);
+    }, 800);
   }, [tasks, okrs, swotItems, teamMembers, updatePeople, updates,
       focusMap, dumpItems, decisions, commitments, weeklyReviews,
       northStar, stakeholders, directReportProfiles, meetings,
@@ -219,47 +292,6 @@ export function useAppStore() {
       personalReadme, oneOnOneNotes]);
 
   useEffect(() => { triggerCloudSave(); }, [triggerCloudSave]);
-
-  // Load from cloud on first mount: if cloud data is newer, merge it
-  useEffect(() => {
-    void (async () => {
-      const cloud = await loadFromCloud();
-      if (!cloud) return;
-      const cloudDate = new Date(cloud.saved_at);
-      const localDate = new Date(loadFromStorage<string>('adhd-leader-last-cloud-load', '1970-01-01'));
-      if (cloudDate <= localDate) return;
-
-      // Cloud is newer — restore all state
-      const p = cloud.payload as Record<string, unknown>;
-      if (Array.isArray(p.tasks))               setTasks(p.tasks as Task[]);
-      if (Array.isArray(p.okrs))                setOkrs(p.okrs as OKR[]);
-      if (Array.isArray(p.swotItems))           setSwotItems(p.swotItems as SwotItem[]);
-      if (Array.isArray(p.teamMembers))         setTeamMembers(p.teamMembers as FirstTeamMember[]);
-      if (Array.isArray(p.updatePeople))        setUpdatePeople(p.updatePeople as UpdatePerson[]);
-      if (Array.isArray(p.updates))             setUpdates(p.updates as Update[]);
-      if (p.focusMap && typeof p.focusMap === 'object') setFocusMap(p.focusMap as Record<string, TaskFocus>);
-      if (Array.isArray(p.dumpItems))           setDumpItems(p.dumpItems as DumpItem[]);
-      if (Array.isArray(p.decisions))           setDecisions(p.decisions as Decision[]);
-      if (Array.isArray(p.commitments))         setCommitments(p.commitments as Commitment[]);
-      if (Array.isArray(p.weeklyReviews))       setWeeklyReviews(p.weeklyReviews as WeeklyReview[]);
-      if (p.northStar)                          setNorthStar(p.northStar as NorthStar);
-      if (Array.isArray(p.stakeholders))        setStakeholders(p.stakeholders as Stakeholder[]);
-      if (Array.isArray(p.directReportProfiles)) setDirectReportProfiles(p.directReportProfiles as DirectReportProfile[]);
-      if (Array.isArray(p.meetings))            setMeetings(p.meetings as Meeting[]);
-      if (Array.isArray(p.projects))            setProjects(p.projects as Project[]);
-      if (Array.isArray(p.hardConversations))   setHardConversations(p.hardConversations as HardConversation[]);
-      if (Array.isArray(p.quarterlyPlans))      setQuarterlyPlans(p.quarterlyPlans as QuarterlyPlan[]);
-      if (p.roleClarityDoc && typeof p.roleClarityDoc === 'object') setRoleClarityDoc(p.roleClarityDoc as RoleClarityDoc);
-      if (Array.isArray(p.roleCharters))        setRoleCharters(p.roleCharters as RoleCharter[]);
-      if (p.personalReadme && typeof p.personalReadme === 'object') setPersonalReadme(p.personalReadme as PersonalReadme);
-      if (Array.isArray(p.oneOnOneNotes))       setOneOnOneNotes(p.oneOnOneNotes as OneOnOneNote[]);
-
-      saveToStorage('adhd-leader-last-cloud-load', cloud.saved_at);
-      console.info('[sync] Restored data from cloud (newer than local)');
-    })();
-  // Run only once on mount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // ── Tasks ──────────────────────────────────────────────────────────────────
 
@@ -807,6 +839,7 @@ export function useAppStore() {
   };
 
   return {
+    saveSyncStatus,
     tasks, okrs, swotItems, teamMembers, updatePeople, updates, focusMap, dumpItems,
     decisions, commitments, weeklyReviews, northStar,
     addTask, updateTask, deleteTask, moveTaskColumn, moveTaskQuadrant,

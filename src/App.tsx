@@ -257,6 +257,7 @@ export default function App() {
         mobileOpen={showMobileNav}
         onMobileClose={() => setShowMobileNav(false)}
         taskCounts={taskCounts}
+        saveSyncStatus={store.saveSyncStatus}
       />
 
       <main className={`flex-1 overflow-hidden flex flex-col transition-all ${showAICoach ? 'md:mr-[380px]' : ''}`}>
