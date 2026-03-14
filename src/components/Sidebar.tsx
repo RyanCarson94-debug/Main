@@ -61,6 +61,7 @@ const NAV_GROUPS: NavGroup[] = [
       { id: 'hard-conversations', label: 'Hard Conversations', icon: <MessageSquareWarning size={14} /> },
       { id: 'direct-reports',     label: 'Direct Reports',     icon: <UserCog size={14} /> },
       { id: 'stakeholders',       label: 'Stakeholders',       icon: <Network size={14} /> },
+      { id: 'personal-readme',    label: 'Personal README',    icon: <FileText size={14} /> },
     ],
   },
   {
@@ -76,11 +77,10 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Reference',
     items: [
-      { id: 'role-clarity',    label: 'Role Clarity',    icon: <ScrollText size={14} /> },
-      { id: 'role-charters',   label: 'Role Charters',   icon: <BadgeCheck size={14} /> },
-      { id: 'personal-readme', label: 'Personal README', icon: <FileText size={14} /> },
-      { id: 'swot',            label: 'SWOT',            icon: <BarChart2 size={14} /> },
-      { id: 'frameworks',      label: 'Frameworks',      icon: <BookOpen size={14} /> },
+      { id: 'role-clarity',  label: 'Role Clarity',  icon: <ScrollText size={14} /> },
+      { id: 'role-charters', label: 'Role Charters', icon: <BadgeCheck size={14} /> },
+      { id: 'swot',          label: 'SWOT',          icon: <BarChart2 size={14} /> },
+      { id: 'frameworks',    label: 'Frameworks',    icon: <BookOpen size={14} /> },
     ],
   },
 ];

@@ -42,6 +42,7 @@ interface FocusViewProps {
   onAddStep: (taskId: string, text: string, estimate?: number) => void;
   onDeleteStep: (taskId: string, stepId: string) => void;
   onClearSteps: (taskId: string) => void;
+  initialTaskId?: string;
 }
 
 // ─── Pomodoro Timer ───────────────────────────────────────────────────────────
@@ -385,9 +386,10 @@ export function FocusView({
   onAddStep,
   onDeleteStep,
   onClearSteps,
+  initialTaskId,
 }: FocusViewProps) {
   const [tab, setTab] = useState<'focus' | 'batch'>('focus');
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(initialTaskId ?? null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { CalendarDays, Clock, Plus, ChevronRight, Download } from 'lucide-react';
+import { CalendarDays, Clock, Plus, ChevronRight, Download, Zap } from 'lucide-react';
 import type { Task, QuadrantId } from '../types';
 import { PRIORITY_CONFIG, QUADRANTS } from '../types';
 import { exportTasksICS } from '../utils/export';
@@ -8,6 +8,7 @@ interface DayPlannerViewProps {
   tasks: Task[];
   onEditTask: (task: Task) => void;
   onAddTask: (quadrant?: QuadrantId) => void;
+  onFocusTask?: (task: Task) => void;
 }
 
 type Slot = 'morning' | 'afternoon' | 'evening' | 'unscheduled';
@@ -28,7 +29,7 @@ function fmtMinutes(m: number) {
   return rem ? `${h}h ${rem}m` : `${h}h`;
 }
 
-export function DayPlannerView({ tasks, onEditTask, onAddTask }: DayPlannerViewProps) {
+export function DayPlannerView({ tasks, onEditTask, onAddTask, onFocusTask }: DayPlannerViewProps) {
   const [slotMap, setSlotMap] = useState<Record<string, Slot>>({});
   const [dragId, setDragId] = useState<string | null>(null);
 
@@ -135,6 +136,7 @@ export function DayPlannerView({ tasks, onEditTask, onAddTask }: DayPlannerViewP
                         onEdit={() => onEditTask(task)}
                         onDragStart={() => setDragId(task.id)}
                         onDragEnd={() => setDragId(null)}
+                        onFocus={onFocusTask ? () => onFocusTask(task) : undefined}
                       />
                     ))}
                   </div>
@@ -161,11 +163,13 @@ function PlannerTaskCard({
   onEdit,
   onDragStart,
   onDragEnd,
+  onFocus,
 }: {
   task: Task;
   onEdit: () => void;
   onDragStart: () => void;
   onDragEnd: () => void;
+  onFocus?: () => void;
 }) {
   const p = PRIORITY_CONFIG[task.priority];
   const q = QUADRANTS[task.quadrant];
@@ -175,12 +179,11 @@ function PlannerTaskCard({
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      onClick={onEdit}
       className="group flex items-start gap-2 p-2.5 rounded-xl bg-[#1E1C28] border border-[#2A2640] hover:border-violet-500/30 cursor-grab active:cursor-grabbing transition-colors"
     >
       <span className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${p.dot}`} />
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-gray-200 leading-snug truncate">{task.title}</p>
+      <div className="flex-1 min-w-0" onClick={onEdit}>
+        <p className="text-xs font-semibold text-gray-200 leading-snug truncate cursor-pointer">{task.title}</p>
         <div className="flex items-center gap-2 mt-0.5">
           <span className={`text-[10px] ${q.color}`}>{q.shortLabel}</span>
           {task.estimateMinutes && (
@@ -190,7 +193,18 @@ function PlannerTaskCard({
           )}
         </div>
       </div>
-      <ChevronRight size={11} className="text-gray-700 group-hover:text-gray-500 shrink-0 mt-1 transition-colors" />
+      {onFocus ? (
+        <button
+          onClick={e => { e.stopPropagation(); onFocus(); }}
+          title="Open in Focus Mode"
+          className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 px-1.5 py-1 rounded-lg bg-violet-600/20 border border-violet-500/30 text-violet-400 hover:bg-violet-600/40 transition-all shrink-0"
+        >
+          <Zap size={10} />
+          <span className="text-[10px] font-bold">Focus</span>
+        </button>
+      ) : (
+        <ChevronRight size={11} className="text-gray-700 group-hover:text-gray-500 shrink-0 mt-1 transition-colors" onClick={onEdit} />
+      )}
     </div>
   );
 }

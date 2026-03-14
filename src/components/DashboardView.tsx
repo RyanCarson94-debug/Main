@@ -177,16 +177,23 @@ function WeeklyRhythmCard({ onDismiss }: { onDismiss: () => void }) {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
           {[
-            { day: 'Mon', action: 'Triage Brain Dump', view: 'dump' as View, color: 'border-violet-500/20 bg-violet-500/5 text-violet-300' },
-            { day: 'Daily', action: 'Focus Mode · 1 Pomodoro', view: 'focus' as View, color: 'border-sky-500/20 bg-sky-500/5 text-sky-300' },
-            { day: 'Daily', action: 'Check Delegations', view: 'delegations' as View, color: 'border-amber-500/20 bg-amber-500/5 text-amber-300' },
-            { day: 'Fri', action: 'Weekly Review', view: 'weekly-review' as View, color: 'border-emerald-500/20 bg-emerald-500/5 text-emerald-300' },
+            { day: 'Mon', action: 'Triage Brain Dump', color: 'border-violet-500/20 bg-violet-500/5 text-violet-300' },
+            { day: 'Daily', action: 'Focus Mode · 1 Pomodoro', color: 'border-sky-500/20 bg-sky-500/5 text-sky-300' },
+            { day: 'Daily', action: 'Check Delegations', color: 'border-amber-500/20 bg-amber-500/5 text-amber-300' },
+            { day: 'Fri', action: 'Weekly Review', color: 'border-emerald-500/20 bg-emerald-500/5 text-emerald-300' },
           ].map((item, i) => (
             <div key={i} className={`rounded-xl border px-2.5 py-2 ${item.color}`}>
               <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-0.5">{item.day}</p>
               <p className="text-[11px] font-semibold leading-snug">{item.action}</p>
             </div>
           ))}
+        </div>
+        <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/5 mb-3">
+          <span className="text-xs">📄</span>
+          <p className="text-[11px] text-gray-400 flex-1">
+            <span className="font-semibold text-white">Personal README</span> — fill in once, share with your team so they know how to work with you.
+            <span className="text-gray-600"> Find it under People in the nav.</span>
+          </p>
         </div>
         <button onClick={onDismiss}
           className="text-[11px] text-gray-600 hover:text-gray-400 transition-colors">
@@ -826,6 +833,12 @@ export function DashboardView({
                     </div>
                   </button>
                 ))}
+                <p className="text-[10px] text-gray-700 px-1 pt-0.5">
+                  Live data ·{' '}
+                  <button onClick={() => onViewChange('okrs')} className="text-gray-600 hover:text-gray-400 underline transition-colors">
+                    update progress in OKRs
+                  </button>
+                </p>
               </div>
             </section>
           )}

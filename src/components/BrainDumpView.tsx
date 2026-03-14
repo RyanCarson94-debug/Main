@@ -248,6 +248,7 @@ export function BrainDumpView({
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [showDone, setShowDone] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-focus capture area on mount
@@ -322,14 +323,26 @@ export function BrainDumpView({
               }
             </button>
           )}
-          {inbox.length > 0 && (
+          {inbox.length > 0 && !confirmClear && (
             <button
-              onClick={onClearInbox}
+              onClick={() => setConfirmClear(true)}
               className="text-xs text-gray-600 hover:text-red-400 transition-colors"
-              title="Archive all inbox items"
             >
               Clear inbox
             </button>
+          )}
+          {confirmClear && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-red-500/10 border border-red-500/25">
+              <span className="text-xs text-red-300 font-medium">Archive all {inbox.length} items?</span>
+              <button
+                onClick={() => { onClearInbox(); setConfirmClear(false); }}
+                className="text-xs font-bold text-red-400 hover:text-red-300 transition-colors px-1"
+              >Yes</button>
+              <button
+                onClick={() => setConfirmClear(false)}
+                className="text-xs text-gray-500 hover:text-gray-300 transition-colors px-1"
+              >No</button>
+            </div>
           )}
         </div>
       </div>

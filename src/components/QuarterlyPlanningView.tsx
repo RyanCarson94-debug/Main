@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import {
   Telescope, Plus, ChevronRight, CheckCircle2, Circle, Trash2, X,
-  Target, FolderKanban, Sparkles,
+  Target, FolderKanban, Sparkles, Pencil, Check,
 } from 'lucide-react';
 import type { QuarterlyPlan, QuarterlyPlanStatus, OKR, Project } from '../types';
 
@@ -99,9 +99,15 @@ function NewPlanModal({ onSave, onClose, existingQuarters }: {
 
 // ─── Plan Card ────────────────────────────────────────────────────────────────
 
-function PlanCard({ plan, onClick, onDelete, isCurrent }: {
-  plan: QuarterlyPlan; onClick: () => void; onDelete: () => void; isCurrent: boolean;
+function PlanCard({ plan, onClick, onDelete, onQuickUpdate, isCurrent }: {
+  plan: QuarterlyPlan; onClick: () => void; onDelete: () => void;
+  onQuickUpdate?: (u: Partial<QuarterlyPlan>) => void; isCurrent: boolean;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [draftTheme, setDraftTheme] = useState(plan.theme ?? '');
+  const [draftFocus, setDraftFocus] = useState<string[]>(plan.focusAreas);
+  const [newFocus,   setNewFocus]   = useState('');
+
   const statusCfg = STATUS_CONFIG[plan.status];
   const filled = [
     plan.theme, plan.notList, plan.teamPriorities,
@@ -109,10 +115,38 @@ function PlanCard({ plan, onClick, onDelete, isCurrent }: {
   ].filter(Boolean).length;
   const total = 6;
 
+  const openEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDraftTheme(plan.theme ?? '');
+    setDraftFocus([...plan.focusAreas]);
+    setEditing(true);
+  };
+
+  const saveEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onQuickUpdate?.({ theme: draftTheme, focusAreas: draftFocus });
+    setEditing(false);
+  };
+
+  const cancelEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditing(false);
+  };
+
+  const addDraftFocus = () => {
+    const f = newFocus.trim();
+    if (!f || draftFocus.length >= 3) return;
+    setDraftFocus(prev => [...prev, f]);
+    setNewFocus('');
+  };
+
   return (
-    <div onClick={onClick}
-      className={`group relative cursor-pointer rounded-2xl border p-5 transition-all hover:border-violet-500/50 ${
-        isCurrent ? 'bg-[#1E1B2E] border-violet-500/40' : 'bg-[#1A1824] border-[#2A2640]'
+    <div
+      onClick={editing ? undefined : onClick}
+      className={`group relative rounded-2xl border p-5 transition-all ${
+        editing ? 'border-violet-500/60 bg-[#1E1B2E]' :
+        isCurrent ? 'cursor-pointer bg-[#1E1B2E] border-violet-500/40 hover:border-violet-500/50' :
+        'cursor-pointer bg-[#1A1824] border-[#2A2640] hover:border-violet-500/50'
       }`}>
       {isCurrent && (
         <span className="absolute top-4 right-10 text-[10px] font-bold text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-full border border-violet-500/30">
@@ -120,18 +154,86 @@ function PlanCard({ plan, onClick, onDelete, isCurrent }: {
         </span>
       )}
       <div className="flex items-start justify-between gap-3 mb-3">
-        <div>
+        <div className="flex-1 min-w-0">
           <span className={`font-black text-3xl ${QUARTER_COLORS[plan.quarterNum]}`}>Q{plan.quarterNum}</span>
           <span className="text-gray-400 ml-2 text-lg font-semibold">{plan.year}</span>
-          {plan.theme && <p className="text-sm text-gray-300 mt-1 font-medium italic">"{plan.theme}"</p>}
+          {!editing && plan.theme && <p className="text-sm text-gray-300 mt-1 font-medium italic">"{plan.theme}"</p>}
         </div>
-        <button onClick={e => { e.stopPropagation(); onDelete(); }}
-          className="opacity-0 group-hover:opacity-100 p-1 text-gray-600 hover:text-red-400 transition-all">
-          <Trash2 size={13} />
-        </button>
+        <div className="flex items-center gap-1">
+          {isCurrent && onQuickUpdate && !editing && (
+            <button onClick={openEdit}
+              className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-600 hover:text-violet-400 transition-all rounded-lg hover:bg-violet-500/10"
+              title="Quick edit theme & focus areas">
+              <Pencil size={12} />
+            </button>
+          )}
+          {!editing && (
+            <button onClick={e => { e.stopPropagation(); onDelete(); }}
+              className="opacity-0 group-hover:opacity-100 p-1 text-gray-600 hover:text-red-400 transition-all">
+              <Trash2 size={13} />
+            </button>
+          )}
+        </div>
       </div>
 
-      {plan.focusAreas.length > 0 && (
+      {/* Quick-edit strip */}
+      {editing && (
+        <div className="mb-4 space-y-3" onClick={e => e.stopPropagation()}>
+          <div>
+            <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Theme</label>
+            <input
+              autoFocus
+              value={draftTheme}
+              onChange={e => setDraftTheme(e.target.value)}
+              placeholder='e.g. "Foundation", "Scale", "Stabilise"'
+              className="w-full px-3 py-2 rounded-xl bg-[#12111A] border border-[#2A2640] text-white placeholder-gray-600 text-sm focus:outline-none focus:border-violet-500"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Focus Areas (max 3)</label>
+            <div className="space-y-1.5 mb-2">
+              {draftFocus.map((f, i) => (
+                <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#12111A] border border-[#2A2640]">
+                  <span className="text-xs font-bold text-violet-400 w-3 shrink-0">{i + 1}</span>
+                  <span className="text-xs text-gray-200 flex-1">{f}</span>
+                  <button onClick={() => setDraftFocus(prev => prev.filter((_, idx) => idx !== i))}
+                    className="text-gray-600 hover:text-red-400 transition-colors">
+                    <X size={11} />
+                  </button>
+                </div>
+              ))}
+              {draftFocus.length < 3 && (
+                <div className="flex gap-1.5">
+                  <input value={newFocus} onChange={e => setNewFocus(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addDraftFocus(); } }}
+                    placeholder={`Focus area ${draftFocus.length + 1}…`}
+                    className="flex-1 px-3 py-1.5 rounded-lg bg-[#12111A] border border-[#2A2640] text-white placeholder-gray-600 text-xs focus:outline-none focus:border-violet-500" />
+                  <button onClick={addDraftFocus} disabled={!newFocus.trim()}
+                    className="px-2.5 py-1.5 rounded-lg bg-violet-600/20 border border-violet-500/30 text-violet-400 text-xs font-semibold transition-colors disabled:opacity-40 hover:bg-violet-600/30">
+                    Add
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2 pt-1">
+              <button onClick={saveEdit}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-colors">
+                <Check size={11} /> Save
+              </button>
+              <button onClick={cancelEdit}
+                className="px-3 py-1.5 rounded-lg border border-[#2A2640] text-gray-400 hover:text-gray-200 text-xs font-semibold transition-colors">
+                Cancel
+              </button>
+              <button onClick={onClick}
+                className="ml-auto text-xs text-violet-400 hover:text-violet-300 transition-colors">
+                Full edit →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!editing && plan.focusAreas.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-3">
           {plan.focusAreas.map((f, i) => (
             <span key={i} className="text-xs px-2 py-0.5 rounded-lg bg-[#2A2640] text-gray-300">{f}</span>
@@ -139,24 +241,26 @@ function PlanCard({ plan, onClick, onDelete, isCurrent }: {
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 text-xs text-gray-500">
-          {plan.linkedOKRIds.length > 0    && <span className="flex items-center gap-1"><Target size={10} /> {plan.linkedOKRIds.length} OKRs</span>}
-          {plan.linkedProjectIds.length > 0 && <span className="flex items-center gap-1"><FolderKanban size={10} /> {plan.linkedProjectIds.length} projects</span>}
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex gap-0.5">
-            {Array.from({ length: total }).map((_, i) => (
-              <div key={i} className={`w-2 h-2 rounded-full ${i < filled ? 'bg-violet-400' : 'bg-[#2A2640]'}`} />
-            ))}
+      {!editing && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 text-xs text-gray-500">
+            {plan.linkedOKRIds.length > 0    && <span className="flex items-center gap-1"><Target size={10} /> {plan.linkedOKRIds.length} OKRs</span>}
+            {plan.linkedProjectIds.length > 0 && <span className="flex items-center gap-1"><FolderKanban size={10} /> {plan.linkedProjectIds.length} projects</span>}
           </div>
-          <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md border ${statusCfg.bg} ${statusCfg.color} ${statusCfg.border}`}>
-            {statusCfg.label}
-          </span>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-0.5">
+              {Array.from({ length: total }).map((_, i) => (
+                <div key={i} className={`w-2 h-2 rounded-full ${i < filled ? 'bg-violet-400' : 'bg-[#2A2640]'}`} />
+              ))}
+            </div>
+            <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md border ${statusCfg.bg} ${statusCfg.color} ${statusCfg.border}`}>
+              {statusCfg.label}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
-      <ChevronRight size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-700 group-hover:text-violet-400 transition-colors" />
+      {!editing && <ChevronRight size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-700 group-hover:text-violet-400 transition-colors" />}
     </div>
   );
 }
@@ -255,7 +359,8 @@ export function QuarterlyPlanningView({
             <PlanCard key={p.id} plan={p}
               isCurrent={p.quarter === cq}
               onClick={() => onSelect(p.id)}
-              onDelete={() => { if (selectedId === p.id) onSelect(null); onDelete(p.id); }} />
+              onDelete={() => { if (selectedId === p.id) onSelect(null); onDelete(p.id); }}
+              onQuickUpdate={p.quarter === cq ? u => onUpdate(p.id, u) : undefined} />
           ))
         )}
       </div>

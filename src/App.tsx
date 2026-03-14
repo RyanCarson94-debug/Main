@@ -82,6 +82,7 @@ export default function App() {
   const [notifBanner, setNotifBanner] = useState(false);
   const [celebrationTask, setCelebrationTask] = useState<string | null>(null);
   const [loopCelebration, setLoopCelebration] = useState<string | null>(null);
+  const [focusInitialTaskId, setFocusInitialTaskId] = useState<string | undefined>(undefined);
   const csvImportRef = useRef<HTMLInputElement>(null);
 
   const store = useAppStore();
@@ -394,6 +395,7 @@ export default function App() {
               onAddStep={store.addFocusStep}
               onDeleteStep={store.deleteFocusStep}
               onClearSteps={store.clearFocusSteps}
+              initialTaskId={focusInitialTaskId}
             />
           )}
           {view === 'updates' && (
@@ -449,6 +451,7 @@ export default function App() {
               tasks={store.tasks}
               onEditTask={openEditTask}
               onAddTask={openAddTask}
+              onFocusTask={task => { setFocusInitialTaskId(task.id); setView('focus'); }}
             />
           )}
           {view === 'meetings' && (
