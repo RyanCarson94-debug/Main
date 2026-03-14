@@ -158,7 +158,6 @@ function PomodoroTimer({ taskTitle }: { taskTitle: string }) {
 // ─── Step List ────────────────────────────────────────────────────────────────
 
 function StepList({
-  taskId: _taskId,
   steps,
   onToggle,
   onDelete,

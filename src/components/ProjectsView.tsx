@@ -7,7 +7,7 @@ import type { Project, ProjectStatus, MilestoneStatus, ProjectMilestone, Task, O
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-export const PROJECT_STATUS_CONFIG: Record<ProjectStatus, { label: string; color: string; bg: string; border: string; dot: string }> = {
+const PROJECT_STATUS_CONFIG: Record<ProjectStatus, { label: string; color: string; bg: string; border: string; dot: string }> = {
   'not-started': { label: 'Not Started', color: 'text-gray-400',    bg: 'bg-gray-500/10',    border: 'border-gray-500/30',    dot: 'bg-gray-500'    },
   'on-track':    { label: 'On Track',    color: 'text-emerald-300', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', dot: 'bg-emerald-400' },
   'at-risk':     { label: 'At Risk',     color: 'text-amber-300',   bg: 'bg-amber-500/10',   border: 'border-amber-500/30',   dot: 'bg-amber-400'   },

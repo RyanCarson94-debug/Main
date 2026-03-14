@@ -232,7 +232,6 @@ export function useAppStore() {
     if (Array.isArray(p.roleCharters))        setRoleCharters(p.roleCharters as RoleCharter[]);
     if (p.personalReadme && typeof p.personalReadme === 'object') setPersonalReadme(p.personalReadme as PersonalReadme);
     if (Array.isArray(p.oneOnOneNotes))       setOneOnOneNotes(p.oneOnOneNotes as OneOnOneNote[]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // On mount: load from Supabase if it has data we haven't seen yet.

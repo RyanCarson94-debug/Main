@@ -10,7 +10,7 @@ import type {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-export const MEETING_TYPE_CONFIG: Record<MeetingType, { label: string; color: string; bg: string; border: string }> = {
+const MEETING_TYPE_CONFIG: Record<MeetingType, { label: string; color: string; bg: string; border: string }> = {
   'team':          { label: 'Team',          color: 'text-violet-300', bg: 'bg-violet-500/10', border: 'border-violet-500/30' },
   'standup':       { label: 'Standup',       color: 'text-sky-300',    bg: 'bg-sky-500/10',    border: 'border-sky-500/30'    },
   'all-hands':     { label: 'All-Hands',     color: 'text-indigo-300', bg: 'bg-indigo-500/10', border: 'border-indigo-500/30' },

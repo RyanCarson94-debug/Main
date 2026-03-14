@@ -7,7 +7,7 @@ import type { HardConversation, ConversationType, ConversationStatus } from '../
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-export const CONV_TYPE_CONFIG: Record<ConversationType, { label: string; color: string; bg: string; border: string }> = {
+const CONV_TYPE_CONFIG: Record<ConversationType, { label: string; color: string; bg: string; border: string }> = {
   'feedback-positive':     { label: 'Positive Feedback',  color: 'text-emerald-300', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
   'feedback-constructive': { label: 'Constructive Feedback', color: 'text-amber-300',  bg: 'bg-amber-500/10',  border: 'border-amber-500/30'  },
   'performance-issue':     { label: 'Performance Issue',  color: 'text-red-300',     bg: 'bg-red-500/10',    border: 'border-red-500/30'    },

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   LayoutDashboard, Grid2x2, Target, BarChart2, Users, Zap, UserCheck,
   BookOpen, Bell, BrainCircuit, Home, Compass, BookMarked, CalendarCheck,
@@ -116,10 +116,9 @@ export function Sidebar({
   const navigate = (v: View) => { onViewChange(v); onMobileClose(); };
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(['Strategy', 'Reference']));
   const toggleGroup = (label: string) =>
-    setCollapsed(prev => { const n = new Set(prev); n.has(label) ? n.delete(label) : n.add(label); return n; });
+    setCollapsed(prev => { const n = new Set(prev); if (n.has(label)) n.delete(label); else n.add(label); return n; });
 
-  const [streak, setStreak] = useState(0);
-  useEffect(() => { setStreak(getStreak()); }, []);
+  const [streak] = useState(() => getStreak());
 
   const inner = (
     <aside className="w-[200px] shrink-0 flex flex-col h-full border-r border-[#2A2640] bg-[#1A1826]">

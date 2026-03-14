@@ -12,13 +12,11 @@ export function QuickCapture({ open, onClose, onCapture }: QuickCaptureProps) {
   const [captured, setCaptured] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // QuickCapture is conditionally rendered (only mounts when open=true), so
+  // text/captured reset on unmount. Just focus the input on mount.
   useEffect(() => {
-    if (open) {
-      setText('');
-      setCaptured(false);
-      setTimeout(() => inputRef.current?.focus(), 50);
-    }
-  }, [open]);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, []);
 
   const submit = () => {
     if (!text.trim()) return;

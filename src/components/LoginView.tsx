@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Lock, Eye, EyeOff, Zap } from 'lucide-react';
 
 const PIN_KEY = 'adhd-leader-pin';
@@ -12,12 +12,9 @@ export function LoginView({ onLogin }: LoginViewProps) {
   const [confirmPin, setConfirmPin] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [error, setError] = useState('');
-  const [step, setStep] = useState<'enter' | 'create' | 'confirm'>('enter');
-
-  useEffect(() => {
-    const stored = localStorage.getItem(PIN_KEY);
-    setStep(stored ? 'enter' : 'create');
-  }, []);
+  const [step, setStep] = useState<'enter' | 'create' | 'confirm'>(
+    () => localStorage.getItem(PIN_KEY) ? 'enter' : 'create',
+  );
 
   const handleSubmit = () => {
     setError('');

@@ -14,12 +14,15 @@ export function NorthStarView({ northStar, onSave }: NorthStarViewProps) {
   const [newAntiGoal, setNewAntiGoal] = useState('');
   const [saved, setSaved] = useState(false);
 
+  // Sync when northStar changes externally (e.g. cloud sync from another device)
   useEffect(() => {
-    if (northStar) {
-      setStatement(northStar.statement);
-      setAntiGoals(northStar.antiGoals);
-      setPillars(northStar.pillars.length ? northStar.pillars : ['', '', '']);
-    }
+    if (!northStar) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStatement(northStar.statement);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAntiGoals(northStar.antiGoals);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPillars(northStar.pillars.length ? northStar.pillars : ['', '', '']);
   }, [northStar]);
 
   const handleSave = () => {
