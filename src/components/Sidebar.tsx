@@ -157,9 +157,19 @@ export function Sidebar({
   aiCoachOpen, mobileOpen, onMobileClose, taskCounts, saveSyncStatus = 'idle',
 }: SidebarProps) {
   const navigate = (v: View) => { onViewChange(v); onMobileClose(); };
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(['People', 'Strategy', 'Reference']));
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('adhd-sidebar-collapsed');
+      return stored ? new Set(JSON.parse(stored) as string[]) : new Set(['People', 'Strategy', 'Reference']);
+    } catch { return new Set(['People', 'Strategy', 'Reference']); }
+  });
   const toggleGroup = (label: string) =>
-    setCollapsed(prev => { const n = new Set(prev); if (n.has(label)) n.delete(label); else n.add(label); return n; });
+    setCollapsed(prev => {
+      const n = new Set(prev);
+      if (n.has(label)) n.delete(label); else n.add(label);
+      try { localStorage.setItem('adhd-sidebar-collapsed', JSON.stringify([...n])); } catch { /* ignore */ }
+      return n;
+    });
 
   const [{ count: streak, isWelcomeBack, isRestToday }, setStreakState] = useState(() => getStreak());
   const handleRestDay = () => {
@@ -395,7 +405,7 @@ export function Sidebar({
                 title="Protect your streak — rest days count too"
                 className="w-full flex items-center justify-center gap-1.5 py-1 rounded-lg border border-blue-500/20 bg-blue-500/5 text-[11px] text-blue-500 hover:bg-blue-500/15 hover:text-blue-300 hover:border-blue-500/40 transition-all font-medium"
               >
-                💙 Rest day — protect streak
+                💙 Rest day — this counts too
               </button>
             )}
           </div>

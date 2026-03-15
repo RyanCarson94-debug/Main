@@ -656,3 +656,60 @@ Be direct, ADHD-friendly (no waffle), and psychologically safe. Preserve any con
 
   return result;
 }
+
+/**
+ * Extracts action items belonging to "me" (the leader) from free-text 1:1 notes.
+ * Uses Claude Haiku for natural language understanding — more accurate than regex.
+ * Returns a plain string array of action item titles to add as tasks.
+ */
+export async function extractMyActionItems(
+  actionItemText: string,
+  personName: string,
+  onDone: (items: string[]) => void,
+  onError: (err: string) => void,
+): Promise<void> {
+  if (!actionItemText.trim()) { onDone([]); return; }
+
+  const prompt = `Extract action items that the LEADER (not the other person) needs to do from these 1:1 meeting notes.
+
+Person they met with: ${personName}
+Notes / action items text:
+---
+${actionItemText}
+---
+
+Return ONLY a JSON array of strings — each string is one action item for the leader to do. If there are no clear leader action items, return an empty array [].
+
+Examples of what to include:
+- "Me: send design feedback by Friday" → "send design feedback by Friday"
+- "I will set up the Jira project" → "set up the Jira project"
+- "[ ] Schedule follow-up with Sarah" (first person / unmarked owner) → "Schedule follow-up with Sarah"
+- "Action: I'll draft the proposal" → "draft the proposal"
+
+Examples of what to EXCLUDE (these are the other person's items):
+- "They will: update the roadmap"
+- "Jamie: complete the report"
+- "[x] Already done"
+
+Respond ONLY with a valid JSON array. No markdown, no explanation.`;
+
+  try {
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 512,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const raw = response.content[0].type === 'text' ? response.content[0].text : '[]';
+    const arrMatch = raw.match(/\[[\s\S]*\]/);
+    if (!arrMatch) { onDone([]); return; }
+    const parsed = JSON.parse(arrMatch[0]) as string[];
+    onDone(Array.isArray(parsed) ? parsed.filter(s => typeof s === 'string' && s.trim()) : []);
+  } catch (err) {
+    if (err instanceof Anthropic.AuthenticationError) {
+      onError('Invalid API key.');
+    } else {
+      onError('Failed to extract action items.');
+    }
+  }
+}

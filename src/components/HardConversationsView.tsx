@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import {
   MessageSquareWarning, Plus, ChevronRight, Trash2, X,
   CheckCircle2, Circle, AlertCircle,
@@ -150,6 +150,10 @@ function ConvCard({ conv, onClick, onDelete }: {
   const daysSinceCreated = Math.floor((Date.now() - new Date(conv.createdAt).getTime()) / 86400000);
   const isAvoiding = conv.status === 'planning' && daysSinceCreated >= 14;
 
+  const [showMicroPrompt, setShowMicroPrompt] = useState(false);
+  const [microNote, setMicroNote] = useState('');
+  const microRef = useRef<HTMLTextAreaElement>(null);
+
   return (
     <div onClick={onClick}
       className={`group relative bg-[#1A1824] border rounded-2xl p-4 cursor-pointer hover:border-violet-500/50 transition-all ${
@@ -165,7 +169,14 @@ function ConvCard({ conv, onClick, onDelete }: {
               {statusCfg.label}
             </span>
             {isOverdue && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">OVERDUE</span>}
-            {isAvoiding && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-rose-500/15 text-rose-300 border border-rose-500/25" title={`In planning for ${daysSinceCreated} days`}>Avoiding?</span>}
+            {isAvoiding && (
+              <button
+                onClick={e => { e.stopPropagation(); setShowMicroPrompt(p => !p); setTimeout(() => microRef.current?.focus(), 50); }}
+                className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-rose-500/15 text-rose-300 border border-rose-500/25 hover:bg-rose-500/25 transition-colors"
+                title={`In planning for ${daysSinceCreated} days — tap to reflect`}>
+                Avoiding?
+              </button>
+            )}
           </div>
           <h3 className="font-semibold text-white text-sm leading-snug">{conv.title}</h3>
           {conv.person && <p className="text-xs text-gray-500 mt-0.5">with {conv.person}</p>}
@@ -175,6 +186,32 @@ function ConvCard({ conv, onClick, onDelete }: {
           <Trash2 size={13} />
         </button>
       </div>
+
+      {/* Micro-prompt: "What's making this hard?" */}
+      {showMicroPrompt && (
+        <div onClick={e => e.stopPropagation()} className="mt-3 p-3 rounded-xl bg-rose-500/8 border border-rose-500/20 space-y-2">
+          <p className="text-[11px] font-bold text-rose-300">What's making this hard?</p>
+          <textarea
+            ref={microRef}
+            value={microNote}
+            onChange={e => setMicroNote(e.target.value)}
+            rows={2}
+            placeholder="Just name it — fear, timing, the relationship, not knowing what to say…"
+            className="w-full px-2.5 py-2 rounded-lg bg-[#12111A] border border-rose-500/20 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:border-rose-500/40 resize-none"
+          />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setShowMicroPrompt(false); setMicroNote(''); onClick(); }}
+              className="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 text-[11px] font-bold hover:bg-rose-500/30 transition-colors">
+              Open conversation →
+            </button>
+            <button onClick={() => { setShowMicroPrompt(false); setMicroNote(''); }}
+              className="text-[11px] text-gray-600 hover:text-gray-400 transition-colors">
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center gap-3 mt-3 flex-wrap">
         {conv.targetDate && (

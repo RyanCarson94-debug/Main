@@ -249,6 +249,8 @@ function QuickNavTile({ icon, label, badge, onClick }: { icon: React.ReactNode; 
 
 const ENERGY_KEY = 'adhd-energy-';
 const INTENTION_KEY = 'adhd-session-intention';
+const INTENTION_AT_KEY = 'adhd-session-intention-at';
+const INTENTION_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 type EnergyLevel = 'charged' | 'getting-by' | 'low';
 
 function getLast7DaysEnergy(): Array<{ emoji: string; label: string } | null> {
@@ -1039,29 +1041,81 @@ export function DashboardView({
   const [reportError,   setReportError]   = useState('');
   const [reportVisible, setReportVisible] = useState(false);
 
-  // Session intention
-  const [intention, setIntention]           = useState<string>(() => { try { return sessionStorage.getItem(INTENTION_KEY) ?? ''; } catch { return ''; } });
+  // Session intention (auto-expires after 2 hours)
+  const [intention, setIntention]           = useState<string>(() => {
+    try {
+      const val = sessionStorage.getItem(INTENTION_KEY) ?? '';
+      if (val) {
+        const ts = parseInt(sessionStorage.getItem(INTENTION_AT_KEY) ?? '0', 10);
+        if (ts && Date.now() - ts > INTENTION_TTL_MS) {
+          sessionStorage.removeItem(INTENTION_KEY);
+          sessionStorage.removeItem(INTENTION_AT_KEY);
+          return '';
+        }
+      }
+      return val;
+    } catch { return ''; }
+  });
   const [intentionInput, setIntentionInput] = useState('');
-  const [intentionSet, setIntentionSet]     = useState<boolean>(() => { try { return !!sessionStorage.getItem(INTENTION_KEY); } catch { return false; } });
+  const [intentionSet, setIntentionSet]     = useState<boolean>(() => {
+    try {
+      const val = sessionStorage.getItem(INTENTION_KEY) ?? '';
+      if (val) {
+        const ts = parseInt(sessionStorage.getItem(INTENTION_AT_KEY) ?? '0', 10);
+        if (ts && Date.now() - ts > INTENTION_TTL_MS) return false;
+      }
+      return !!val;
+    } catch { return false; }
+  });
+  const [intentionSkipped, setIntentionSkipped] = useState<boolean>(() => {
+    try { return sessionStorage.getItem('adhd-intention-skipped') === '1'; } catch { return false; }
+  });
+
   const submitIntention = () => {
     const val = intentionInput.trim();
     if (!val) return;
     setIntention(val);
     setIntentionSet(true);
-    try { sessionStorage.setItem(INTENTION_KEY, val); } catch { /* ignore */ }
+    setIntentionSkipped(false);
+    try {
+      sessionStorage.setItem(INTENTION_KEY, val);
+      sessionStorage.setItem(INTENTION_AT_KEY, String(Date.now()));
+      sessionStorage.removeItem('adhd-intention-skipped');
+    } catch { /* ignore */ }
     setIntentionInput('');
   };
   const clearIntention = () => {
     setIntention('');
     setIntentionSet(false);
-    try { sessionStorage.removeItem(INTENTION_KEY); } catch { /* ignore */ }
+    try {
+      sessionStorage.removeItem(INTENTION_KEY);
+      sessionStorage.removeItem(INTENTION_AT_KEY);
+    } catch { /* ignore */ }
+  };
+  const skipIntention = () => {
+    setIntentionSkipped(true);
+    try { sessionStorage.setItem('adhd-intention-skipped', '1'); } catch { /* ignore */ }
   };
 
   // Brain dump nudge dismissal
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
 
-  // 7-day energy trend
+  // 7-day energy trend (hidden by default, tap to reveal)
   const energyTrend = useMemo(() => getLast7DaysEnergy(), []);
+  const [trendVisible, setTrendVisible] = useState(false);
+
+  // Decisions snoozed by user (stored in localStorage, key = decision id, val = snooze-until date)
+  const [snoozedDecisions, setSnoozedDecisions] = useState<Record<string, string>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('adhd-decision-snooze') ?? '{}') as Record<string, string>;
+    } catch { return {}; }
+  });
+  const snoozeDecision = (id: string) => {
+    const until = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+    const next = { ...snoozedDecisions, [id]: until };
+    setSnoozedDecisions(next);
+    try { localStorage.setItem('adhd-decision-snooze', JSON.stringify(next)); } catch { /* ignore */ }
+  };
 
   // Task micro-reward — track completing task id for flash animation
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
@@ -1283,10 +1337,15 @@ export function DashboardView({
     tasks.filter(t => t.delegatedTo && t.column !== 'done'),
   [tasks]);
 
-  // Decisions with a review date that has arrived
+  // Decisions with a review date that has arrived (excluding snoozed ones)
   const dueDecisions = useMemo(() =>
-    decisions.filter(d => d.reviewAt && d.reviewAt <= todayStr),
-  [decisions, todayStr]);
+    decisions.filter(d => {
+      if (!d.reviewAt || d.reviewAt > todayStr) return false;
+      const snoozedUntil = snoozedDecisions[d.id];
+      if (snoozedUntil && snoozedUntil > todayStr) return false;
+      return true;
+    }),
+  [decisions, todayStr, snoozedDecisions]);
 
   // Daily Brief data
   const dailyBrief = useMemo(() => {
@@ -1429,15 +1488,23 @@ export function DashboardView({
               Start my day
             </button>
           )}
-          {/* 7-day energy trend */}
+          {/* 7-day energy trend (hidden by default, tap to reveal) */}
           {energyLevel && energyTrend.some(Boolean) && (
-            <div className="flex items-center gap-0.5" title="Your last 7 days energy">
-              {energyTrend.map((e, i) => (
-                <span key={i} className={`text-sm ${e ? 'opacity-90' : 'opacity-20'}`} title={e?.label ?? 'No check-in'}>
-                  {e?.emoji ?? '·'}
-                </span>
-              ))}
-            </div>
+            trendVisible ? (
+              <button onClick={() => setTrendVisible(false)} className="flex items-center gap-0.5" title="Hide trend">
+                {energyTrend.map((e, i) => (
+                  <span key={i} className={`text-sm ${e ? 'opacity-90' : 'opacity-20'}`} title={e?.label ?? 'No check-in'}>
+                    {e?.emoji ?? '·'}
+                  </span>
+                ))}
+              </button>
+            ) : (
+              <button onClick={() => setTrendVisible(true)}
+                className="text-[10px] text-gray-700 hover:text-gray-500 transition-colors"
+                title="Show 7-day energy trend">
+                7d trend
+              </button>
+            )
           )}
           {/* Energy badge (tap to reset) */}
           {energyLevel && (
@@ -1457,7 +1524,7 @@ export function DashboardView({
       </div>
 
       {/* ── Session intention ── */}
-      {!intentionSet ? (
+      {!intentionSet && !intentionSkipped ? (
         <div className="flex items-center gap-2 px-1">
           <span className="text-sm shrink-0">🎯</span>
           <input
@@ -1468,14 +1535,19 @@ export function DashboardView({
             placeholder="What are you here to do right now?"
             className="flex-1 bg-transparent border-b border-[#2A2640] focus:border-violet-500/60 text-sm text-gray-300 placeholder-gray-600 focus:outline-none py-1 transition-colors"
           />
-          {intentionInput.trim() && (
+          {intentionInput.trim() ? (
             <button onClick={submitIntention}
               className="shrink-0 text-[11px] text-violet-400 hover:text-violet-300 font-bold transition-colors">
               Set →
             </button>
+          ) : (
+            <button onClick={skipIntention}
+              className="shrink-0 text-[10px] text-gray-700 hover:text-gray-500 transition-colors whitespace-nowrap">
+              Skip for now
+            </button>
           )}
         </div>
-      ) : (
+      ) : intentionSet ? (
         <div className="flex items-center gap-2 px-1">
           <span className="text-sm shrink-0">🎯</span>
           <p className="flex-1 text-sm text-gray-400 font-medium truncate">{intention}</p>
@@ -1484,7 +1556,7 @@ export function DashboardView({
             clear
           </button>
         </div>
-      )}
+      ) : null}
 
       {/* ── Streak milestone (shown once per milestone, then dismissible) ── */}
       {streakMilestone && (
@@ -1876,12 +1948,18 @@ export function DashboardView({
               <SectionHeader icon={<ClipboardList size={13} className="text-teal-400" />} title="Decisions to Review" count={dueDecisions.length} onNavigate={() => onViewChange('decision-log')} />
               <div className="space-y-1.5">
                 {dueDecisions.slice(0, 3).map(d => (
-                  <button key={d.id} onClick={() => onViewChange('decision-log')}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-teal-500/5 border border-teal-500/15 text-left group hover:border-teal-500/30 transition-colors">
+                  <div key={d.id} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-500/5 border border-teal-500/15 group hover:border-teal-500/30 transition-colors">
                     <ClipboardList size={11} className="text-teal-500 shrink-0" />
-                    <p className="flex-1 text-xs text-gray-300 truncate">{d.title}</p>
-                    <span className="text-[10px] text-teal-600 shrink-0">review due</span>
-                  </button>
+                    <button onClick={() => onViewChange('decision-log')} className="flex-1 text-xs text-gray-300 truncate text-left">
+                      {d.title}
+                    </button>
+                    <button
+                      onClick={() => snoozeDecision(d.id)}
+                      title="Mark reviewed — remind me again in 30 days"
+                      className="shrink-0 text-[10px] text-teal-600 hover:text-teal-400 hover:bg-teal-500/10 px-1.5 py-0.5 rounded transition-colors whitespace-nowrap">
+                      ✓ done
+                    </button>
+                  </div>
                 ))}
               </div>
             </section>

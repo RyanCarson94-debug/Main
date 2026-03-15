@@ -7,7 +7,7 @@ import type {
   FirstTeamMember, DirectReportProfile, UpdatePerson, Update,
   HardConversation, OneOnOneNote,
 } from '../types';
-import { streamOneOnOneAgenda, type OneOnOneContext } from '../services/claudeApi';
+import { streamOneOnOneAgenda, extractMyActionItems, type OneOnOneContext } from '../services/claudeApi';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -82,16 +82,6 @@ function PersonCard({ person, lastNote, pendingCount, onClick }: {
 
 // ─── 1:1 Prep Panel ───────────────────────────────────────────────────────────
 
-// Parse action item lines belonging to "me" from free-text
-function parseMeActionItems(text: string): string[] {
-  return text
-    .split('\n')
-    .map(l => l.trim())
-    .filter(l => /^-\s*\[[ x]?\]\s*(me:|i:|I:)?/i.test(l) || /^-\s*(me:|i'll|I will)/i.test(l))
-    .map(l => l.replace(/^-\s*\[[ x]?\]\s*(me:|i:|I:)?\s*/i, '').replace(/^-\s*(me:|i'll|I will)\s*/i, '').trim())
-    .filter(Boolean);
-}
-
 function OneOnOnePrepPanel({
   person, lastNote, pendingUpdates, readyConvos,
   onBack, onSaveNote, onDeleteNote, onAddTask, autoScroll,
@@ -111,10 +101,11 @@ function OneOnOnePrepPanel({
   const [agenda,      setAgenda]      = useState(lastNote?.agenda ?? '');
   const [notes,       setNotes]       = useState('');
   const [actionItems, setActionItems] = useState('');
-  const [aiLoading,   setAiLoading]   = useState(false);
-  const [aiError,     setAiError]     = useState('');
-  const [saved,       setSaved]       = useState(false);
+  const [aiLoading,       setAiLoading]       = useState(false);
+  const [aiError,         setAiError]         = useState('');
+  const [saved,           setSaved]           = useState(false);
   const [myTaskSuggestions, setMyTaskSuggestions] = useState<string[]>([]);
+  const [extractingTasks, setExtractingTasks] = useState(false);
 
   const notesRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -161,10 +152,22 @@ function OneOnOnePrepPanel({
       notes:      notes  || undefined,
       actionItems: actionItems || undefined,
     });
-    // Detect my action items and offer to add as tasks
+    // AI extraction of leader's action items — auto-tagged with 1:1 source
     if (onAddTask && actionItems.trim()) {
-      const mine = parseMeActionItems(actionItems);
-      if (mine.length > 0) setMyTaskSuggestions(mine);
+      setExtractingTasks(true);
+      extractMyActionItems(
+        actionItems,
+        person.name,
+        (items) => {
+          if (items.length > 0) {
+            // Tag each item with source context
+            const tagged = items.map(t => `${t} [1:1 with ${person.name}]`);
+            setMyTaskSuggestions(tagged);
+          }
+          setExtractingTasks(false);
+        },
+        () => setExtractingTasks(false),
+      );
     }
     setSaved(true);
     setNotes('');
@@ -297,6 +300,14 @@ function OneOnOnePrepPanel({
         >
           {saved ? <><CheckCircle2 size={14} /> Saved!</> : <><Save size={14} /> Save 1:1 — {today}</>}
         </button>
+
+        {/* Extracting action items loading state */}
+        {extractingTasks && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
+            <Loader2 size={11} className="text-emerald-400 animate-spin shrink-0" />
+            <p className="text-xs text-gray-500">Finding your action items…</p>
+          </div>
+        )}
 
         {/* My action items → tasks prompt */}
         {myTaskSuggestions.length > 0 && onAddTask && (

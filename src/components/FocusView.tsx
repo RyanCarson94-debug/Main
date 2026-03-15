@@ -11,9 +11,9 @@ import { generateTaskBreakdown } from '../services/claudeApi';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const TIMER_PRESETS = [
-  { label: '10', work: 10, brk: 3 },
-  { label: '15', work: 15, brk: 5 },
-  { label: '25', work: 25, brk: 5 },
+  { label: '5',  work: 5,  brk: 2  },
+  { label: '10', work: 10, brk: 3  },
+  { label: '25', work: 25, brk: 5  },
   { label: '45', work: 45, brk: 10 },
 ] as const;
 
@@ -95,7 +95,7 @@ function PostTimerModal({ onClose }: { onClose: () => void }) {
 // ─── Pomodoro Timer ───────────────────────────────────────────────────────────
 
 function PomodoroTimer({ taskTitle }: { taskTitle: string }) {
-  const [presetIdx, setPresetIdx] = useState(2); // default: 25 min
+  const [presetIdx, setPresetIdx] = useState(2); // default: 25 min (index 2)
   const preset = TIMER_PRESETS[presetIdx];
 
   const [isBreak,    setIsBreak]    = useState(false);
@@ -105,6 +105,10 @@ function PomodoroTimer({ taskTitle }: { taskTitle: string }) {
   const [showTransition, setShowTransition] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Wall-clock approach: survive laptop sleep / tab throttling
+  const startedAtRef    = useRef<number | null>(null); // Date.now() when current segment began
+  const segmentSecsRef  = useRef<number>(preset.work * 60); // remaining secs at last start/pause
+
   const totalSeconds = isBreak ? preset.brk * 60 : preset.work * 60;
   const progress = 1 - secondsLeft / totalSeconds;
 
@@ -112,27 +116,47 @@ function PomodoroTimer({ taskTitle }: { taskTitle: string }) {
   const secs = String(secondsLeft % 60).padStart(2, '0');
 
   const tick = useCallback(() => {
-    setSecondsLeft(prev => {
-      if (prev <= 1) {
-        setRunning(false);
-        if (!isBreak) {
-          setSessions(s => s + 1);
-          setShowTransition(true);
-        }
-        setIsBreak(b => !b);
-        return isBreak ? preset.work * 60 : preset.brk * 60;
+    if (startedAtRef.current === null) return;
+    const elapsed = (Date.now() - startedAtRef.current) / 1000;
+    const remaining = Math.max(0, Math.round(segmentSecsRef.current - elapsed));
+    setSecondsLeft(remaining);
+    if (remaining <= 0) {
+      setRunning(false);
+      startedAtRef.current = null;
+      if (!isBreak) {
+        setSessions(s => s + 1);
+        setShowTransition(true);
       }
-      return prev - 1;
-    });
+      const nextIsBreak = !isBreak;
+      setIsBreak(nextIsBreak);
+      const nextSecs = nextIsBreak ? preset.brk * 60 : preset.work * 60;
+      segmentSecsRef.current = nextSecs;
+      setSecondsLeft(nextSecs);
+    }
   }, [isBreak, preset]);
 
-  useEffect(() => {
+  const toggleRunning = useCallback(() => {
     if (running) {
-      // Request notification permission when starting timer
+      // Pause: capture remaining wall-clock seconds
+      if (startedAtRef.current !== null) {
+        const elapsed = (Date.now() - startedAtRef.current) / 1000;
+        segmentSecsRef.current = Math.max(0, Math.round(segmentSecsRef.current - elapsed));
+        setSecondsLeft(segmentSecsRef.current);
+        startedAtRef.current = null;
+      }
+      setRunning(false);
+    } else {
       if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
         Notification.requestPermission().catch(() => {/* ignore */});
       }
-      intervalRef.current = setInterval(tick, 1000);
+      startedAtRef.current = Date.now();
+      setRunning(true);
+    }
+  }, [running]);
+
+  useEffect(() => {
+    if (running) {
+      intervalRef.current = setInterval(tick, 500);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
@@ -163,15 +187,20 @@ function PomodoroTimer({ taskTitle }: { taskTitle: string }) {
 
   const reset = () => {
     setRunning(false);
+    startedAtRef.current = null;
     setIsBreak(false);
+    segmentSecsRef.current = preset.work * 60;
     setSecondsLeft(preset.work * 60);
   };
 
   const changePreset = (idx: number) => {
     setPresetIdx(idx);
     setRunning(false);
+    startedAtRef.current = null;
     setIsBreak(false);
-    setSecondsLeft(TIMER_PRESETS[idx].work * 60);
+    const secs = TIMER_PRESETS[idx].work * 60;
+    segmentSecsRef.current = secs;
+    setSecondsLeft(secs);
   };
 
   // SVG ring
@@ -239,7 +268,7 @@ function PomodoroTimer({ taskTitle }: { taskTitle: string }) {
             <RotateCcw size={15} />
           </button>
           <button
-            onClick={() => setRunning(r => !r)}
+            onClick={toggleRunning}
             className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold transition-all ${
               running
                 ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
