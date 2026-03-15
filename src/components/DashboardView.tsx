@@ -4,7 +4,7 @@ import {
   Bell, UserCheck, TrendingUp, ChevronRight, Sparkles, X, RefreshCw,
   CalendarClock, Video, FolderKanban, Telescope, Circle, Sun, ArrowRight,
   MessageSquareWarning, ShieldAlert, Battery, Sunset,
-  ClipboardList, User,
+  ClipboardList, User, Pencil,
 } from 'lucide-react';
 import type { Task, OKR, Update, Project, Meeting, QuarterlyPlan, HardConversation, Decision, Commitment } from '../types';
 import { QUADRANTS, PRIORITY_CONFIG, ENERGY_CONFIG } from '../types';
@@ -276,10 +276,11 @@ function EnergyCheckIn({ onSelect }: { onSelect: (level: EnergyLevel) => void })
 function EnergyBadge({ level, onClick }: { level: EnergyLevel; onClick: () => void }) {
   const opt = ENERGY_OPTIONS.find(o => o.level === level)!;
   return (
-    <button onClick={onClick}
-      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-colors ${opt.bg} ${opt.border} ${opt.color}`}>
+    <button onClick={onClick} title="Update your energy"
+      className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-colors ${opt.bg} ${opt.border} ${opt.color}`}>
       <span>{opt.emoji}</span>
-      <span>{opt.label}</span>
+      <span className="hidden sm:inline">{opt.label}</span>
+      <Pencil size={10} className="opacity-0 group-hover:opacity-70 transition-opacity" />
     </button>
   );
 }
@@ -374,7 +375,7 @@ function getEodSubText(): string {
   return `60 seconds. Prevents ${nextNames[day]} morning ambush.`;
 }
 
-function EndOfDayModal({ onClose }: { onClose: () => void }) {
+function EndOfDayModal({ onClose, onDone }: { onClose: () => void; onDone?: () => void }) {
   const [carryForward, setCarryForward] = useState('');
   const [win, setWin] = useState('');
   const [saved, setSaved] = useState(false);
@@ -385,6 +386,7 @@ function EndOfDayModal({ onClose }: { onClose: () => void }) {
       localStorage.setItem(EOD_KEY + today, JSON.stringify({ carryForward, win, savedAt: new Date().toISOString() }));
     } catch { /* ignore */ }
     setSaved(true);
+    onDone?.();
     setTimeout(onClose, 1200);
   };
 
@@ -486,6 +488,7 @@ const ROLE_OPTIONS: { role: LeaderRole; emoji: string; label: string; sub: strin
 function OnboardingModal({ onClose }: { onClose: () => void }) {
   const [selectedRole, setSelectedRole] = useState<LeaderRole | null>(null);
   const [step, setStep] = useState<'role' | 'tips'>('role');
+  const [showSkipPicker, setShowSkipPicker] = useState(false);
 
   const chosen = ROLE_OPTIONS.find(o => o.role === selectedRole);
 
@@ -532,9 +535,26 @@ function OnboardingModal({ onClose }: { onClose: () => void }) {
                   </button>
                 ))}
               </div>
-              <button onClick={handleDone} className="w-full mt-3 py-2 text-xs text-gray-600 hover:text-gray-400 transition-colors">
-                Skip — I'll explore on my own
-              </button>
+              {showSkipPicker ? (
+                <div className="mt-3 p-3 rounded-xl bg-[#1E1C28] border border-[#2A2640]">
+                  <p className="text-xs font-semibold text-gray-400 mb-2">Before you go — which best describes you?</p>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {ROLE_OPTIONS.map(opt => (
+                      <button key={opt.role} onClick={() => handleSelect(opt.role)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#252336] border border-[#2A2640] hover:border-violet-500/40 text-xs font-semibold text-gray-300 hover:text-violet-300 transition-all">
+                        <span>{opt.emoji}</span> {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={handleDone} className="text-[11px] text-gray-600 hover:text-gray-400 transition-colors">
+                    No thanks, skip completely
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setShowSkipPicker(true)} className="w-full mt-3 py-2 text-xs text-gray-600 hover:text-gray-400 transition-colors">
+                  Skip — I'll explore on my own
+                </button>
+              )}
             </>
           ) : (
             <>
@@ -927,12 +947,27 @@ export function DashboardView({
   const handleEnergySelect = (level: EnergyLevel) => {
     saveDailyEnergy(level);
     setEnergyLevel(level);
+    // Clear override when energy is explicitly changed
+    setEnergyOverride(false);
+    try { sessionStorage.removeItem('adhd-energy-override'); } catch { /* ignore */ }
   };
 
-  // Low-energy task override (show all tasks even in low mode)
-  const [energyOverride, setEnergyOverride] = useState(false);
+  // Low-energy task override — persisted to sessionStorage so it survives navigation
+  const [energyOverride, setEnergyOverride] = useState(() => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      return sessionStorage.getItem('adhd-energy-override') === today;
+    } catch { return false; }
+  });
+  const applyEnergyOverride = () => {
+    setEnergyOverride(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      sessionStorage.setItem('adhd-energy-override', today);
+    } catch { /* ignore */ }
+  };
 
-  // Carry-forward from yesterday's EOD
+  // Carry-forward from yesterday's EOD — dismissed state in sessionStorage (resets each day)
   const carryForward = useMemo(() => {
     try {
       const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
@@ -942,13 +977,45 @@ export function DashboardView({
       return parsed.carryForward?.trim() || null;
     } catch { return null; }
   }, []);
-  const [carryForwardDismissed, setCarryForwardDismissed] = useState(false);
+  const [carryForwardDismissed, setCarryForwardDismissed] = useState(() => {
+    try { return sessionStorage.getItem('adhd-cf-dismissed') === '1'; } catch { return false; }
+  });
+  const dismissCarryForward = () => {
+    setCarryForwardDismissed(true);
+    try { sessionStorage.setItem('adhd-cf-dismissed', '1'); } catch { /* ignore */ }
+  };
 
-  // Streak (for milestone reinforcement in header)
+  // Streak (for milestone reinforcement — show once per milestone)
   const streakCount = useMemo(() => {
     try { return parseInt(localStorage.getItem('adhd-streak-count') ?? '0', 10); } catch { return 0; }
   }, []);
-  const streakMilestone = streakCount === 3 || (streakCount >= 7 && streakCount % 7 === 0);
+  const isMilestone = streakCount === 3 || (streakCount >= 7 && streakCount % 7 === 0);
+  const [streakMilestoneDismissed, setStreakMilestoneDismissed] = useState(() => {
+    if (!isMilestone) return true;
+    try { return localStorage.getItem(`adhd-streak-seen-${streakCount}`) === '1'; } catch { return false; }
+  });
+  const streakMilestone = isMilestone && !streakMilestoneDismissed;
+  const dismissStreakMilestone = () => {
+    setStreakMilestoneDismissed(true);
+    try { localStorage.setItem(`adhd-streak-seen-${streakCount}`, '1'); } catch { /* ignore */ }
+  };
+
+  // EOD done today (hide "Park today" button after completion)
+  const [eodDoneToday, setEodDoneToday] = useState(() => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      return !!localStorage.getItem(EOD_KEY + today);
+    } catch { return false; }
+  });
+
+  // Mid-day energy nudge: after 3pm if still charged
+  const [midDayNudgeDismissed, setMidDayNudgeDismissed] = useState(() => {
+    try { return sessionStorage.getItem('adhd-midday-dismissed') === '1'; } catch { return false; }
+  });
+  const dismissMidDayNudge = () => {
+    setMidDayNudgeDismissed(true);
+    try { sessionStorage.setItem('adhd-midday-dismissed', '1'); } catch { /* ignore */ }
+  };
 
   // End-of-day capture
   const [showEOD, setShowEOD] = useState(() => {
@@ -969,6 +1036,7 @@ export function DashboardView({
   const todayStr = now.toISOString().split('T')[0];
   const hour     = now.getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const showMidDayNudge = hour >= 15 && energyLevel === 'charged' && !midDayNudgeDismissed;
   const dateStr  = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
   const currentQuarterPlan = useMemo(() => {
@@ -1074,6 +1142,15 @@ export function DashboardView({
     return { criticalTask, whoNeedsYou, openCommitment };
   }, [tasks, updates, commitments]);
 
+  // On low energy, prefer the most-actionable quick-win task for the brief
+  const lowEnergyBriefTask = useMemo(() => {
+    const active = tasks.filter(t => t.column !== 'done');
+    const quickWins = active.filter(isQuickWin);
+    const pool = quickWins.length > 0 ? quickWins : active;
+    const PRIO: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+    return pool.sort((a, b) => (PRIO[a.priority] ?? 3) - (PRIO[b.priority] ?? 3))[0] ?? undefined;
+  }, [tasks]);
+
   // Auto-load focus recommendation on mount
   useEffect(() => {
     const activeTasks = tasks.filter(t => t.column !== 'done');
@@ -1140,12 +1217,18 @@ export function DashboardView({
             </button>
           )}
           {/* End-of-day button (4pm+) */}
-          {hour >= 16 && (
+          {hour >= 16 && !eodDoneToday && (
             <button onClick={() => setShowEOD(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/15 text-amber-400 text-xs font-bold transition-colors">
               <Sunset size={13} />
               Park today
             </button>
+          )}
+          {hour >= 16 && eodDoneToday && (
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
+              <CheckCircle2 size={13} />
+              Parked
+            </span>
           )}
           {hour < 12 && (
             <button
@@ -1173,13 +1256,29 @@ export function DashboardView({
         </div>
       </div>
 
-      {/* ── Streak milestone ── */}
+      {/* ── Streak milestone (shown once per milestone, then dismissible) ── */}
       {streakMilestone && (
         <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20">
           <span className="text-base">🔥</span>
-          <p className="text-xs font-bold text-amber-300">
-            {streakCount} day{streakCount !== 1 ? 's' : ''} in a row — that's momentum building. Keep it going.
+          <p className="text-xs font-bold text-amber-300 flex-1">
+            {streakCount} day{streakCount !== 1 ? 's' : ''} in a row — that's real momentum. Keep it going.
           </p>
+          <button onClick={dismissStreakMilestone} className="text-amber-600 hover:text-amber-400 transition-colors shrink-0">
+            <X size={13} />
+          </button>
+        </div>
+      )}
+
+      {/* ── Mid-day energy nudge (after 3pm if still charged) ── */}
+      {showMidDayNudge && (
+        <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-amber-500/5 border border-amber-500/15">
+          <span className="text-base">🌤️</span>
+          <p className="text-xs text-amber-300/80 flex-1">
+            Afternoon check-in — still running charged? Tap your energy to update if things have shifted.
+          </p>
+          <button onClick={dismissMidDayNudge} className="text-gray-700 hover:text-gray-400 transition-colors shrink-0">
+            <X size={12} />
+          </button>
         </div>
       )}
 
@@ -1203,7 +1302,7 @@ export function DashboardView({
             <p className="text-[10px] font-black text-sky-400 uppercase tracking-widest mb-0.5">Brought forward from yesterday</p>
             <p className="text-xs text-sky-200 leading-relaxed">{carryForward}</p>
           </div>
-          <button onClick={() => setCarryForwardDismissed(true)} className="text-gray-700 hover:text-gray-400 transition-colors shrink-0">
+          <button onClick={dismissCarryForward} className="text-gray-700 hover:text-gray-400 transition-colors shrink-0">
             <X size={13} />
           </button>
         </div>
@@ -1211,7 +1310,7 @@ export function DashboardView({
 
       {/* ── Daily Brief (always visible) ── */}
       <DailyBrief
-        criticalTask={dailyBrief.criticalTask}
+        criticalTask={energyLevel === 'low' ? lowEnergyBriefTask : dailyBrief.criticalTask}
         whoNeedsYou={dailyBrief.whoNeedsYou}
         openCommitment={dailyBrief.openCommitment}
         energyLevel={energyLevel}
@@ -1291,7 +1390,7 @@ export function DashboardView({
                 <span className="text-base">🪫</span>
                 <p className="text-xs font-bold text-gray-400">Minimal mode — showing quick wins only</p>
               </div>
-              <button onClick={() => setEnergyOverride(true)}
+              <button onClick={applyEnergyOverride}
                 className="text-[11px] text-gray-600 hover:text-gray-300 transition-colors underline">
                 Show all
               </button>
@@ -1306,7 +1405,7 @@ export function DashboardView({
                 {(energyLevel === 'low' && !energyOverride ? overdueTasks.filter(isQuickWin) : overdueTasks)
                   .slice(0, 4).map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} urgent />)}
                 {energyLevel === 'low' && !energyOverride && overdueTasks.filter(isQuickWin).length === 0 && (
-                  <p className="text-xs text-gray-600 px-1 italic">No quick wins in overdue — <button onClick={() => setEnergyOverride(true)} className="underline hover:text-gray-400">show all</button></p>
+                  <p className="text-xs text-gray-600 px-1 italic">No quick wins in overdue — <button onClick={applyEnergyOverride} className="underline hover:text-gray-400">show all</button></p>
                 )}
               </div>
             </section>
@@ -1330,32 +1429,50 @@ export function DashboardView({
                 <CheckCircle2 size={14} className="text-emerald-500" />
                 <p className="text-sm text-emerald-600 font-medium">No urgent tasks — you're clear</p>
               </div>
-            ) : (
-              <div className="space-y-1.5">
-                {(energyLevel === 'low' && !energyOverride ? doNowTasks.filter(isQuickWin) : doNowTasks)
-                  .slice(0, 4).map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} />)}
-                {doNowTasks.length > 4 && (
-                  <button onClick={() => onViewChange('eisenhower')} className="w-full text-center text-xs text-gray-600 hover:text-purple-400 py-1.5 transition-colors">
-                    +{doNowTasks.length - 4} more →
-                  </button>
-                )}
-              </div>
-            )}
+            ) : (() => {
+              const visible = (energyLevel === 'low' && !energyOverride ? doNowTasks.filter(isQuickWin) : doNowTasks).slice(0, 4);
+              return visible.length === 0 && energyLevel === 'low' && !energyOverride ? (
+                <div className="px-4 py-3 rounded-xl bg-gray-500/5 border border-gray-500/15">
+                  <p className="text-xs text-gray-500">No quick wins in this list.</p>
+                  <p className="text-[11px] text-gray-600 mt-1">
+                    <button onClick={() => onViewChange('dump')} className="text-violet-400 hover:underline">Capture something small in Brain Dump</button>
+                    {' '}or{' '}
+                    <button onClick={applyEnergyOverride} className="underline hover:text-gray-400">show all tasks</button>.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {visible.map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} />)}
+                  {doNowTasks.length > 4 && (
+                    <button onClick={() => onViewChange('eisenhower')} className="w-full text-center text-xs text-gray-600 hover:text-purple-400 py-1.5 transition-colors">
+                      +{doNowTasks.length - 4} more →
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
           </section>
 
           {/* In Progress */}
           <section>
             <SectionHeader icon={<Clock size={13} className="text-purple-400" />} title="In Progress" count={inProgressTasks.length} onNavigate={() => onViewChange('kanban')} />
-            {inProgressTasks.length === 0 ? (
-              <div className="px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5">
-                <p className="text-sm text-gray-600">Nothing active — pick a task to start</p>
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                {(energyLevel === 'low' && !energyOverride ? inProgressTasks.filter(isQuickWin) : inProgressTasks)
-                  .slice(0, 4).map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} />)}
-              </div>
-            )}
+            {(() => {
+              const visible = (energyLevel === 'low' && !energyOverride ? inProgressTasks.filter(isQuickWin) : inProgressTasks).slice(0, 4);
+              if (visible.length === 0 && energyLevel === 'low' && !energyOverride && inProgressTasks.length > 0) {
+                return (
+                  <div className="px-4 py-3 rounded-xl bg-gray-500/5 border border-gray-500/15">
+                    <p className="text-xs text-gray-500">Active tasks need more energy than you have right now.</p>
+                    <p className="text-[11px] text-gray-600 mt-1">Rest, or <button onClick={applyEnergyOverride} className="underline hover:text-gray-400">show all anyway</button>.</p>
+                  </div>
+                );
+              }
+              if (visible.length === 0) return (
+                <div className="px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5">
+                  <p className="text-sm text-gray-600">Nothing active — pick a task to start</p>
+                </div>
+              );
+              return <div className="space-y-1.5">{visible.map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} />)}</div>;
+            })()}
           </section>
         </div>
 
@@ -1410,8 +1527,13 @@ export function DashboardView({
             </section>
           )}
 
-          {/* Leadership Pulse */}
-          {(overdueConvos.length > 0 || readyConvos.length > 0 || overdueCommitmentsCount > 0) && (
+          {/* Leadership Pulse (hidden on low energy to avoid anxiety induction) */}
+          {energyLevel === 'low' && (overdueConvos.length > 0 || readyConvos.length > 0 || overdueCommitmentsCount > 0) && (
+            <div className="px-3 py-2 rounded-xl bg-gray-500/5 border border-gray-500/15">
+              <p className="text-[11px] text-gray-600">Leadership Pulse hidden — come back when you have more capacity.</p>
+            </div>
+          )}
+          {(overdueConvos.length > 0 || readyConvos.length > 0 || overdueCommitmentsCount > 0) && energyLevel !== 'low' && (
             <section>
               <SectionHeader icon={<ShieldAlert size={13} className="text-rose-400" />} title="Leadership Pulse" />
               <div className="space-y-1.5">
@@ -1472,7 +1594,7 @@ export function DashboardView({
       )}
 
       {/* ── End-of-day Capture ── */}
-      {showEOD && <EndOfDayModal onClose={() => setShowEOD(false)} />}
+      {showEOD && <EndOfDayModal onClose={() => setShowEOD(false)} onDone={() => setEodDoneToday(true)} />}
 
       {/* ── Onboarding ── */}
       {showOnboarding && <OnboardingModal onClose={() => setShowOnboarding(false)} />}

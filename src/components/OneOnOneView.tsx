@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Users, ChevronRight, Sparkles, Loader2, Save,
   Clock, CheckCircle2, Trash2, CalendarDays,
@@ -84,7 +84,7 @@ function PersonCard({ person, lastNote, pendingCount, onClick }: {
 
 function OneOnOnePrepPanel({
   person, lastNote, pendingUpdates, readyConvos,
-  onBack, onSaveNote, onDeleteNote,
+  onBack, onSaveNote, onDeleteNote, autoScroll,
 }: {
   person: Person;
   lastNote: OneOnOneNote | null;
@@ -93,6 +93,7 @@ function OneOnOnePrepPanel({
   onBack: () => void;
   onSaveNote: (n: Omit<OneOnOneNote, 'id' | 'createdAt'>) => void;
   onDeleteNote: (id: string) => void;
+  autoScroll?: boolean;
 }) {
   const today = new Date().toISOString().split('T')[0];
 
@@ -102,6 +103,17 @@ function OneOnOnePrepPanel({
   const [aiLoading,   setAiLoading]   = useState(false);
   const [aiError,     setAiError]     = useState('');
   const [saved,       setSaved]       = useState(false);
+
+  const notesRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (autoScroll && notesRef.current) {
+      setTimeout(() => {
+        notesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        notesRef.current?.focus();
+      }, 150);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleGenerateAgenda = async () => {
     setAiLoading(true);
@@ -239,6 +251,7 @@ function OneOnOnePrepPanel({
           <p className="text-sm font-bold text-white mb-0.5">Meeting Notes</p>
           <p className="text-xs text-gray-500 mb-2">What happened — key takeaways, important context</p>
           <textarea
+            ref={notesRef}
             value={notes}
             onChange={e => setNotes(e.target.value)}
             rows={4}
@@ -400,6 +413,7 @@ export function OneOnOneView({
         onBack={() => setSelectedId(null)}
         onSaveNote={onAddNote}
         onDeleteNote={onDeleteNote}
+        autoScroll={!!initialPersonId && selectedId === initialPersonId}
       />
     );
   }
