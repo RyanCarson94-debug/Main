@@ -553,6 +553,14 @@ export function FocusView({
         </div>
       </div>
 
+      {/* "Now focusing on" context banner — shown when deep-linked from Dashboard */}
+      {initialTaskId && selectedTask && tab === 'focus' && (
+        <div className="shrink-0 flex items-center gap-2.5 px-3 py-2 rounded-xl bg-purple-500/10 border border-purple-500/25">
+          <Zap size={12} className="text-purple-400 shrink-0" />
+          <p className="text-xs text-gray-400">Now focusing on: <span className="font-bold text-white">{selectedTask.title}</span></p>
+        </div>
+      )}
+
       {tab === 'batch' ? (
         <BatchTab tasks={activeTasks} />
       ) : (

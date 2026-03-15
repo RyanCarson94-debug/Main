@@ -24,10 +24,14 @@ interface DashboardViewProps {
   decisions:          Decision[];
   commitments:        Commitment[];
   dumpInboxCount:     number;
+  dumpNudgeItem?:     string;
   delegationAlerts:   number;
   onViewChange:       (view: View) => void;
   onEditTask:         (task: Task) => void;
   onSelectProject:    (id: string) => void;
+  onFocusNow?:        (taskId: string) => void;
+  onCompleteTask?:    (taskId: string) => void;
+  onQuickDecision?:   (text: string) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -100,40 +104,59 @@ function SectionHeader({ icon, title, count, onNavigate }: {
   );
 }
 
-function DashTaskCard({ task, onClick, urgent = false }: {
+function DashTaskCard({ task, onClick, urgent = false, onFocusNow, onComplete, completing }: {
   task: Task; onClick: () => void; urgent?: boolean;
+  onFocusNow?: () => void; onComplete?: () => void; completing?: boolean;
 }) {
   const q      = QUADRANTS[task.quadrant];
   const p      = PRIORITY_CONFIG[task.priority];
   const energy = task.energy ? ENERGY_CONFIG[task.energy] : null;
   return (
-    <button onClick={onClick}
-      className={`w-full text-left px-3.5 py-2.5 rounded-xl border transition-all group ${
-        urgent ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40'
-               : 'bg-[#1E1C28] border-[#2A2640] hover:border-purple-500/40'
-      }`}>
-      <div className="flex items-center gap-2.5">
-        <span className={`w-2 h-2 rounded-full ${p.dot} shrink-0`} />
-        <p className={`flex-1 text-sm truncate group-hover:text-white transition-colors ${urgent ? 'text-red-200' : 'text-gray-200'}`}>
-          {task.title}
-        </p>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {energy && <span className="text-[11px]">{energy.emoji}</span>}
-          {task.column === 'in-progress' && (
-            <span className="text-[10px] font-bold text-purple-400 px-1.5 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/20">active</span>
-          )}
-          {task.recurrence && <RefreshCw size={10} className="text-gray-600" />}
-          {task.dueDate && (
-            <span className={`text-[10px] ${urgent ? 'text-red-400 font-bold' : 'text-gray-600'}`}>
-              {new Date(task.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-            </span>
-          )}
-          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${q.bg} ${q.color} border ${q.border}`}>
-            {q.shortLabel}
-          </span>
-        </div>
+    <div className={`relative w-full rounded-xl border transition-all group overflow-hidden ${
+      completing ? 'scale-[0.97] opacity-0 duration-500' :
+      urgent ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40'
+             : 'bg-[#1E1C28] border-[#2A2640] hover:border-purple-500/40'
+    }`}>
+      <div className="flex items-center gap-1">
+        {/* Complete button */}
+        {onComplete && (
+          <button onClick={e => { e.stopPropagation(); onComplete(); }} title="Mark done"
+            className="shrink-0 ml-2 w-5 h-5 rounded-full border-2 border-gray-700 hover:border-emerald-400 hover:bg-emerald-500/10 flex items-center justify-center transition-all group/done">
+            <CheckCircle2 size={11} className="text-gray-700 group-hover/done:text-emerald-400 transition-colors" />
+          </button>
+        )}
+        <button onClick={onClick} className="flex-1 text-left px-3 py-2.5 min-w-0">
+          <div className="flex items-center gap-2.5">
+            <span className={`w-2 h-2 rounded-full ${p.dot} shrink-0`} />
+            <p className={`flex-1 text-sm truncate group-hover:text-white transition-colors ${urgent ? 'text-red-200' : 'text-gray-200'}`}>
+              {task.title}
+            </p>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {energy && <span className="text-[11px]">{energy.emoji}</span>}
+              {task.column === 'in-progress' && (
+                <span className="text-[10px] font-bold text-purple-400 px-1.5 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/20">active</span>
+              )}
+              {task.recurrence && <RefreshCw size={10} className="text-gray-600" />}
+              {task.dueDate && (
+                <span className={`text-[10px] ${urgent ? 'text-red-400 font-bold' : 'text-gray-600'}`}>
+                  {new Date(task.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                </span>
+              )}
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${q.bg} ${q.color} border ${q.border}`}>
+                {q.shortLabel}
+              </span>
+            </div>
+          </div>
+        </button>
+        {/* Focus now button */}
+        {onFocusNow && (
+          <button onClick={e => { e.stopPropagation(); onFocusNow(); }} title="Focus on this now"
+            className="shrink-0 mr-2 p-1.5 rounded-lg text-gray-700 hover:text-purple-400 hover:bg-purple-500/10 transition-all opacity-0 group-hover:opacity-100">
+            <Zap size={12} />
+          </button>
+        )}
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -584,6 +607,83 @@ function OnboardingModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ─── Friday Quick-Close Modal ─────────────────────────────────────────────────
+
+function FridayCloseModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const [win,      setWin]      = useState('');
+  const [carry,    setCarry]    = useState('');
+  const [monday,   setMonday]   = useState('');
+  const [saved,    setSaved]    = useState(false);
+
+  const handleSave = () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      localStorage.setItem(`adhd-friday-close-${today}`, JSON.stringify({ win, carry, monday, savedAt: new Date().toISOString() }));
+    } catch { /* ignore */ }
+    setSaved(true);
+    setTimeout(() => { onDone(); onClose(); }, 1200);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="relative w-full max-w-md rounded-2xl border border-[#2A2640] bg-[#1A1826] shadow-2xl overflow-hidden"
+        onClick={e => e.stopPropagation()}>
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-500 via-amber-400 to-emerald-400" />
+        <button onClick={onClose} className="absolute top-3 right-4 text-gray-600 hover:text-gray-400 transition-colors"><X size={16} /></button>
+        <div className="px-5 py-5">
+          {saved ? (
+            <div className="flex flex-col items-center gap-3 py-4">
+              <CheckCircle2 size={32} className="text-emerald-400" />
+              <p className="text-sm font-black text-white">Week closed out ✓</p>
+              <p className="text-xs text-gray-500">Have a good weekend.</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-1">
+                <Sunset size={15} className="text-amber-400" />
+                <p className="text-sm font-black text-white">Close out this week — 60 seconds</p>
+              </div>
+              <p className="text-xs text-gray-500 mb-4">Three questions. That's it.</p>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-gray-400 mb-1 block">One win from this week</label>
+                  <textarea autoFocus value={win} onChange={e => setWin(e.target.value)} rows={2}
+                    placeholder="Something that moved forward, however small…"
+                    className="w-full px-3 py-2 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500/50 resize-none" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-400 mb-1 block">Carry forward to next week</label>
+                  <textarea value={carry} onChange={e => setCarry(e.target.value)} rows={2}
+                    placeholder="What's still in the air that needs Monday attention…"
+                    className="w-full px-3 py-2 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-amber-500/50 resize-none" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-400 mb-1 block">#1 priority for Monday</label>
+                  <input type="text" value={monday} onChange={e => setMonday(e.target.value)}
+                    placeholder="The one thing that would make Monday a success…"
+                    onKeyDown={e => e.key === 'Enter' && handleSave()}
+                    className="w-full px-3 py-2 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-violet-500/50" />
+                </div>
+              </div>
+              <div className="flex gap-2 mt-4">
+                <button onClick={handleSave}
+                  className="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold transition-colors flex items-center justify-center gap-2">
+                  <CheckCircle2 size={14} /> Close out the week
+                </button>
+                <button onClick={onClose}
+                  className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 text-sm transition-colors">
+                  Later
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Weekly Rhythm Card ───────────────────────────────────────────────────────
 
 const RHYTHM_KEY = 'adhd-rhythm-dismissed';
@@ -917,12 +1017,40 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
 
 export function DashboardView({
   tasks, okrs, updates, projects, meetings, quarterlyPlans, hardConversations, decisions, commitments,
-  dumpInboxCount, delegationAlerts, onViewChange, onEditTask, onSelectProject,
+  dumpInboxCount, dumpNudgeItem, delegationAlerts, onViewChange, onEditTask, onSelectProject,
+  onFocusNow, onCompleteTask, onQuickDecision,
 }: DashboardViewProps) {
   const [reportText,    setReportText]    = useState('');
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError,   setReportError]   = useState('');
   const [reportVisible, setReportVisible] = useState(false);
+
+  // Task micro-reward — track completing task id for flash animation
+  const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
+  const handleCompleteTask = (taskId: string) => {
+    setCompletingTaskId(taskId);
+    setTimeout(() => {
+      onCompleteTask?.(taskId);
+      setCompletingTaskId(null);
+    }, 350);
+  };
+
+  // Right column progressive disclosure
+  const [rightExpanded, setRightExpanded] = useState(false);
+
+  // Friday quick-close modal
+  const [showWeeklyClose, setShowWeeklyClose] = useState(false);
+
+  // Decision quick-capture
+  const [quickDecision, setQuickDecision] = useState('');
+  const [decisionSaved, setDecisionSaved]  = useState(false);
+  const submitQuickDecision = () => {
+    if (!quickDecision.trim()) return;
+    onQuickDecision?.(quickDecision.trim());
+    setQuickDecision('');
+    setDecisionSaved(true);
+    setTimeout(() => setDecisionSaved(false), 2000);
+  };
 
   // Focus recommendation
   const [focusRec,          setFocusRec]          = useState<{ taskId: string; task: string; reason: string } | null>(null);
@@ -1035,8 +1163,14 @@ export function DashboardView({
   const now      = new Date();
   const todayStr = now.toISOString().split('T')[0];
   const hour     = now.getHours();
+  const isFriday = now.getDay() === 5;
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const showMidDayNudge = hour >= 15 && energyLevel === 'charged' && !midDayNudgeDismissed;
+  // Friday close-out: show from 3pm Fridays, once per week
+  const [fridayCloseDismissed, setFridayCloseDismissed] = useState(() => {
+    try { return localStorage.getItem(`adhd-friday-close-${todayStr}`) === '1'; } catch { return false; }
+  });
+  const showFridayClose = isFriday && hour >= 15 && !fridayCloseDismissed && !showWeeklyClose;
   const dateStr  = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
   const currentQuarterPlan = useMemo(() => {
@@ -1105,6 +1239,11 @@ export function DashboardView({
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tasks, updates, okrs, projects, meetings, delegationAlerts, dumpInboxCount, todayStr]);
+
+  // Waiting On: delegated tasks not yet done
+  const waitingOnTasks = useMemo(() =>
+    tasks.filter(t => t.delegatedTo && t.column !== 'done'),
+  [tasks]);
 
   // Daily Brief data
   const dailyBrief = useMemo(() => {
@@ -1216,6 +1355,14 @@ export function DashboardView({
               <span className="text-xs font-bold text-emerald-400">{doneThisWeek} done this week</span>
             </button>
           )}
+          {/* Friday close-out button */}
+          {showFridayClose && (
+            <button onClick={() => setShowWeeklyClose(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/15 text-violet-400 text-xs font-bold transition-colors animate-pulse">
+              <CheckCircle2 size={13} />
+              Close the week
+            </button>
+          )}
           {/* End-of-day button (4pm+) */}
           {hour >= 16 && !eodDoneToday && (
             <button onClick={() => setShowEOD(true)}
@@ -1290,6 +1437,12 @@ export function DashboardView({
       {/* ── Energy Check-in (inline banner — non-blocking) ── */}
       {!energyLevel && (
         <div className="relative">
+          {hour < 10 && (
+            <div className="flex items-center gap-2 mb-2 px-1">
+              <span className="text-base animate-pulse">🌅</span>
+              <p className="text-xs text-amber-300 font-semibold">Start your day right — check in before diving in.</p>
+            </div>
+          )}
           <EnergyCheckIn onSelect={handleEnergySelect} />
         </div>
       )}
@@ -1403,7 +1556,10 @@ export function DashboardView({
               <SectionHeader icon={<CalendarClock size={13} className="text-red-400" />} title="Overdue" count={overdueTasks.length} onNavigate={() => onViewChange('kanban')} />
               <div className="space-y-1.5">
                 {(energyLevel === 'low' && !energyOverride ? overdueTasks.filter(isQuickWin) : overdueTasks)
-                  .slice(0, 4).map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} urgent />)}
+                  .slice(0, 4).map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} urgent
+                    onFocusNow={onFocusNow ? () => onFocusNow(task.id) : undefined}
+                    onComplete={onCompleteTask ? () => handleCompleteTask(task.id) : undefined}
+                    completing={completingTaskId === task.id} />)}
                 {energyLevel === 'low' && !energyOverride && overdueTasks.filter(isQuickWin).length === 0 && (
                   <p className="text-xs text-gray-600 px-1 italic">No quick wins in overdue — <button onClick={applyEnergyOverride} className="underline hover:text-gray-400">show all</button></p>
                 )}
@@ -1416,7 +1572,10 @@ export function DashboardView({
             <section>
               <SectionHeader icon={<Clock size={13} className="text-amber-400" />} title="Due Today" count={dueTodayTasks.length} />
               <div className="space-y-1.5">
-                {dueTodayTasks.map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} />)}
+                {dueTodayTasks.map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)}
+                  onFocusNow={onFocusNow ? () => onFocusNow(task.id) : undefined}
+                  onComplete={onCompleteTask ? () => handleCompleteTask(task.id) : undefined}
+                  completing={completingTaskId === task.id} />)}
               </div>
             </section>
           )}
@@ -1442,7 +1601,10 @@ export function DashboardView({
                 </div>
               ) : (
                 <div className="space-y-1.5">
-                  {visible.map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} />)}
+                  {visible.map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)}
+                    onFocusNow={onFocusNow ? () => onFocusNow(task.id) : undefined}
+                    onComplete={onCompleteTask ? () => handleCompleteTask(task.id) : undefined}
+                    completing={completingTaskId === task.id} />)}
                   {doNowTasks.length > 4 && (
                     <button onClick={() => onViewChange('eisenhower')} className="w-full text-center text-xs text-gray-600 hover:text-purple-400 py-1.5 transition-colors">
                       +{doNowTasks.length - 4} more →
@@ -1471,13 +1633,30 @@ export function DashboardView({
                   <p className="text-sm text-gray-600">Nothing active — pick a task to start</p>
                 </div>
               );
-              return <div className="space-y-1.5">{visible.map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} />)}</div>;
+              return <div className="space-y-1.5">{visible.map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)}
+                onFocusNow={onFocusNow ? () => onFocusNow(task.id) : undefined}
+                onComplete={onCompleteTask ? () => handleCompleteTask(task.id) : undefined}
+                completing={completingTaskId === task.id} />)}</div>;
             })()}
           </section>
         </div>
 
         {/* Right: alerts + OKRs + projects + quick nav */}
         <div className="lg:col-span-2 space-y-5">
+
+          {/* Brain Dump spaced retrieval nudge */}
+          {dumpNudgeItem && (
+            <div className="flex items-start gap-3 px-3 py-3 rounded-xl bg-purple-500/8 border border-purple-500/20">
+              <BrainCircuit size={13} className="text-purple-400 mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-0.5">You captured this 3 days ago</p>
+                <p className="text-xs text-gray-300 truncate">"{dumpNudgeItem}"</p>
+                <button onClick={() => onViewChange('dump')} className="text-[11px] text-purple-500 hover:text-purple-300 transition-colors mt-1">
+                  Still relevant? → Review in Brain Dump
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Needs Attention */}
           {totalAlerts > 0 && (
@@ -1517,64 +1696,125 @@ export function DashboardView({
             </section>
           )}
 
-          {/* Projects at Risk / Blocked (hidden on low energy) */}
-          {atRiskProjects.length > 0 && energyLevel !== 'low' && (
-            <section>
-              <SectionHeader icon={<FolderKanban size={13} className="text-amber-400" />} title="Projects Needing Attention" onNavigate={() => onViewChange('projects')} />
-              <div className="space-y-1.5">
-                {atRiskProjects.slice(0, 4).map(p => <ProjectCard key={p.id} project={p} onClick={() => handleProjectClick(p)} />)}
-              </div>
-            </section>
+          {/* Progressive disclosure toggle */}
+          {!rightExpanded && (
+            <button onClick={() => setRightExpanded(true)}
+              className="w-full flex items-center justify-center gap-1.5 py-2 text-xs text-gray-600 hover:text-gray-400 transition-colors border border-dashed border-gray-800 rounded-xl hover:border-gray-700">
+              <ChevronRight size={12} className="rotate-90" />
+              Show projects, leadership pulse & nav
+            </button>
           )}
 
-          {/* Leadership Pulse (hidden on low energy to avoid anxiety induction) */}
-          {energyLevel === 'low' && (overdueConvos.length > 0 || readyConvos.length > 0 || overdueCommitmentsCount > 0) && (
-            <div className="px-3 py-2 rounded-xl bg-gray-500/5 border border-gray-500/15">
-              <p className="text-[11px] text-gray-600">Leadership Pulse hidden — come back when you have more capacity.</p>
-            </div>
+          {rightExpanded && (
+            <>
+              {/* Projects at Risk / Blocked (hidden on low energy) */}
+              {atRiskProjects.length > 0 && energyLevel !== 'low' && (
+                <section>
+                  <SectionHeader icon={<FolderKanban size={13} className="text-amber-400" />} title="Projects Needing Attention" onNavigate={() => onViewChange('projects')} />
+                  <div className="space-y-1.5">
+                    {atRiskProjects.slice(0, 4).map(p => <ProjectCard key={p.id} project={p} onClick={() => handleProjectClick(p)} />)}
+                  </div>
+                </section>
+              )}
+
+              {/* Leadership Pulse (hidden on low energy to avoid anxiety induction) */}
+              {energyLevel === 'low' && (overdueConvos.length > 0 || readyConvos.length > 0 || overdueCommitmentsCount > 0) && (
+                <div className="px-3 py-2 rounded-xl bg-gray-500/5 border border-gray-500/15">
+                  <p className="text-[11px] text-gray-600">Leadership Pulse hidden — come back when you have more capacity.</p>
+                </div>
+              )}
+              {(overdueConvos.length > 0 || readyConvos.length > 0 || overdueCommitmentsCount > 0) && energyLevel !== 'low' && (
+                <section>
+                  <SectionHeader icon={<ShieldAlert size={13} className="text-rose-400" />} title="Leadership Pulse" />
+                  <div className="space-y-1.5">
+                    {overdueCommitmentsCount > 0 && (
+                      <AlertRow
+                        label={`${overdueCommitmentsCount} overdue commitment${overdueCommitmentsCount > 1 ? 's' : ''}`}
+                        color="red"
+                        onClick={() => onViewChange('decision-log')}
+                      />
+                    )}
+                    {overdueConvos.length > 0 && (
+                      <AlertRow
+                        label={`${overdueConvos.length} hard convo${overdueConvos.length > 1 ? 's' : ''} past target date`}
+                        color="amber"
+                        onClick={() => onViewChange('hard-conversations')}
+                      />
+                    )}
+                    {readyConvos.length > 0 && (
+                      <button onClick={() => onViewChange('hard-conversations')}
+                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all hover:opacity-90 bg-blue-500/10 border-blue-500/20 text-blue-400">
+                        <div className="flex items-center gap-2">
+                          <MessageSquareWarning size={12} />
+                          <span>{readyConvos.length} conversation{readyConvos.length > 1 ? 's' : ''} ready to have</span>
+                        </div>
+                        <ChevronRight size={13} className="opacity-60" />
+                      </button>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {/* Quick Access */}
+              <section>
+                <SectionHeader icon={<TrendingUp size={13} className="text-gray-500" />} title="Quick Access" />
+                <div className="grid grid-cols-2 gap-2">
+                  <QuickNavTile icon={<BrainCircuit size={15} />} label="Brain Dump" badge={dumpInboxCount || undefined} onClick={() => onViewChange('dump')} />
+                  <QuickNavTile icon={<Zap size={15} />} label="Focus Mode" onClick={() => onViewChange('focus')} />
+                  <QuickNavTile icon={<UserCheck size={15} />} label="Delegations" badge={delegationAlerts || undefined} onClick={() => onViewChange('delegations')} />
+                  <QuickNavTile icon={<Bell size={15} />} label="1:1 Briefings" badge={pendingUpdatesCount || undefined} onClick={() => onViewChange('updates')} />
+                </div>
+              </section>
+
+              <button onClick={() => setRightExpanded(false)}
+                className="w-full text-center text-xs text-gray-700 hover:text-gray-500 py-1 transition-colors">
+                Show less ↑
+              </button>
+            </>
           )}
-          {(overdueConvos.length > 0 || readyConvos.length > 0 || overdueCommitmentsCount > 0) && energyLevel !== 'low' && (
+
+          {/* Waiting On (tasks delegated to others) */}
+          {waitingOnTasks.length > 0 && (
             <section>
-              <SectionHeader icon={<ShieldAlert size={13} className="text-rose-400" />} title="Leadership Pulse" />
+              <SectionHeader icon={<Clock size={13} className="text-sky-400" />} title="Waiting On" count={waitingOnTasks.length} onNavigate={() => onViewChange('delegations')} />
               <div className="space-y-1.5">
-                {overdueCommitmentsCount > 0 && (
-                  <AlertRow
-                    label={`${overdueCommitmentsCount} overdue commitment${overdueCommitmentsCount > 1 ? 's' : ''}`}
-                    color="red"
-                    onClick={() => onViewChange('decision-log')}
-                  />
-                )}
-                {overdueConvos.length > 0 && (
-                  <AlertRow
-                    label={`${overdueConvos.length} hard convo${overdueConvos.length > 1 ? 's' : ''} past target date`}
-                    color="amber"
-                    onClick={() => onViewChange('hard-conversations')}
-                  />
-                )}
-                {readyConvos.length > 0 && (
-                  <button onClick={() => onViewChange('hard-conversations')}
-                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all hover:opacity-90 bg-blue-500/10 border-blue-500/20 text-blue-400">
-                    <div className="flex items-center gap-2">
-                      <MessageSquareWarning size={12} />
-                      <span>{readyConvos.length} conversation{readyConvos.length > 1 ? 's' : ''} ready to have</span>
-                    </div>
-                    <ChevronRight size={13} className="opacity-60" />
+                {waitingOnTasks.slice(0, 3).map(t => (
+                  <div key={t.id} className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-sky-500/5 border border-sky-500/15">
+                    <Clock size={11} className="text-sky-500 shrink-0" />
+                    <p className="flex-1 text-xs text-gray-300 truncate">{t.title}</p>
+                    <p className="text-[10px] text-sky-600 shrink-0">→ {t.delegatedTo}</p>
+                  </div>
+                ))}
+                {waitingOnTasks.length > 3 && (
+                  <button onClick={() => onViewChange('delegations')} className="text-[11px] text-gray-600 hover:text-sky-400 transition-colors px-1">
+                    +{waitingOnTasks.length - 3} more →
                   </button>
                 )}
               </div>
             </section>
           )}
 
-          {/* Quick Access */}
-          <section>
-            <SectionHeader icon={<TrendingUp size={13} className="text-gray-500" />} title="Quick Access" />
-            <div className="grid grid-cols-2 gap-2">
-              <QuickNavTile icon={<BrainCircuit size={15} />} label="Brain Dump" badge={dumpInboxCount || undefined} onClick={() => onViewChange('dump')} />
-              <QuickNavTile icon={<Zap size={15} />} label="Focus Mode" onClick={() => onViewChange('focus')} />
-              <QuickNavTile icon={<UserCheck size={15} />} label="Delegations" badge={delegationAlerts || undefined} onClick={() => onViewChange('delegations')} />
-              <QuickNavTile icon={<Bell size={15} />} label="1:1 Briefings" badge={pendingUpdatesCount || undefined} onClick={() => onViewChange('updates')} />
-            </div>
-          </section>
+          {/* Decision quick-capture */}
+          {onQuickDecision && (
+            <section>
+              <SectionHeader icon={<ClipboardList size={13} className="text-teal-400" />} title="Log a Decision" />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={quickDecision}
+                  onChange={e => setQuickDecision(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && submitQuickDecision()}
+                  placeholder="What did you decide?"
+                  className="flex-1 px-3 py-2 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-teal-500/50 min-w-0"
+                />
+                <button onClick={submitQuickDecision} disabled={!quickDecision.trim()}
+                  className="px-3 py-2 rounded-xl bg-teal-600/20 text-teal-400 border border-[#2A2640] hover:bg-teal-600/30 transition-colors disabled:opacity-30 shrink-0">
+                  {decisionSaved ? <CheckCircle2 size={15} /> : <ChevronRight size={15} />}
+                </button>
+              </div>
+              {decisionSaved && <p className="text-[11px] text-teal-400 mt-1 px-1">Saved to Decision Log ✓</p>}
+            </section>
+          )}
         </div>
       </div>
 
@@ -1595,6 +1835,17 @@ export function DashboardView({
 
       {/* ── End-of-day Capture ── */}
       {showEOD && <EndOfDayModal onClose={() => setShowEOD(false)} onDone={() => setEodDoneToday(true)} />}
+
+      {/* ── Friday Quick-Close ── */}
+      {showWeeklyClose && (
+        <FridayCloseModal
+          onClose={() => setShowWeeklyClose(false)}
+          onDone={() => {
+            setFridayCloseDismissed(true);
+            try { localStorage.setItem(`adhd-friday-close-${todayStr}`, '1'); } catch { /* ignore */ }
+          }}
+        />
+      )}
 
       {/* ── Onboarding ── */}
       {showOnboarding && <OnboardingModal onClose={() => setShowOnboarding(false)} />}

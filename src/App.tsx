@@ -368,10 +368,23 @@ export default function App() {
               decisions={store.decisions}
               commitments={store.commitments}
               dumpInboxCount={taskCounts.dumpInbox}
+              dumpNudgeItem={(() => {
+                const threeDaysAgo = new Date(Date.now() - 3 * 86400000).toISOString();
+                const old = store.dumpItems.filter(d => d.status === 'inbox' && d.createdAt < threeDaysAgo);
+                return old.length > 0 ? old[old.length - 1].content : undefined;
+              })()}
               delegationAlerts={taskCounts.delegationAlerts}
               onViewChange={setView}
               onEditTask={openEditTask}
               onSelectProject={id => { setSelectedProjectId(id); setView('projects'); }}
+              onFocusNow={id => { setFocusInitialTaskId(id); setView('focus'); }}
+              onCompleteTask={id => handleMoveColumn(id, 'done')}
+              onQuickDecision={text => store.addDecision({
+                title: text,
+                context: '',
+                decision: text,
+                madeAt: new Date().toISOString().split('T')[0],
+              })}
             />
           )}
           {view === 'kanban' && (

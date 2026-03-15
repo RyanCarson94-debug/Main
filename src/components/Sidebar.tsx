@@ -115,25 +115,38 @@ const ROLE_KIT: Record<string, { id: View; label: string }[]> = {
 
 // ─── Streak helper ────────────────────────────────────────────────────────────
 
-function getStreak(): { count: number; isWelcomeBack: boolean } {
+function markRestDay(): void {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    // Persist as streak-last so the next open continues the streak
+    localStorage.setItem('adhd-streak-last', today);
+    localStorage.setItem(`adhd-rest-day-${today}`, '1');
+  } catch { /* ignore */ }
+}
+
+function isRestDay(date: string): boolean {
+  try { return localStorage.getItem(`adhd-rest-day-${date}`) === '1'; } catch { return false; }
+}
+
+function getStreak(): { count: number; isWelcomeBack: boolean; isRestToday: boolean } {
   try {
     const today     = new Date().toISOString().split('T')[0];
     const last      = localStorage.getItem('adhd-streak-last');
     const count     = parseInt(localStorage.getItem('adhd-streak-count') ?? '0', 10);
 
-    if (last === today) return { count, isWelcomeBack: false };
+    if (last === today) return { count, isWelcomeBack: false, isRestToday: isRestDay(today) };
 
-    // Forgive up to 1 missed day — life happens
+    // Forgive up to 1 missed day, or if that day was a declared rest day
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
     const dayBefore = new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0];
-    const continuing = last === yesterday || last === dayBefore;
-    const isWelcomeBack = last === dayBefore; // skipped exactly one day
+    const continuing = last === yesterday || last === dayBefore || isRestDay(yesterday);
+    const isWelcomeBack = last === dayBefore && !isRestDay(yesterday);
     const newCount = continuing ? count + 1 : 1;
     localStorage.setItem('adhd-streak-last', today);
     localStorage.setItem('adhd-streak-count', String(newCount));
-    return { count: newCount, isWelcomeBack };
+    return { count: newCount, isWelcomeBack, isRestToday: false };
   } catch {
-    return { count: 0, isWelcomeBack: false };
+    return { count: 0, isWelcomeBack: false, isRestToday: false };
   }
 }
 
@@ -148,7 +161,11 @@ export function Sidebar({
   const toggleGroup = (label: string) =>
     setCollapsed(prev => { const n = new Set(prev); if (n.has(label)) n.delete(label); else n.add(label); return n; });
 
-  const [{ count: streak, isWelcomeBack }] = useState(() => getStreak());
+  const [{ count: streak, isWelcomeBack, isRestToday }, setStreakState] = useState(() => getStreak());
+  const handleRestDay = () => {
+    markRestDay();
+    setStreakState(s => ({ ...s, isRestToday: true }));
+  };
 
   // Starting kit (role-based onboarding shortcut section)
   const [kitRole]      = useState<string | null>(() => { try { return localStorage.getItem('adhd-onboarding-role'); } catch { return null; } });
@@ -357,9 +374,11 @@ export function Sidebar({
         {/* Streak */}
         {streak > 0 && (
           <div className="flex items-center gap-2 px-2.5 py-1.5 mb-1">
-            <Flame size={13} className={streak >= 7 ? 'text-orange-400' : streak >= 3 ? 'text-amber-400' : 'text-gray-600'} />
-            <span className="text-[12px] text-gray-600">
-              {isWelcomeBack ? (
+            <Flame size={13} className={isRestToday ? 'text-blue-400' : streak >= 7 ? 'text-orange-400' : streak >= 3 ? 'text-amber-400' : 'text-gray-600'} />
+            <span className="text-[12px] text-gray-600 flex-1">
+              {isRestToday ? (
+                <span className="text-blue-400 font-bold">Rest day 💙</span>
+              ) : isWelcomeBack ? (
                 <span className="text-emerald-400 font-bold">Welcome back</span>
               ) : (
                 <>
@@ -368,6 +387,12 @@ export function Sidebar({
                 </>
               )}
             </span>
+            {!isRestToday && (
+              <button onClick={handleRestDay} title="Declare a rest day — streak protected"
+                className="text-[10px] text-gray-700 hover:text-blue-400 transition-colors px-1 py-0.5 rounded hover:bg-blue-500/10">
+                rest
+              </button>
+            )}
           </div>
         )}
         <button
