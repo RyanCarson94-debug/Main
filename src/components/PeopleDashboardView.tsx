@@ -19,6 +19,7 @@ interface PeopleDashboardViewProps {
   commitments:       Commitment[];
   tasks:             Task[];
   onViewChange:      (view: View) => void;
+  onPersonSelect?:   (personId: string) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -174,7 +175,7 @@ function SummaryBanner({ overdueOneOnOnes, readyConvos, openCommitmentsTotal }: 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function PeopleDashboardView({
-  teamMembers, updatePeople, oneOnOneNotes, hardConversations, commitments, tasks, onViewChange,
+  teamMembers, updatePeople, oneOnOneNotes, hardConversations, commitments, tasks, onViewChange, onPersonSelect,
 }: PeopleDashboardViewProps) {
 
   // Merge team members + briefing people into one unified list
@@ -287,7 +288,7 @@ export function PeopleDashboardView({
               openCommitments={person.openCommitments}
               hardConvoStatus={person.hardConvoStatus}
               delegatedTasks={person.delegatedTasks}
-              onViewOneOnOne={() => onViewChange('one-on-one')}
+              onViewOneOnOne={() => { if (onPersonSelect) onPersonSelect(person.id); onViewChange('one-on-one'); }}
               onViewHardConvos={() => onViewChange('hard-conversations')}
               onViewDelegations={() => onViewChange('delegations')}
             />

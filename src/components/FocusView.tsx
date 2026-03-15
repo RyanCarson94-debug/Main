@@ -650,7 +650,12 @@ export function FocusView({
                 <div className="flex-1 min-w-0 flex flex-col gap-3">
                   {/* AI breakdown controls */}
                   <div className="flex items-center gap-2 shrink-0">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest flex-1">Steps</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Steps</p>
+                      {steps.length > 0 && !suggestedFirstStep && (
+                        <p className="text-[10px] text-gray-700 mt-0.5">tap ⚡ on any step to pin it as your start</p>
+                      )}
+                    </div>
                     {steps.length > 0 && (
                       <button
                         onClick={() => onClearSteps(selectedTask.id)}

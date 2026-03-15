@@ -153,7 +153,25 @@ export function Sidebar({
   // Starting kit (role-based onboarding shortcut section)
   const [kitRole]      = useState<string | null>(() => { try { return localStorage.getItem('adhd-onboarding-role'); } catch { return null; } });
   const [kitDismissed, setKitDismissed] = useState<boolean>(() => { try { return localStorage.getItem('adhd-kit-dismissed') === '1'; } catch { return false; } });
+  const [visitedKitViews, setVisitedKitViews] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('adhd-kit-visited') ?? '[]') as string[]); } catch { return new Set(); }
+  });
   const kitViews = kitRole ? (ROLE_KIT[kitRole] ?? null) : null;
+
+  // Track current view in kit visited set; auto-dismiss once all visited
+  const handleKitNavigate = (id: View) => {
+    if (kitViews) {
+      const next = new Set(visitedKitViews).add(id);
+      setVisitedKitViews(next);
+      try { localStorage.setItem('adhd-kit-visited', JSON.stringify([...next])); } catch { /* ignore */ }
+      if (next.size >= kitViews.length) {
+        setKitDismissed(true);
+        try { localStorage.setItem('adhd-kit-dismissed', '1'); } catch { /* ignore */ }
+      }
+    }
+    navigate(id);
+  };
+
   const dismissKit = () => {
     setKitDismissed(true);
     try { localStorage.setItem('adhd-kit-dismissed', '1'); } catch { /* ignore */ }
@@ -215,27 +233,38 @@ export function Sidebar({
         </div>
       )}
 
-      {/* Starting kit (dismissible, shown after onboarding role selection) */}
+      {/* Starting kit (dismissible, progress-tracked) */}
       {kitViews && !kitDismissed && (
         <div className="mx-3 mt-2 p-3 rounded-xl border border-violet-500/20 bg-violet-500/5 shrink-0">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-1.5">
             <p className="text-[10px] font-black text-violet-400 uppercase tracking-widest">Starting Kit</p>
-            <button onClick={dismissKit} className="text-gray-700 hover:text-gray-500 transition-colors">
-              <X size={11} />
-            </button>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-gray-600">{visitedKitViews.size}/{kitViews.length} explored</span>
+              <button onClick={dismissKit} className="text-gray-700 hover:text-gray-500 transition-colors">
+                <X size={11} />
+              </button>
+            </div>
+          </div>
+          {/* Progress bar */}
+          <div className="h-0.5 rounded-full bg-[#2A2640] mb-2 overflow-hidden">
+            <div className="h-full rounded-full bg-violet-500 transition-all"
+              style={{ width: `${kitViews.length > 0 ? (visitedKitViews.size / kitViews.length) * 100 : 0}%` }} />
           </div>
           <div className="space-y-px">
-            {kitViews.map(item => (
-              <button key={item.id} onClick={() => navigate(item.id)}
-                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors ${
-                  view === item.id
-                    ? 'bg-violet-500/20 text-white font-semibold'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/[0.04]'
-                }`}>
-                <span className="w-1.5 h-1.5 rounded-full bg-violet-500/60 shrink-0" />
-                {item.label}
-              </button>
-            ))}
+            {kitViews.map(item => {
+              const visited = visitedKitViews.has(item.id);
+              return (
+                <button key={item.id} onClick={() => handleKitNavigate(item.id)}
+                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors ${
+                    view === item.id
+                      ? 'bg-violet-500/20 text-white font-semibold'
+                      : 'text-gray-400 hover:text-gray-200 hover:bg-white/[0.04]'
+                  }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${visited ? 'bg-emerald-500' : 'bg-violet-500/60'}`} />
+                  <span className={visited ? 'line-through opacity-60' : ''}>{item.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

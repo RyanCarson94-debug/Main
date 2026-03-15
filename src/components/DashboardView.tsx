@@ -50,6 +50,15 @@ function formatTime(t: string | undefined): string {
   return `${h12}:${String(m).padStart(2, '0')}${ampm}`;
 }
 
+// ─── Quick-win detection ──────────────────────────────────────────────────────
+
+const QUICK_WIN_KEYWORDS = ['quick', 'short', 'small', 'simple', 'easy', 'approve', 'sign'];
+function isQuickWin(task: Task): boolean {
+  if (task.energy === 'quick-win') return true;
+  const haystack = [...task.tags, task.title, task.description ?? ''].join(' ').toLowerCase();
+  return QUICK_WIN_KEYWORDS.some(kw => haystack.includes(kw));
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function StatCard({ label, count, sub, colorClass, icon, onClick }: {
@@ -920,6 +929,27 @@ export function DashboardView({
     setEnergyLevel(level);
   };
 
+  // Low-energy task override (show all tasks even in low mode)
+  const [energyOverride, setEnergyOverride] = useState(false);
+
+  // Carry-forward from yesterday's EOD
+  const carryForward = useMemo(() => {
+    try {
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      const raw = localStorage.getItem(EOD_KEY + yesterday);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { carryForward?: string };
+      return parsed.carryForward?.trim() || null;
+    } catch { return null; }
+  }, []);
+  const [carryForwardDismissed, setCarryForwardDismissed] = useState(false);
+
+  // Streak (for milestone reinforcement in header)
+  const streakCount = useMemo(() => {
+    try { return parseInt(localStorage.getItem('adhd-streak-count') ?? '0', 10); } catch { return 0; }
+  }, []);
+  const streakMilestone = streakCount === 3 || (streakCount >= 7 && streakCount % 7 === 0);
+
   // End-of-day capture
   const [showEOD, setShowEOD] = useState(() => {
     const h = new Date().getHours();
@@ -1130,7 +1160,7 @@ export function DashboardView({
           {energyLevel && (
             <EnergyBadge level={energyLevel} onClick={() => setEnergyLevel(null)} />
           )}
-          {energyLevel !== 'low' && energyLevel !== 'getting-by' && (
+          {energyLevel !== 'low' && (
             <button
               onClick={reportVisible ? () => setReportVisible(false) : handleGetBriefed}
               disabled={reportLoading}
@@ -1143,6 +1173,16 @@ export function DashboardView({
         </div>
       </div>
 
+      {/* ── Streak milestone ── */}
+      {streakMilestone && (
+        <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20">
+          <span className="text-base">🔥</span>
+          <p className="text-xs font-bold text-amber-300">
+            {streakCount} day{streakCount !== 1 ? 's' : ''} in a row — that's momentum building. Keep it going.
+          </p>
+        </div>
+      )}
+
       {/* ── Quarter Banner ── */}
       {currentQuarterPlan && (
         <QuarterBanner plan={currentQuarterPlan} onClick={() => onViewChange('quarterly-planning')} />
@@ -1152,6 +1192,20 @@ export function DashboardView({
       {!energyLevel && (
         <div className="relative">
           <EnergyCheckIn onSelect={handleEnergySelect} />
+        </div>
+      )}
+
+      {/* ── Carry-forward from yesterday ── */}
+      {carryForward && !carryForwardDismissed && (
+        <div className="flex items-start gap-3 px-4 py-3 rounded-2xl bg-sky-500/10 border border-sky-500/20">
+          <ArrowRight size={14} className="text-sky-400 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-black text-sky-400 uppercase tracking-widest mb-0.5">Brought forward from yesterday</p>
+            <p className="text-xs text-sky-200 leading-relaxed">{carryForward}</p>
+          </div>
+          <button onClick={() => setCarryForwardDismissed(true)} className="text-gray-700 hover:text-gray-400 transition-colors shrink-0">
+            <X size={13} />
+          </button>
         </div>
       )}
 
@@ -1186,25 +1240,31 @@ export function DashboardView({
         />
       )}
 
-      {/* ── Stats ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="Overdue"      count={overdueTasks.length}
-          sub={overdueTasks.length === 0 ? 'all clear' : overdueTasks.length === 1 ? 'waiting on you' : 'tackle one at a time'}
-          colorClass={overdueTasks.length > 0 ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-white/[0.03] border-white/5 text-gray-500'}
-          icon={<CalendarClock size={16} />} onClick={() => onViewChange('kanban')} />
-        <StatCard label="Do Now"       count={doNowTasks.length + overdueTasks.length + dueTodayTasks.length}
-          sub="urgent tasks"
-          colorClass="bg-amber-500/10 border-amber-500/20 text-amber-400"
-          icon={<Zap size={16} />} onClick={() => onViewChange('eisenhower')} />
-        <StatCard label="Done This Week" count={doneThisWeek}
-          sub={doneThisWeek === 0 ? "let's go" : 'great work'}
-          colorClass="bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-          icon={<CheckCircle2 size={16} />} />
-        <StatCard label="Projects at Risk" count={atRiskProjects.length}
-          sub={atRiskProjects.length === 0 ? 'all healthy' : 'need attention'}
-          colorClass={atRiskProjects.length > 0 ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-white/[0.03] border-white/5 text-gray-500'}
-          icon={<FolderKanban size={16} />} onClick={() => onViewChange('projects')} />
-      </div>
+      {/* ── Stats (adapt count to energy level) ── */}
+      {energyLevel !== 'low' && (
+        <div className={`grid gap-3 ${energyLevel === 'getting-by' ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'}`}>
+          <StatCard label="Do Now" count={doNowTasks.length + overdueTasks.length + dueTodayTasks.length}
+            sub="urgent tasks"
+            colorClass="bg-amber-500/10 border-amber-500/20 text-amber-400"
+            icon={<Zap size={16} />} onClick={() => onViewChange('eisenhower')} />
+          <StatCard label="Done This Week" count={doneThisWeek}
+            sub={doneThisWeek === 0 ? "let's go" : 'great work'}
+            colorClass="bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+            icon={<CheckCircle2 size={16} />} />
+          {energyLevel !== 'getting-by' && (
+            <>
+              <StatCard label="Overdue" count={overdueTasks.length}
+                sub={overdueTasks.length === 0 ? 'all clear' : 'tackle one at a time'}
+                colorClass={overdueTasks.length > 0 ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-white/[0.03] border-white/5 text-gray-500'}
+                icon={<CalendarClock size={16} />} onClick={() => onViewChange('kanban')} />
+              <StatCard label="Projects at Risk" count={atRiskProjects.length}
+                sub={atRiskProjects.length === 0 ? 'all healthy' : 'need attention'}
+                colorClass={atRiskProjects.length > 0 ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-white/[0.03] border-white/5 text-gray-500'}
+                icon={<FolderKanban size={16} />} onClick={() => onViewChange('projects')} />
+            </>
+          )}
+        </div>
+      )}
 
       {/* ── Weekly Rhythm Card (first-run onboarding) ── */}
       {showRhythm && <WeeklyRhythmCard onDismiss={dismissRhythm} />}
@@ -1224,18 +1284,36 @@ export function DashboardView({
             </section>
           )}
 
+          {/* Low-energy minimal mode banner */}
+          {energyLevel === 'low' && !energyOverride && (
+            <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-gray-500/10 border border-gray-500/20">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🪫</span>
+                <p className="text-xs font-bold text-gray-400">Minimal mode — showing quick wins only</p>
+              </div>
+              <button onClick={() => setEnergyOverride(true)}
+                className="text-[11px] text-gray-600 hover:text-gray-300 transition-colors underline">
+                Show all
+              </button>
+            </div>
+          )}
+
           {/* Overdue */}
           {overdueTasks.length > 0 && (
             <section>
               <SectionHeader icon={<CalendarClock size={13} className="text-red-400" />} title="Overdue" count={overdueTasks.length} onNavigate={() => onViewChange('kanban')} />
               <div className="space-y-1.5">
-                {overdueTasks.slice(0, 4).map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} urgent />)}
+                {(energyLevel === 'low' && !energyOverride ? overdueTasks.filter(isQuickWin) : overdueTasks)
+                  .slice(0, 4).map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} urgent />)}
+                {energyLevel === 'low' && !energyOverride && overdueTasks.filter(isQuickWin).length === 0 && (
+                  <p className="text-xs text-gray-600 px-1 italic">No quick wins in overdue — <button onClick={() => setEnergyOverride(true)} className="underline hover:text-gray-400">show all</button></p>
+                )}
               </div>
             </section>
           )}
 
-          {/* Due Today */}
-          {dueTodayTasks.length > 0 && (
+          {/* Due Today (hide on low energy unless override) */}
+          {dueTodayTasks.length > 0 && energyLevel !== 'low' && (
             <section>
               <SectionHeader icon={<Clock size={13} className="text-amber-400" />} title="Due Today" count={dueTodayTasks.length} />
               <div className="space-y-1.5">
@@ -1254,7 +1332,8 @@ export function DashboardView({
               </div>
             ) : (
               <div className="space-y-1.5">
-                {doNowTasks.slice(0, 4).map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} />)}
+                {(energyLevel === 'low' && !energyOverride ? doNowTasks.filter(isQuickWin) : doNowTasks)
+                  .slice(0, 4).map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} />)}
                 {doNowTasks.length > 4 && (
                   <button onClick={() => onViewChange('eisenhower')} className="w-full text-center text-xs text-gray-600 hover:text-purple-400 py-1.5 transition-colors">
                     +{doNowTasks.length - 4} more →
@@ -1273,7 +1352,8 @@ export function DashboardView({
               </div>
             ) : (
               <div className="space-y-1.5">
-                {inProgressTasks.slice(0, 4).map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} />)}
+                {(energyLevel === 'low' && !energyOverride ? inProgressTasks.filter(isQuickWin) : inProgressTasks)
+                  .slice(0, 4).map(task => <DashTaskCard key={task.id} task={task} onClick={() => onEditTask(task)} />)}
               </div>
             )}
           </section>
@@ -1293,12 +1373,12 @@ export function DashboardView({
             />
           )}
 
-          {/* OKR Snapshot */}
-          {okrSnapshot.length > 0 && (
+          {/* OKR Snapshot (hidden on low; 1 item on getting-by) */}
+          {okrSnapshot.length > 0 && energyLevel !== 'low' && (
             <section>
               <SectionHeader icon={<Target size={13} className="text-pink-400" />} title="OKR Snapshot" onNavigate={() => onViewChange('okrs')} />
               <div className="space-y-2">
-                {okrSnapshot.map(okr => (
+                {(energyLevel === 'getting-by' ? okrSnapshot.slice(0, 1) : okrSnapshot).map(okr => (
                   <button key={okr.id} onClick={() => onViewChange('okrs')}
                     className="w-full text-left p-3 rounded-xl bg-[#1E1C28] border border-[#2A2640] hover:border-white/10 transition-all">
                     <p className="text-xs font-semibold text-gray-300 truncate mb-2">{okr.objective}</p>
@@ -1320,8 +1400,8 @@ export function DashboardView({
             </section>
           )}
 
-          {/* Projects at Risk / Blocked */}
-          {atRiskProjects.length > 0 && (
+          {/* Projects at Risk / Blocked (hidden on low energy) */}
+          {atRiskProjects.length > 0 && energyLevel !== 'low' && (
             <section>
               <SectionHeader icon={<FolderKanban size={13} className="text-amber-400" />} title="Projects Needing Attention" onNavigate={() => onViewChange('projects')} />
               <div className="space-y-1.5">

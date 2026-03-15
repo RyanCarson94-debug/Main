@@ -136,6 +136,7 @@ export default function App() {
   const [celebrationTask, setCelebrationTask] = useState<string | null>(null);
   const [loopCelebration, setLoopCelebration] = useState<string | null>(null);
   const [focusInitialTaskId, setFocusInitialTaskId] = useState<string | undefined>(undefined);
+  const [oneOnOnePersonId, setOneOnOnePersonId] = useState<string | undefined>(undefined);
   const csvImportRef = useRef<HTMLInputElement>(null);
 
   const store = useAppStore();
@@ -245,6 +246,7 @@ export default function App() {
     if (targetView !== 'hard-conversations') setSelectedConversationId(null);
     if (targetView !== 'quarterly-planning') setSelectedQuarterlyPlanId(null);
     if (targetView !== 'role-charters')      setSelectedRoleCharterId(null);
+    if (targetView !== 'one-on-one')         setOneOnOnePersonId(undefined);
   }, []);
 
   const handleCSVImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -301,7 +303,7 @@ export default function App() {
     <div className="flex h-[100dvh] overflow-hidden bg-[#12111A]">
       <Sidebar
         view={view}
-        onViewChange={setView}
+        onViewChange={v => { if (v !== 'one-on-one') setOneOnOnePersonId(undefined); setView(v); }}
         onLogout={handleLogout}
         onSearch={() => setShowSearch(true)}
         onToggleAICoach={() => setShowAICoach(s => !s)}
@@ -628,6 +630,7 @@ export default function App() {
               commitments={store.commitments}
               tasks={store.tasks}
               onViewChange={setView}
+              onPersonSelect={id => { setOneOnOnePersonId(id); setView('one-on-one'); }}
             />
             </Suspense>
           )}
@@ -650,6 +653,7 @@ export default function App() {
               oneOnOneNotes={store.oneOnOneNotes}
               onAddNote={store.addOneOnOneNote}
               onDeleteNote={store.deleteOneOnOneNote}
+              initialPersonId={oneOnOnePersonId}
             />
             </Suspense>
           )}

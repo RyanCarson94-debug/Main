@@ -331,13 +331,14 @@ interface OneOnOneViewProps {
   oneOnOneNotes:       OneOnOneNote[];
   onAddNote:           (n: Omit<OneOnOneNote, 'id' | 'createdAt'>) => void;
   onDeleteNote:        (id: string) => void;
+  initialPersonId?:    string;
 }
 
 export function OneOnOneView({
   teamMembers, directReportProfiles, updatePeople, updates,
-  hardConversations, oneOnOneNotes, onAddNote, onDeleteNote,
+  hardConversations, oneOnOneNotes, onAddNote, onDeleteNote, initialPersonId,
 }: OneOnOneViewProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialPersonId ?? null);
 
   // Merge team members + briefing people into a unified list
   const people = useMemo<Person[]>(() => {
