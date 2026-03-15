@@ -170,7 +170,8 @@ export type View =
   | 'role-clarity'
   | 'role-charters'
   | 'personal-readme'
-  | 'one-on-one';
+  | 'one-on-one'
+  | 'people-dashboard';
 
 export type DumpItemStatus = 'inbox' | 'task' | 'idea' | 'archived';
 

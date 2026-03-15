@@ -3,7 +3,8 @@ import {
   Zap, Clock, CheckCircle2, AlertTriangle, BrainCircuit, Target,
   Bell, UserCheck, TrendingUp, ChevronRight, Sparkles, X, RefreshCw,
   CalendarClock, Video, FolderKanban, Telescope, Circle, Sun, ArrowRight,
-  MessageSquareWarning, ShieldAlert,
+  MessageSquareWarning, ShieldAlert, Battery, Sunset,
+  ClipboardList, User,
 } from 'lucide-react';
 import type { Task, OKR, Update, Project, Meeting, QuarterlyPlan, HardConversation, Decision, Commitment } from '../types';
 import { QUADRANTS, PRIORITY_CONFIG, ENERGY_CONFIG } from '../types';
@@ -154,6 +155,332 @@ function QuickNavTile({ icon, label, badge, onClick }: { icon: React.ReactNode; 
         <span className="absolute top-2 right-2 text-[10px] font-black px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">{badge}</span>
       )}
     </button>
+  );
+}
+
+// ─── Daily Energy Check-in ────────────────────────────────────────────────────
+
+const ENERGY_KEY = 'adhd-energy-';
+type EnergyLevel = 'charged' | 'getting-by' | 'low';
+
+function getDailyEnergy(): EnergyLevel | null {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const stored = localStorage.getItem(ENERGY_KEY + today);
+    return (stored as EnergyLevel) ?? null;
+  } catch { return null; }
+}
+
+function saveDailyEnergy(level: EnergyLevel) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    localStorage.setItem(ENERGY_KEY + today, level);
+  } catch { /* ignore */ }
+}
+
+const ENERGY_OPTIONS: { level: EnergyLevel; emoji: string; label: string; sub: string; color: string; bg: string; border: string }[] = [
+  { level: 'charged',    emoji: '🔋', label: 'Charged',     sub: 'Full capacity today',    color: 'text-emerald-300', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
+  { level: 'getting-by', emoji: '😐', label: 'Getting by',  sub: 'Managing, not thriving', color: 'text-amber-300',   bg: 'bg-amber-500/10',   border: 'border-amber-500/30'   },
+  { level: 'low',        emoji: '🪫', label: 'Low energy',  sub: 'Minimal mode today',     color: 'text-gray-400',    bg: 'bg-gray-500/10',    border: 'border-gray-500/20'    },
+];
+
+function EnergyCheckIn({ onSelect }: { onSelect: (level: EnergyLevel) => void }) {
+  return (
+    <div className="rounded-2xl border border-[#2A2640] bg-[#1A1824] overflow-hidden">
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 via-amber-400 to-gray-500" />
+      <div className="px-4 py-4">
+        <div className="flex items-center gap-2 mb-1">
+          <Battery size={14} className="text-violet-400" />
+          <p className="text-xs font-black text-white uppercase tracking-widest">How are you showing up today?</p>
+        </div>
+        <p className="text-[11px] text-gray-600 mb-3">Your answer shapes what the dashboard surfaces for you.</p>
+        <div className="grid grid-cols-3 gap-2">
+          {ENERGY_OPTIONS.map(opt => (
+            <button key={opt.level} onClick={() => onSelect(opt.level)}
+              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all hover:scale-[1.03] ${opt.bg} ${opt.border}`}>
+              <span className="text-xl">{opt.emoji}</span>
+              <span className={`text-xs font-bold ${opt.color}`}>{opt.label}</span>
+              <span className="text-[10px] text-gray-600 text-center leading-snug">{opt.sub}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EnergyBadge({ level, onClick }: { level: EnergyLevel; onClick: () => void }) {
+  const opt = ENERGY_OPTIONS.find(o => o.level === level)!;
+  return (
+    <button onClick={onClick}
+      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-colors ${opt.bg} ${opt.border} ${opt.color}`}>
+      <span>{opt.emoji}</span>
+      <span>{opt.label}</span>
+    </button>
+  );
+}
+
+// ─── Daily Brief (3-card) ─────────────────────────────────────────────────────
+
+function DailyBrief({ criticalTask, whoNeedsYou, openCommitment, onViewChange, onEditTask }: {
+  criticalTask?: Task;
+  whoNeedsYou?: string;
+  openCommitment?: Commitment;
+  onViewChange: (v: View) => void;
+  onEditTask: (t: Task) => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/5 to-transparent overflow-hidden">
+      <div className="px-4 py-3">
+        <div className="flex items-center gap-2 mb-3">
+          <Zap size={13} className="text-violet-400" />
+          <p className="text-[11px] font-black text-violet-400 uppercase tracking-widest">Your Daily Brief</p>
+          <p className="text-[10px] text-gray-600">— three things that matter today</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {/* Card 1: ONE task */}
+          <button onClick={() => criticalTask ? onEditTask(criticalTask) : onViewChange('eisenhower')}
+            className="text-left p-3 rounded-xl bg-[#1E1C28] border border-[#2A2640] hover:border-violet-500/40 transition-all group">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Zap size={11} className="text-amber-400" />
+              <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Move this</span>
+            </div>
+            <p className="text-xs font-semibold text-white leading-snug group-hover:text-violet-200 transition-colors line-clamp-2">
+              {criticalTask?.title ?? 'No urgent tasks — you\'re clear'}
+            </p>
+            {criticalTask && (
+              <span className={`text-[10px] font-bold mt-1 inline-block ${PRIORITY_CONFIG[criticalTask.priority].color}`}>
+                {PRIORITY_CONFIG[criticalTask.priority].label}
+              </span>
+            )}
+          </button>
+
+          {/* Card 2: Who needs you */}
+          <button onClick={() => onViewChange('updates')}
+            className="text-left p-3 rounded-xl bg-[#1E1C28] border border-[#2A2640] hover:border-sky-500/40 transition-all group">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <User size={11} className="text-sky-400" />
+              <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest">Who needs you</span>
+            </div>
+            <p className="text-xs font-semibold text-white leading-snug group-hover:text-sky-200 transition-colors line-clamp-2">
+              {whoNeedsYou ?? 'No pending briefings'}
+            </p>
+          </button>
+
+          {/* Card 3: Open commitment */}
+          <button onClick={() => onViewChange('decision-log')}
+            className="text-left p-3 rounded-xl bg-[#1E1C28] border border-[#2A2640] hover:border-rose-500/40 transition-all group">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <ClipboardList size={11} className="text-rose-400" />
+              <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest">You promised</span>
+            </div>
+            <p className="text-xs font-semibold text-white leading-snug group-hover:text-rose-200 transition-colors line-clamp-2">
+              {openCommitment
+                ? `"${openCommitment.what}"${openCommitment.to ? ` → ${openCommitment.to}` : ''}`
+                : 'No open commitments'}
+            </p>
+            {openCommitment?.dueDate && (
+              <span className="text-[10px] text-gray-600 mt-1 inline-block">
+                due {new Date(openCommitment.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── End-of-Day Capture ───────────────────────────────────────────────────────
+
+const EOD_KEY = 'adhd-eod-';
+
+function EndOfDayModal({ onClose }: { onClose: () => void }) {
+  const [carryForward, setCarryForward] = useState('');
+  const [win, setWin] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      localStorage.setItem(EOD_KEY + today, JSON.stringify({ carryForward, win, savedAt: new Date().toISOString() }));
+    } catch { /* ignore */ }
+    setSaved(true);
+    setTimeout(onClose, 1200);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="relative w-full max-w-md rounded-2xl border border-[#2A2640] bg-[#1A1826] shadow-2xl overflow-hidden"
+        onClick={e => e.stopPropagation()}>
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500 via-rose-400 to-violet-500" />
+        <button onClick={onClose} className="absolute top-3 right-4 text-gray-600 hover:text-gray-400 transition-colors">
+          <X size={16} />
+        </button>
+        <div className="px-5 py-4">
+          {saved ? (
+            <div className="flex flex-col items-center gap-3 py-4">
+              <CheckCircle2 size={32} className="text-emerald-400" />
+              <p className="text-sm font-bold text-white">Parked for tomorrow</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-1">
+                <Sunset size={16} className="text-amber-400" />
+                <p className="text-sm font-black text-white">End of day — park it</p>
+              </div>
+              <p className="text-xs text-gray-500 mb-4">60 seconds. Prevents Monday morning ambush.</p>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">
+                    One win today
+                  </label>
+                  <input
+                    value={win}
+                    onChange={e => setWin(e.target.value)}
+                    placeholder="Something that moved forward, however small…"
+                    className="w-full px-3 py-2.5 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">
+                    Carry forward to tomorrow
+                  </label>
+                  <textarea
+                    value={carryForward}
+                    onChange={e => setCarryForward(e.target.value)}
+                    placeholder="What didn't get done that needs to move first thing tomorrow?"
+                    rows={2}
+                    className="w-full px-3 py-2.5 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-violet-500/50 resize-none"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 mt-4">
+                <button onClick={handleSave}
+                  className="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold transition-colors">
+                  Park it for tomorrow
+                </button>
+                <button onClick={onClose}
+                  className="px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 text-sm transition-colors">
+                  Skip
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Onboarding Modal ─────────────────────────────────────────────────────────
+
+const ONBOARDING_KEY = 'adhd-onboarding-done';
+
+type LeaderRole = 'ic' | 'lead' | 'senior';
+
+const ROLE_OPTIONS: { role: LeaderRole; emoji: string; label: string; sub: string; views: string[] }[] = [
+  {
+    role: 'ic',
+    emoji: '🎯',
+    label: 'Individual Contributor',
+    sub: 'Focus, tasks, getting things done',
+    views: ['Focus Mode', 'Brain Dump', 'Eisenhower Matrix', 'Day Planner'],
+  },
+  {
+    role: 'lead',
+    emoji: '👥',
+    label: 'Team Lead',
+    sub: 'Managing people + doing the work',
+    views: ['Dashboard', 'Delegations', '1:1 Notes', 'Hard Conversations'],
+  },
+  {
+    role: 'senior',
+    emoji: '🏛️',
+    label: 'Senior Leader',
+    sub: 'Strategy, stakeholders, leadership OS',
+    views: ['People Dashboard', 'OKRs', 'Decision Log', 'Quarterly Planning'],
+  },
+];
+
+function OnboardingModal({ onClose }: { onClose: () => void }) {
+  const [selectedRole, setSelectedRole] = useState<LeaderRole | null>(null);
+  const [step, setStep] = useState<'role' | 'tips'>('role');
+
+  const chosen = ROLE_OPTIONS.find(o => o.role === selectedRole);
+
+  const handleSelect = (role: LeaderRole) => {
+    setSelectedRole(role);
+    setStep('tips');
+  };
+
+  const handleDone = () => {
+    try { localStorage.setItem(ONBOARDING_KEY, '1'); } catch { /* ignore */ }
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={handleDone}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="relative w-full max-w-md rounded-2xl border border-[#2A2640] bg-[#1A1826] shadow-2xl overflow-hidden"
+        onClick={e => e.stopPropagation()}>
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-500 via-sky-400 to-emerald-400" />
+        <button onClick={handleDone} className="absolute top-3 right-4 text-gray-600 hover:text-gray-400 transition-colors">
+          <X size={16} />
+        </button>
+        <div className="px-5 py-5">
+          {step === 'role' ? (
+            <>
+              <div className="flex items-center gap-2 mb-1">
+                <Zap size={15} className="text-violet-400" />
+                <p className="text-sm font-black text-white">Welcome — what describes you?</p>
+              </div>
+              <p className="text-xs text-gray-500 mb-4">We'll surface the most relevant features first.</p>
+              <div className="space-y-2">
+                {ROLE_OPTIONS.map(opt => (
+                  <button key={opt.role} onClick={() => handleSelect(opt.role)}
+                    className="w-full text-left p-3.5 rounded-xl bg-[#1E1C28] border border-[#2A2640] hover:border-violet-500/40 transition-all group">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{opt.emoji}</span>
+                      <div>
+                        <p className="text-sm font-bold text-white group-hover:text-violet-200 transition-colors">{opt.label}</p>
+                        <p className="text-xs text-gray-500">{opt.sub}</p>
+                      </div>
+                      <ChevronRight size={14} className="ml-auto text-gray-700 group-hover:text-violet-400 transition-colors" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <button onClick={handleDone} className="w-full mt-3 py-2 text-xs text-gray-600 hover:text-gray-400 transition-colors">
+                Skip — I'll explore on my own
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xl">{chosen?.emoji}</span>
+                <p className="text-sm font-black text-white">Your starting toolkit</p>
+              </div>
+              <p className="text-xs text-gray-500 mb-4">These four features will give you 80% of the value. Everything else is there when you need it.</p>
+              <div className="space-y-2 mb-4">
+                {chosen?.views.map((v, i) => (
+                  <div key={v} className="flex items-center gap-3 p-3 rounded-xl bg-[#1E1C28] border border-[#2A2640]">
+                    <span className="w-6 h-6 rounded-full bg-violet-500/20 text-violet-300 text-xs font-black flex items-center justify-center shrink-0">{i + 1}</span>
+                    <span className="text-sm font-semibold text-white">{v}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-gray-600 mb-3">All 25+ features are in the sidebar whenever you're ready for them.</p>
+              <button onClick={handleDone}
+                className="w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold transition-colors flex items-center justify-center gap-2">
+                Let's go <ArrowRight size={14} />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -515,6 +842,28 @@ export function DashboardView({
     try { localStorage.setItem(RHYTHM_KEY, '1'); } catch { /* ignore */ }
   };
 
+  // Energy check-in
+  const [energyLevel, setEnergyLevel] = useState<EnergyLevel | null>(() => getDailyEnergy());
+  const handleEnergySelect = (level: EnergyLevel) => {
+    saveDailyEnergy(level);
+    setEnergyLevel(level);
+  };
+
+  // End-of-day capture
+  const [showEOD, setShowEOD] = useState(() => {
+    const h = new Date().getHours();
+    if (h < 16) return false; // only prompt after 4pm
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      return !localStorage.getItem(EOD_KEY + today);
+    } catch { return false; }
+  });
+
+  // Onboarding
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    try { return localStorage.getItem(ONBOARDING_KEY) !== '1'; } catch { return false; }
+  });
+
   const now      = new Date();
   const todayStr = now.toISOString().split('T')[0];
   const hour     = now.getHours();
@@ -588,6 +937,42 @@ export function DashboardView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tasks, updates, okrs, projects, meetings, delegationAlerts, dumpInboxCount, todayStr]);
 
+  // Daily Brief data
+  const dailyBrief = useMemo(() => {
+    const criticalTask = tasks
+      .filter(t => t.column !== 'done')
+      .sort((a, b) => {
+        const pa = { critical: 0, high: 1, medium: 2, low: 3 }[a.priority] ?? 3;
+        const pb = { critical: 0, high: 1, medium: 2, low: 3 }[b.priority] ?? 3;
+        if (pa !== pb) return pa - pb;
+        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+        if (a.dueDate) return -1;
+        if (b.dueDate) return 1;
+        return 0;
+      })[0];
+
+    const personWithPendingUpdate = updates
+      .map(u => ({
+        u,
+        pending: u.recipientIds.some(id => !u.discussedWith.includes(id)),
+      }))
+      .find(x => x.pending);
+    const whoNeedsYou = personWithPendingUpdate
+      ? `Update pending — ${personWithPendingUpdate.u.recipientIds.length} recipient${personWithPendingUpdate.u.recipientIds.length > 1 ? 's' : ''} not yet briefed`
+      : undefined;
+
+    const openCommitment = commitments
+      .filter(c => !c.done)
+      .sort((a, b) => {
+        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+        if (a.dueDate) return -1;
+        if (b.dueDate) return 1;
+        return 0;
+      })[0];
+
+    return { criticalTask, whoNeedsYou, openCommitment };
+  }, [tasks, updates, commitments]);
+
   // Auto-load focus recommendation on mount
   useEffect(() => {
     const activeTasks = tasks.filter(t => t.column !== 'done');
@@ -653,6 +1038,14 @@ export function DashboardView({
               <span className="text-xs font-bold text-emerald-400">{doneThisWeek} done this week</span>
             </button>
           )}
+          {/* End-of-day button (4pm+) */}
+          {hour >= 16 && (
+            <button onClick={() => setShowEOD(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/15 text-amber-400 text-xs font-bold transition-colors">
+              <Sunset size={13} />
+              Park today
+            </button>
+          )}
           {hour < 12 && (
             <button
               onClick={() => { setStartStep(1); setShowStartMyDay(true); }}
@@ -661,6 +1054,10 @@ export function DashboardView({
               <Sun size={13} />
               Start my day
             </button>
+          )}
+          {/* Energy badge (tap to reset) */}
+          {energyLevel && (
+            <EnergyBadge level={energyLevel} onClick={() => setEnergyLevel(null)} />
           )}
           <button
             onClick={reportVisible ? () => setReportVisible(false) : handleGetBriefed}
@@ -676,6 +1073,24 @@ export function DashboardView({
       {/* ── Quarter Banner ── */}
       {currentQuarterPlan && (
         <QuarterBanner plan={currentQuarterPlan} onClick={() => onViewChange('quarterly-planning')} />
+      )}
+
+      {/* ── Energy Check-in ── */}
+      {!energyLevel && (
+        <div className="relative">
+          <EnergyCheckIn onSelect={handleEnergySelect} />
+        </div>
+      )}
+
+      {/* ── Daily Brief ── */}
+      {energyLevel && (
+        <DailyBrief
+          criticalTask={dailyBrief.criticalTask}
+          whoNeedsYou={dailyBrief.whoNeedsYou}
+          openCommitment={dailyBrief.openCommitment}
+          onViewChange={onViewChange}
+          onEditTask={onEditTask}
+        />
       )}
 
       {/* ── Focus Recommendation ── */}
@@ -702,7 +1117,7 @@ export function DashboardView({
       {/* ── Stats ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard label="Overdue"      count={overdueTasks.length}
-          sub={overdueTasks.length === 0 ? 'all clear' : 'need attention'}
+          sub={overdueTasks.length === 0 ? 'all clear' : overdueTasks.length === 1 ? 'waiting on you' : 'tackle one at a time'}
           colorClass={overdueTasks.length > 0 ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-white/[0.03] border-white/5 text-gray-500'}
           icon={<CalendarClock size={16} />} onClick={() => onViewChange('kanban')} />
         <StatCard label="Do Now"       count={doNowTasks.length + overdueTasks.length + dueTodayTasks.length}
@@ -798,19 +1213,20 @@ export function DashboardView({
           {/* Needs Attention */}
           {totalAlerts > 0 && (
             <section>
-              <SectionHeader icon={<AlertTriangle size={13} className="text-amber-400" />} title="Needs Attention" />
+              <SectionHeader icon={<AlertTriangle size={13} className="text-amber-400" />} title="Here to tackle" />
+              <p className="text-[11px] text-gray-600 mb-2 px-0.5">You've got this — pick one and start.</p>
               <div className="space-y-1.5">
                 {overdueTasks.length > 0 && (
-                  <AlertRow label={`${overdueTasks.length} overdue task${overdueTasks.length > 1 ? 's' : ''}`} color="red" onClick={() => onViewChange('kanban')} />
+                  <AlertRow label={`${overdueTasks.length} task${overdueTasks.length > 1 ? 's' : ''} waiting on you`} color="red" onClick={() => onViewChange('kanban')} />
                 )}
                 {delegationAlerts > 0 && (
-                  <AlertRow label={`${delegationAlerts} delegation follow-up${delegationAlerts > 1 ? 's' : ''} due`} color="amber" onClick={() => onViewChange('delegations')} />
+                  <AlertRow label={`${delegationAlerts} loop${delegationAlerts > 1 ? 's' : ''} ready to close`} color="amber" onClick={() => onViewChange('delegations')} />
                 )}
                 {pendingUpdatesCount > 0 && (
-                  <AlertRow label={`${pendingUpdatesCount} pending 1:1 briefing${pendingUpdatesCount > 1 ? 's' : ''}`} color="blue" onClick={() => onViewChange('updates')} />
+                  <AlertRow label={`${pendingUpdatesCount} person${pendingUpdatesCount > 1 ? 's' : ''} waiting for a briefing`} color="blue" onClick={() => onViewChange('updates')} />
                 )}
                 {dumpInboxCount > 0 && (
-                  <AlertRow label={`${dumpInboxCount} item${dumpInboxCount > 1 ? 's' : ''} in brain dump`} color="purple" onClick={() => onViewChange('dump')} />
+                  <AlertRow label={`${dumpInboxCount} thought${dumpInboxCount > 1 ? 's' : ''} captured, ready to triage`} color="purple" onClick={() => onViewChange('dump')} />
                 )}
               </div>
             </section>
@@ -913,6 +1329,12 @@ export function DashboardView({
           focusReason={focusRec?.reason}
         />
       )}
+
+      {/* ── End-of-day Capture ── */}
+      {showEOD && <EndOfDayModal onClose={() => setShowEOD(false)} />}
+
+      {/* ── Onboarding ── */}
+      {showOnboarding && <OnboardingModal onClose={() => setShowOnboarding(false)} />}
     </div>
   );
 }

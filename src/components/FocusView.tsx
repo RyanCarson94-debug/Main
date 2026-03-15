@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Zap, Play, Pause, RotateCcw, Check, Plus, Trash2,
   Sparkles, Loader2, AlertCircle, Timer, Layers,
-  ChevronRight, Coffee,
+  ChevronRight, Coffee, X,
 } from 'lucide-react';
 import type { Task, FocusStep, TaskFocus } from '../types';
 import { QUADRANTS, PRIORITY_CONFIG } from '../types';
@@ -10,8 +10,12 @@ import { generateTaskBreakdown } from '../services/claudeApi';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const POMODORO_MINUTES = 25;
-const BREAK_MINUTES = 5;
+const TIMER_PRESETS = [
+  { label: '10', work: 10, brk: 3 },
+  { label: '15', work: 15, brk: 5 },
+  { label: '25', work: 25, brk: 5 },
+  { label: '45', work: 45, brk: 10 },
+] as const;
 
 const PRIORITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
 const QUADRANT_ORDER: Record<string, number> = { 'do-now': 0, 'schedule': 1, 'delegate': 2, 'drop': 3 };
@@ -45,16 +49,63 @@ interface FocusViewProps {
   initialTaskId?: string;
 }
 
+// ─── Post-Timer Transition Modal ─────────────────────────────────────────────
+
+function PostTimerModal({ onClose }: { onClose: () => void }) {
+  const [note, setNote] = useState('');
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="relative w-full max-w-sm rounded-2xl border border-[#2A2640] bg-[#1A1826] shadow-2xl overflow-hidden"
+        onClick={e => e.stopPropagation()}>
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-violet-500" />
+        <div className="px-5 py-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Coffee size={15} className="text-emerald-400" />
+            <p className="text-sm font-black text-white">Session complete — nice work</p>
+          </div>
+          <p className="text-xs text-gray-500 mb-4">Quick check-in before your break.</p>
+          <div className="space-y-3">
+            <textarea
+              autoFocus
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="What just moved forward? (optional — hit Enter or close to skip)"
+              rows={2}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onClose(); } }}
+              className="w-full px-3 py-2.5 rounded-xl bg-[#1E1C28] border border-[#2A2640] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500/50 resize-none"
+            />
+          </div>
+          <div className="flex gap-2 mt-3">
+            <button onClick={onClose}
+              className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-colors">
+              Take a break ☕
+            </button>
+            <button onClick={onClose}
+              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 text-sm transition-colors">
+              Skip
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Pomodoro Timer ───────────────────────────────────────────────────────────
 
 function PomodoroTimer({ taskTitle }: { taskTitle: string }) {
-  const [isBreak, setIsBreak] = useState(false);
-  const [running, setRunning] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(POMODORO_MINUTES * 60);
-  const [sessions, setSessions] = useState(0);
+  const [presetIdx, setPresetIdx] = useState(2); // default: 25 min
+  const preset = TIMER_PRESETS[presetIdx];
+
+  const [isBreak,    setIsBreak]    = useState(false);
+  const [running,    setRunning]    = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(preset.work * 60);
+  const [sessions,   setSessions]   = useState(0);
+  const [showTransition, setShowTransition] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const totalSeconds = isBreak ? BREAK_MINUTES * 60 : POMODORO_MINUTES * 60;
+  const totalSeconds = isBreak ? preset.brk * 60 : preset.work * 60;
   const progress = 1 - secondsLeft / totalSeconds;
 
   const mins = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
@@ -64,13 +115,16 @@ function PomodoroTimer({ taskTitle }: { taskTitle: string }) {
     setSecondsLeft(prev => {
       if (prev <= 1) {
         setRunning(false);
-        if (!isBreak) setSessions(s => s + 1);
+        if (!isBreak) {
+          setSessions(s => s + 1);
+          setShowTransition(true);
+        }
         setIsBreak(b => !b);
-        return isBreak ? POMODORO_MINUTES * 60 : BREAK_MINUTES * 60;
+        return isBreak ? preset.work * 60 : preset.brk * 60;
       }
       return prev - 1;
     });
-  }, [isBreak]);
+  }, [isBreak, preset]);
 
   useEffect(() => {
     if (running) {
@@ -84,7 +138,14 @@ function PomodoroTimer({ taskTitle }: { taskTitle: string }) {
   const reset = () => {
     setRunning(false);
     setIsBreak(false);
-    setSecondsLeft(POMODORO_MINUTES * 60);
+    setSecondsLeft(preset.work * 60);
+  };
+
+  const changePreset = (idx: number) => {
+    setPresetIdx(idx);
+    setRunning(false);
+    setIsBreak(false);
+    setSecondsLeft(TIMER_PRESETS[idx].work * 60);
   };
 
   // SVG ring
@@ -93,65 +154,80 @@ function PomodoroTimer({ taskTitle }: { taskTitle: string }) {
   const dashOffset = circumference * (1 - progress);
 
   return (
-    <div className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-[#1E1C28] border border-[#2A2640]">
-      <div className="flex items-center gap-2">
-        {isBreak
-          ? <><Coffee size={13} className="text-emerald-400" /><span className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Break</span></>
-          : <><Timer size={13} className="text-purple-400" /><span className="text-xs font-bold text-purple-400 uppercase tracking-widest">Focus</span></>
-        }
-        {sessions > 0 && (
-          <span className="text-[10px] text-gray-600">
-            {sessions} session{sessions !== 1 ? 's' : ''} done
-          </span>
-        )}
-      </div>
+    <>
+      {showTransition && <PostTimerModal onClose={() => setShowTransition(false)} />}
+      <div className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-[#1E1C28] border border-[#2A2640]">
+        {/* Timer presets */}
+        <div className="flex items-center gap-1 w-full">
+          {TIMER_PRESETS.map((p, i) => (
+            <button key={p.label} onClick={() => changePreset(i)}
+              className={`flex-1 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                presetIdx === i
+                  ? 'bg-purple-600/40 text-purple-200 border border-purple-500/40'
+                  : 'text-gray-600 hover:text-gray-400 hover:bg-white/5'
+              }`}>
+              {p.label}m
+            </button>
+          ))}
+        </div>
 
-      {/* Ring */}
-      <div className="relative w-32 h-32">
-        <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-          <circle cx="60" cy="60" r={r} fill="none" stroke="#1e1a3a" strokeWidth="8" />
-          <circle
-            cx="60" cy="60" r={r} fill="none"
-            stroke={isBreak ? '#10b981' : '#a855f7'}
-            strokeWidth="8"
-            strokeDasharray={circumference}
-            strokeDashoffset={dashOffset}
-            strokeLinecap="round"
-            style={{ transition: 'stroke-dashoffset 1s linear' }}
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-black text-white tabular-nums">{mins}:{secs}</span>
+        <div className="flex items-center gap-2">
+          {isBreak
+            ? <><Coffee size={13} className="text-emerald-400" /><span className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Break</span></>
+            : <><Timer size={13} className="text-purple-400" /><span className="text-xs font-bold text-purple-400 uppercase tracking-widest">Focus</span></>
+          }
+          {sessions > 0 && (
+            <span className="text-[10px] text-gray-600">
+              {sessions} session{sessions !== 1 ? 's' : ''} done
+            </span>
+          )}
+        </div>
+
+        {/* Ring */}
+        <div className="relative w-32 h-32">
+          <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r={r} fill="none" stroke="#1e1a3a" strokeWidth="8" />
+            <circle
+              cx="60" cy="60" r={r} fill="none"
+              stroke={isBreak ? '#10b981' : '#a855f7'}
+              strokeWidth="8"
+              strokeDasharray={circumference}
+              strokeDashoffset={dashOffset}
+              strokeLinecap="round"
+              style={{ transition: 'stroke-dashoffset 1s linear' }}
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-2xl font-black text-white tabular-nums">{mins}:{secs}</span>
+          </div>
+        </div>
+
+        <p className="text-xs text-gray-500 text-center max-w-[160px] truncate" title={taskTitle}>
+          {taskTitle}
+        </p>
+
+        {/* Controls */}
+        <div className="flex items-center gap-2">
+          <button onClick={reset}
+            className="p-2 rounded-lg text-gray-600 hover:text-gray-400 hover:bg-white/5 transition-colors">
+            <RotateCcw size={15} />
+          </button>
+          <button
+            onClick={() => setRunning(r => !r)}
+            className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold transition-all ${
+              running
+                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                : isBreak
+                  ? 'bg-emerald-600 text-white hover:bg-emerald-500'
+                  : 'bg-purple-600 text-white hover:bg-purple-500'
+            }`}
+          >
+            {running ? <Pause size={15} /> : <Play size={15} />}
+            {running ? 'Pause' : 'Start'}
+          </button>
         </div>
       </div>
-
-      <p className="text-xs text-gray-500 text-center max-w-[160px] truncate" title={taskTitle}>
-        {taskTitle}
-      </p>
-
-      {/* Controls */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={reset}
-          className="p-2 rounded-lg text-gray-600 hover:text-gray-400 hover:bg-white/5 transition-colors"
-        >
-          <RotateCcw size={15} />
-        </button>
-        <button
-          onClick={() => setRunning(r => !r)}
-          className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold transition-all ${
-            running
-              ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              : isBreak
-                ? 'bg-emerald-600 text-white hover:bg-emerald-500'
-                : 'bg-purple-600 text-white hover:bg-purple-500'
-          }`}
-        >
-          {running ? <Pause size={15} /> : <Play size={15} />}
-          {running ? 'Pause' : 'Start'}
-        </button>
-      </div>
-    </div>
+    </>
   );
 }
 
@@ -391,6 +467,7 @@ export function FocusView({
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(initialTaskId ?? null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [suggestedFirstStep, setSuggestedFirstStep] = useState<string | null>(null);
 
   const activeTasks = useMemo(() =>
     tasks
@@ -411,6 +488,7 @@ export function FocusView({
     if (!selectedTask) return;
     setAiLoading(true);
     setAiError(null);
+    setSuggestedFirstStep(null);
     await generateTaskBreakdown(
       selectedTask,
       (rawSteps) => {
@@ -421,6 +499,9 @@ export function FocusView({
           done: false,
         }));
         onSetSteps(selectedTask.id, steps);
+        // Surface the first incomplete step as the recommended start
+        const first = steps.find(s => !s.done);
+        if (first) setSuggestedFirstStep(first.text);
         setAiLoading(false);
       },
       (err) => {
@@ -577,6 +658,21 @@ export function FocusView({
                     <div className="flex items-start gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 shrink-0">
                       <AlertCircle size={13} className="shrink-0 text-red-400 mt-0.5" />
                       <p className="text-xs text-red-400">{aiError}</p>
+                    </div>
+                  )}
+
+                  {/* AI "start with this" banner */}
+                  {suggestedFirstStep && !aiLoading && (
+                    <div className="flex items-start gap-2.5 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 shrink-0">
+                      <Zap size={13} className="shrink-0 text-emerald-400 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-0.5">Start here</p>
+                        <p className="text-xs text-emerald-200 leading-relaxed">{suggestedFirstStep}</p>
+                      </div>
+                      <button onClick={() => setSuggestedFirstStep(null)}
+                        className="text-gray-700 hover:text-gray-400 transition-colors shrink-0">
+                        <X size={12} />
+                      </button>
                     </div>
                   )}
 

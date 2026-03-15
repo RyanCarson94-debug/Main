@@ -5,6 +5,7 @@ import {
   LogOut, Network, Search, UserCog, Bot, Keyboard, CalendarDays, X, Video,
   FolderKanban, MessageSquareWarning, Telescope, ScrollText, BadgeCheck,
   ChevronDown, ChevronRight, Flame, FileText, Cloud, CloudOff, Loader,
+  MessageCircle, Star,
 } from 'lucide-react';
 import type { View } from '../types';
 import type { SaveSyncStatus } from '../store';
@@ -58,10 +59,12 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'People',
     items: [
+      { id: 'people-dashboard',   label: 'People Dashboard',   icon: <Users size={14} /> },
       { id: 'updates',            label: '1:1 Briefings',      icon: <Bell size={14} />,                badge: c => c.pendingUpdates },
-      { id: 'first-team',         label: 'First Team',         icon: <Users size={14} /> },
+      { id: 'one-on-one',         label: '1:1 Notes',          icon: <MessageCircle size={14} /> },
+      { id: 'first-team',         label: 'First Team',         icon: <UserCog size={14} /> },
       { id: 'hard-conversations', label: 'Hard Conversations', icon: <MessageSquareWarning size={14} /> },
-      { id: 'direct-reports',     label: 'Direct Reports',     icon: <UserCog size={14} /> },
+      { id: 'direct-reports',     label: 'Direct Reports',     icon: <Star size={14} /> },
       { id: 'stakeholders',       label: 'Stakeholders',       icon: <Network size={14} /> },
       { id: 'personal-readme',    label: 'Personal README',    icon: <FileText size={14} /> },
     ],
@@ -89,21 +92,25 @@ const NAV_GROUPS: NavGroup[] = [
 
 // ─── Streak helper ────────────────────────────────────────────────────────────
 
-function getStreak(): number {
+function getStreak(): { count: number; isWelcomeBack: boolean } {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const last  = localStorage.getItem('adhd-streak-last');
-    const count = parseInt(localStorage.getItem('adhd-streak-count') ?? '0', 10);
+    const today     = new Date().toISOString().split('T')[0];
+    const last      = localStorage.getItem('adhd-streak-last');
+    const count     = parseInt(localStorage.getItem('adhd-streak-count') ?? '0', 10);
 
-    if (last === today) return count;
+    if (last === today) return { count, isWelcomeBack: false };
 
+    // Forgive up to 1 missed day — life happens
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-    const newCount  = last === yesterday ? count + 1 : 1;
+    const dayBefore = new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0];
+    const continuing = last === yesterday || last === dayBefore;
+    const isWelcomeBack = last === dayBefore; // skipped exactly one day
+    const newCount = continuing ? count + 1 : 1;
     localStorage.setItem('adhd-streak-last', today);
     localStorage.setItem('adhd-streak-count', String(newCount));
-    return newCount;
+    return { count: newCount, isWelcomeBack };
   } catch {
-    return 0;
+    return { count: 0, isWelcomeBack: false };
   }
 }
 
@@ -118,7 +125,7 @@ export function Sidebar({
   const toggleGroup = (label: string) =>
     setCollapsed(prev => { const n = new Set(prev); if (n.has(label)) n.delete(label); else n.add(label); return n; });
 
-  const [streak] = useState(() => getStreak());
+  const [{ count: streak, isWelcomeBack }] = useState(() => getStreak());
 
   const inner = (
     <aside className="w-[200px] shrink-0 flex flex-col h-full border-r border-[#2A2640] bg-[#1A1826]">
@@ -266,8 +273,14 @@ export function Sidebar({
           <div className="flex items-center gap-2 px-2.5 py-1.5 mb-1">
             <Flame size={13} className={streak >= 7 ? 'text-orange-400' : streak >= 3 ? 'text-amber-400' : 'text-gray-600'} />
             <span className="text-[12px] text-gray-600">
-              <span className={`font-bold ${streak >= 7 ? 'text-orange-400' : streak >= 3 ? 'text-amber-400' : 'text-gray-500'}`}>{streak}</span>
-              {' '}day streak
+              {isWelcomeBack ? (
+                <span className="text-emerald-400 font-bold">Welcome back</span>
+              ) : (
+                <>
+                  <span className={`font-bold ${streak >= 7 ? 'text-orange-400' : streak >= 3 ? 'text-amber-400' : 'text-gray-500'}`}>{streak}</span>
+                  {' '}day streak
+                </>
+              )}
             </span>
           </div>
         )}

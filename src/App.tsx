@@ -37,6 +37,7 @@ const StakeholderMapView = lazy(() => import('./components/StakeholderMapView').
 const DirectReportsView    = lazy(() => import('./components/DirectReportsView').then(m => ({ default: m.DirectReportsView })));
 const PersonalReadmeView   = lazy(() => import('./components/PersonalReadmeView').then(m => ({ default: m.PersonalReadmeView })));
 const OneOnOneView         = lazy(() => import('./components/OneOnOneView').then(m => ({ default: m.OneOnOneView })));
+const PeopleDashboardView  = lazy(() => import('./components/PeopleDashboardView').then(m => ({ default: m.PeopleDashboardView })));
 import { useAppStore } from './store';
 import type { View, Task, QuadrantId } from './types';
 import { parseTasksCSV } from './utils/export';
@@ -614,6 +615,19 @@ export default function App() {
               decisions={store.decisions}
               tasks={store.tasks}
               teamMembers={store.teamMembers}
+            />
+            </Suspense>
+          )}
+          {view === 'people-dashboard' && (
+            <Suspense fallback={<ViewSkeleton />}>
+            <PeopleDashboardView
+              teamMembers={store.teamMembers}
+              updatePeople={store.updatePeople}
+              oneOnOneNotes={store.oneOnOneNotes}
+              hardConversations={store.hardConversations}
+              commitments={store.commitments}
+              tasks={store.tasks}
+              onViewChange={setView}
             />
             </Suspense>
           )}
