@@ -51,7 +51,7 @@ interface FocusViewProps {
 
 // ─── Post-Timer Transition Modal ─────────────────────────────────────────────
 
-function PostTimerModal({ onClose }: { onClose: () => void }) {
+function PostTimerModal({ onClose, nextUp }: { onClose: () => void; nextUp?: string | null }) {
   const [note, setNote] = useState('');
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -65,6 +65,15 @@ function PostTimerModal({ onClose }: { onClose: () => void }) {
             <p className="text-sm font-black text-white">Session complete — nice work</p>
           </div>
           <p className="text-xs text-gray-500 mb-4">Quick check-in before your break.</p>
+          {nextUp && (
+            <div className="flex items-start gap-2 mb-4 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
+              <ChevronRight size={13} className="shrink-0 text-purple-400 mt-0.5" />
+              <div>
+                <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-0.5">Next up when you're back</p>
+                <p className="text-xs text-gray-300 leading-relaxed">{nextUp}</p>
+              </div>
+            </div>
+          )}
           <div className="space-y-3">
             <textarea
               autoFocus
@@ -94,8 +103,10 @@ function PostTimerModal({ onClose }: { onClose: () => void }) {
 
 // ─── Pomodoro Timer ───────────────────────────────────────────────────────────
 
-function PomodoroTimer({ taskTitle }: { taskTitle: string }) {
+function PomodoroTimer({ taskTitle, nextUpStep }: { taskTitle: string; nextUpStep?: string | null }) {
   const [presetIdx, setPresetIdx] = useState(2); // default: 25 min (index 2)
+  const [customMinutes, setCustomMinutes] = useState('');
+  const [customActive, setCustomActive] = useState(false);
   const preset = TIMER_PRESETS[presetIdx];
 
   const [isBreak,    setIsBreak]    = useState(false);
@@ -109,7 +120,8 @@ function PomodoroTimer({ taskTitle }: { taskTitle: string }) {
   const startedAtRef    = useRef<number | null>(null); // Date.now() when current segment began
   const segmentSecsRef  = useRef<number>(preset.work * 60); // remaining secs at last start/pause
 
-  const totalSeconds = isBreak ? preset.brk * 60 : preset.work * 60;
+  const customWork = customActive ? (parseInt(customMinutes, 10) || preset.work) : preset.work;
+  const totalSeconds = isBreak ? preset.brk * 60 : customWork * 60;
   const progress = 1 - secondsLeft / totalSeconds;
 
   const mins = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
@@ -195,10 +207,24 @@ function PomodoroTimer({ taskTitle }: { taskTitle: string }) {
 
   const changePreset = (idx: number) => {
     setPresetIdx(idx);
+    setCustomActive(false);
+    setCustomMinutes('');
     setRunning(false);
     startedAtRef.current = null;
     setIsBreak(false);
     const secs = TIMER_PRESETS[idx].work * 60;
+    segmentSecsRef.current = secs;
+    setSecondsLeft(secs);
+  };
+
+  const applyCustomMinutes = (raw: string) => {
+    const mins = parseInt(raw, 10);
+    if (isNaN(mins) || mins < 1 || mins > 180) return;
+    setCustomActive(true);
+    setRunning(false);
+    startedAtRef.current = null;
+    setIsBreak(false);
+    const secs = mins * 60;
     segmentSecsRef.current = secs;
     setSecondsLeft(secs);
   };
@@ -210,20 +236,37 @@ function PomodoroTimer({ taskTitle }: { taskTitle: string }) {
 
   return (
     <>
-      {showTransition && <PostTimerModal onClose={() => setShowTransition(false)} />}
+      {showTransition && <PostTimerModal onClose={() => setShowTransition(false)} nextUp={nextUpStep} />}
       <div className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-[#1E1C28] border border-[#2A2640]">
-        {/* Timer presets */}
+        {/* Timer presets + custom input */}
         <div className="flex items-center gap-1 w-full">
           {TIMER_PRESETS.map((p, i) => (
             <button key={p.label} onClick={() => changePreset(i)}
               className={`flex-1 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                presetIdx === i
+                !customActive && presetIdx === i
                   ? 'bg-purple-600/40 text-purple-200 border border-purple-500/40'
                   : 'text-gray-600 hover:text-gray-400 hover:bg-white/5'
               }`}>
               {p.label}m
             </button>
           ))}
+          {/* Custom duration input */}
+          <div className={`flex items-center rounded-lg border transition-all overflow-hidden ${
+            customActive ? 'border-purple-500/40 bg-purple-600/20' : 'border-[#2A2640] bg-[#1E1C28]'
+          }`}>
+            <input
+              type="number"
+              min={1}
+              max={180}
+              value={customMinutes}
+              onChange={e => setCustomMinutes(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && applyCustomMinutes(customMinutes)}
+              onBlur={() => customMinutes && applyCustomMinutes(customMinutes)}
+              placeholder="?"
+              className="w-8 py-1 text-center text-[11px] font-bold bg-transparent text-gray-400 placeholder-gray-700 focus:outline-none focus:text-purple-200 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            <span className="text-[11px] text-gray-700 pr-1">m</span>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -693,7 +736,7 @@ export function FocusView({
               <div className="flex flex-col sm:flex-row gap-4 flex-1 min-h-0">
                 {/* Timer column */}
                 <div className="w-full sm:w-[200px] shrink-0 space-y-4">
-                  <PomodoroTimer taskTitle={selectedTask.title} />
+                  <PomodoroTimer taskTitle={selectedTask.title} nextUpStep={steps.find(s => !s.done)?.text} />
 
                   {/* ADHD strategy tip */}
                   <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
@@ -766,8 +809,8 @@ export function FocusView({
                   {steps.length === 0 && !aiLoading && (
                     <div className="py-6 text-center">
                       <Sparkles size={24} className="text-gray-700 mx-auto mb-2" />
-                      <p className="text-xs text-gray-600">No steps yet.</p>
-                      <p className="text-xs text-gray-700 mt-0.5">Hit "AI Breakdown" or add steps manually below.</p>
+                      <p className="text-xs text-gray-600">No steps yet — that's fine.</p>
+                      <p className="text-xs text-gray-700 mt-0.5">Hit "AI Breakdown" or add the first step below.</p>
                     </div>
                   )}
 

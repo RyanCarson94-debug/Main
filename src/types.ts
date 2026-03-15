@@ -238,6 +238,7 @@ export interface Task {
   estimateMinutes?: number;
   tags: string[];
   commitmentNote?: string;
+  sourceNote?: string; // e.g. "1:1 · Kwame" — displayed as a chip, never appended to title
   createdAt: string;
   completedAt?: string;
   recurrence?: RecurrenceRule;

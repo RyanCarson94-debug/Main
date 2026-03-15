@@ -402,6 +402,10 @@ export default function App() {
               decisions={store.decisions}
               commitments={store.commitments}
               dumpInboxCount={taskCounts.dumpInbox}
+              dumpStaleCount={(() => {
+                const fiveDaysAgo = new Date(Date.now() - 5 * 86400000).toISOString();
+                return store.dumpItems.filter(d => d.status === 'inbox' && d.createdAt < fiveDaysAgo).length;
+              })()}
               dumpNudgeItem={(() => {
                 const threeDaysAgo = new Date(Date.now() - 3 * 86400000).toISOString();
                 const old = store.dumpItems.filter(d => d.status === 'inbox' && d.createdAt < threeDaysAgo);
@@ -701,7 +705,7 @@ export default function App() {
               onAddNote={store.addOneOnOneNote}
               onDeleteNote={store.deleteOneOnOneNote}
               initialPersonId={oneOnOnePersonId}
-              onAddTask={title => store.addTask({ title, quadrant: 'do-now', priority: 'medium', column: 'backlog', tags: [] })}
+              onAddTask={(title, sourceNote) => store.addTask({ title, quadrant: 'do-now', priority: 'medium', column: 'backlog', tags: [], sourceNote })}
             />
             </Suspense>
           )}

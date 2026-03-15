@@ -3,7 +3,7 @@ import { Plus, Upload, Download, CalendarDays } from 'lucide-react';
 import type { Task, KanbanColumnId } from '../types';
 import { COLUMNS } from '../types';
 import { TaskCard } from './TaskCard';
-import { exportTasksCSV, exportTasksICS } from '../utils/export';
+import { exportTasksCSV, exportTasksICS, exportAllDataJSON } from '../utils/export';
 
 interface KanbanBoardProps {
   tasks: Task[];
@@ -85,6 +85,13 @@ export function KanbanBoard({ tasks, onAddTask, onEditTask, onDeleteTask, onMove
             title="Export tasks with due dates to calendar (.ics)"
           >
             <CalendarDays size={13} /> Calendar
+          </button>
+          <button
+            onClick={() => exportAllDataJSON()}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#2A2640] text-gray-500 hover:text-emerald-400 hover:border-emerald-500/30 text-xs font-semibold transition-colors"
+            title="Export all data as JSON backup"
+          >
+            <Download size={13} /> Backup
           </button>
           <button
             onClick={onAddTask}

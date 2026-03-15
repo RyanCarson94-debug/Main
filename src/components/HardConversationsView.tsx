@@ -168,7 +168,7 @@ function ConvCard({ conv, onClick, onDelete }: {
             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${statusCfg.bg} ${statusCfg.color} ${statusCfg.border}`}>
               {statusCfg.label}
             </span>
-            {isOverdue && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">OVERDUE</span>}
+            {isOverdue && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">Needs attention</span>}
             {isAvoiding && (
               <button
                 onClick={e => { e.stopPropagation(); setShowMicroPrompt(p => !p); setTimeout(() => microRef.current?.focus(), 50); }}
@@ -203,7 +203,7 @@ function ConvCard({ conv, onClick, onDelete }: {
             <button
               onClick={() => { setShowMicroPrompt(false); setMicroNote(''); onClick(); }}
               className="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 text-[11px] font-bold hover:bg-rose-500/30 transition-colors">
-              Open conversation →
+              Continue when ready →
             </button>
             <button onClick={() => { setShowMicroPrompt(false); setMicroNote(''); }}
               className="text-[11px] text-gray-600 hover:text-gray-400 transition-colors">
@@ -353,9 +353,9 @@ export function HardConversationsView({
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <MessageSquareWarning size={40} className="text-gray-700 mb-3" />
             <p className="text-gray-500 font-semibold">
-              {tab === 'planning' ? 'No conversations being planned' :
-               tab === 'ready'    ? 'None marked as ready yet' :
-                                    'No conversations logged yet'}
+              {tab === 'planning' ? 'Nothing in progress right now' :
+               tab === 'ready'    ? 'None ready yet — keep prepping' :
+                                    'None logged yet — that\'s okay'}
             </p>
             {tab === 'planning' && (
               <button onClick={() => setShowModal(true)}
@@ -438,7 +438,7 @@ function ConversationDetail({ conv, onBack, onUpdate, onEdit }: {
               <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg border ${statusCfg.bg} ${statusCfg.color} ${statusCfg.border}`}>
                 {statusCfg.label}
               </span>
-              {isOverdue && <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/30">OVERDUE</span>}
+              {isOverdue && <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/30">Needs attention</span>}
             </div>
             <h2 className="text-xl font-black text-white leading-tight">{conv.title}</h2>
             <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">

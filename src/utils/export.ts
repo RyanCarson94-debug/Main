@@ -146,6 +146,53 @@ function today() {
   return new Date().toISOString().split('T')[0];
 }
 
+// ─── Full data export (JSON safety valve) ────────────────────────────────────
+
+const EXPORT_KEYS = [
+  'adhd-leader-tasks',
+  'adhd-leader-okrs',
+  'adhd-leader-swot',
+  'adhd-leader-team',
+  'adhd-leader-update-people',
+  'adhd-leader-updates',
+  'adhd-leader-focus-map',
+  'adhd-leader-dump',
+  'adhd-leader-decisions',
+  'adhd-leader-commitments',
+  'adhd-leader-weekly-reviews',
+  'adhd-leader-north-star',
+  'adhd-leader-stakeholders',
+  'adhd-leader-direct-report-profiles',
+  'adhd-leader-meetings',
+  'adhd-leader-projects',
+  'adhd-leader-hard-conversations',
+  'adhd-leader-quarterly-plans',
+  'adhd-leader-role-clarity',
+  'adhd-leader-role-charters',
+  'adhd-leader-personal-readme',
+  'adhd-leader-one-on-one-notes',
+];
+
+export function exportAllDataJSON() {
+  const snapshot: Record<string, unknown> = {
+    exportedAt: new Date().toISOString(),
+    version: 1,
+  };
+  for (const key of EXPORT_KEYS) {
+    try {
+      const raw = localStorage.getItem(key);
+      snapshot[key] = raw ? JSON.parse(raw) : null;
+    } catch {
+      snapshot[key] = null;
+    }
+  }
+  downloadFile(
+    JSON.stringify(snapshot, null, 2),
+    `adhd-leader-backup-${today()}.json`,
+    'application/json',
+  );
+}
+
 // ─── ICS / iCalendar export ───────────────────────────────────────────────────
 
 function icsLine(text: string): string {

@@ -47,9 +47,15 @@ export const TaskCard = memo(function TaskCard({ task, onDelete, onMoveColumn, o
       </div>
 
       {/* Title */}
-      <p className={`text-sm leading-snug mb-2 ${isDone ? 'line-through text-gray-600' : 'text-gray-100'}`}>
+      <p className={`text-sm leading-snug mb-1 ${isDone ? 'line-through text-gray-600' : 'text-gray-100'}`}>
         {task.title}
       </p>
+      {/* Source note chip — e.g. "1:1 · Kwame" */}
+      {task.sourceNote && (
+        <span className="text-[10px] font-medium text-sky-400/70 bg-sky-500/10 border border-sky-500/15 px-1.5 py-0.5 rounded-md mb-2 inline-block">
+          {task.sourceNote}
+        </span>
+      )}
 
       {/* Description */}
       {!compact && task.description && (

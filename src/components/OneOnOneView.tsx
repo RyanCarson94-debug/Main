@@ -93,7 +93,7 @@ function OneOnOnePrepPanel({
   onBack: () => void;
   onSaveNote: (n: Omit<OneOnOneNote, 'id' | 'createdAt'>) => void;
   onDeleteNote: (id: string) => void;
-  onAddTask?: (title: string) => void;
+  onAddTask?: (title: string, sourceNote?: string) => void;
   autoScroll?: boolean;
 }) {
   const today = new Date().toISOString().split('T')[0];
@@ -152,7 +152,7 @@ function OneOnOnePrepPanel({
       notes:      notes  || undefined,
       actionItems: actionItems || undefined,
     });
-    // AI extraction of leader's action items — auto-tagged with 1:1 source
+    // AI extraction of leader's action items — sourceNote stored separately, never appended to title
     if (onAddTask && actionItems.trim()) {
       setExtractingTasks(true);
       extractMyActionItems(
@@ -160,9 +160,7 @@ function OneOnOnePrepPanel({
         person.name,
         (items) => {
           if (items.length > 0) {
-            // Tag each item with source context
-            const tagged = items.map(t => `${t} [1:1 with ${person.name}]`);
-            setMyTaskSuggestions(tagged);
+            setMyTaskSuggestions(items);
           }
           setExtractingTasks(false);
         },
@@ -293,15 +291,7 @@ function OneOnOnePrepPanel({
           />
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={!agenda && !notes && !actionItems}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm transition-all disabled:opacity-40"
-        >
-          {saved ? <><CheckCircle2 size={14} /> Saved!</> : <><Save size={14} /> Save 1:1 — {today}</>}
-        </button>
-
-        {/* Extracting action items loading state */}
+        {/* Extracting action items loading state — shown ABOVE save so it's always visible */}
         {extractingTasks && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
             <Loader2 size={11} className="text-emerald-400 animate-spin shrink-0" />
@@ -309,7 +299,7 @@ function OneOnOnePrepPanel({
           </div>
         )}
 
-        {/* My action items → tasks prompt */}
+        {/* My action items → tasks prompt — rendered above Save so suggestions are never below fold */}
         {myTaskSuggestions.length > 0 && onAddTask && (
           <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 space-y-2">
             <p className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
@@ -321,7 +311,7 @@ function OneOnOnePrepPanel({
                   <span className="flex-1 text-xs text-gray-300 truncate">{t}</span>
                   <button
                     onClick={() => {
-                      onAddTask(t);
+                      onAddTask(t, `1:1 · ${person.name}`);
                       setMyTaskSuggestions(prev => prev.filter((_, j) => j !== i));
                     }}
                     className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-600/20 text-emerald-400 text-[11px] font-bold hover:bg-emerald-600/30 transition-colors">
@@ -336,6 +326,14 @@ function OneOnOnePrepPanel({
             </button>
           </div>
         )}
+
+        <button
+          onClick={handleSave}
+          disabled={!agenda && !notes && !actionItems}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm transition-all disabled:opacity-40"
+        >
+          {saved ? <><CheckCircle2 size={14} /> Saved!</> : <><Save size={14} /> Save 1:1 — {today}</>}
+        </button>
 
         {/* Past notes for this person */}
         {lastNote && (
@@ -395,7 +393,7 @@ interface OneOnOneViewProps {
   teamMembers:         FirstTeamMember[];
   directReportProfiles: DirectReportProfile[];
   updatePeople:        UpdatePerson[];
-  onAddTask?:          (title: string) => void;
+  onAddTask?:          (title: string, sourceNote?: string) => void;
   updates:             Update[];
   hardConversations:   HardConversation[];
   oneOnOneNotes:       OneOnOneNote[];
@@ -512,7 +510,7 @@ export function OneOnOneView({
         {people.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <Users size={40} className="text-gray-700 mb-3" />
-            <p className="text-gray-500 font-semibold">No people yet</p>
+            <p className="text-gray-500 font-semibold">No one here yet</p>
             <p className="text-gray-600 text-xs mt-1 max-w-xs">
               Add your team in <span className="text-violet-400">First Team</span> or <span className="text-violet-400">1:1 Briefings</span> — they'll appear here automatically.
             </p>

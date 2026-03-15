@@ -24,6 +24,7 @@ interface DashboardViewProps {
   decisions:          Decision[];
   commitments:        Commitment[];
   dumpInboxCount:     number;
+  dumpStaleCount?:    number; // items in inbox older than 5 days
   dumpNudgeItem?:     string;
   delegationAlerts:   number;
   onViewChange:       (view: View) => void;
@@ -128,9 +129,16 @@ function DashTaskCard({ task, onClick, urgent = false, onFocusNow, onComplete, c
         <button onClick={onClick} className="flex-1 text-left px-3 py-2.5 min-w-0">
           <div className="flex items-center gap-2.5">
             <span className={`w-2 h-2 rounded-full ${p.dot} shrink-0`} />
-            <p className={`flex-1 text-sm truncate group-hover:text-white transition-colors ${urgent ? 'text-red-200' : 'text-gray-200'}`}>
-              {task.title}
-            </p>
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm truncate group-hover:text-white transition-colors ${urgent ? 'text-red-200' : 'text-gray-200'}`}>
+                {task.title}
+              </p>
+              {task.sourceNote && (
+                <span className="text-[10px] font-medium text-sky-400/70 bg-sky-500/10 border border-sky-500/15 px-1.5 py-0.5 rounded-md mt-0.5 inline-block">
+                  {task.sourceNote}
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-1.5 shrink-0">
               {energy && <span className="text-[11px]">{energy.emoji}</span>}
               {task.column === 'in-progress' && (
@@ -188,7 +196,7 @@ function NeedsAttentionSection({ overdueTasks, delegationAlerts, pendingUpdatesC
 
   const alerts: { label: string; color: keyof typeof ALERT_COLORS; onClick: () => void }[] = [];
   if (overdueTasks.length > 0) alerts.push({
-    label: `${overdueTasks.length} task${overdueTasks.length > 1 ? 's' : ''} waiting on you`,
+    label: `${overdueTasks.length} task${overdueTasks.length > 1 ? 's' : ''} ready to move`,
     color: 'red', onClick: () => onViewChange('kanban'),
   });
   if (delegationAlerts > 0) alerts.push({
@@ -835,8 +843,8 @@ function StartMyDayModal({
                 <div className="space-y-2 mb-4">
                   {overdueTasks > 0 && (
                     <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20">
-                      <span className="text-sm text-red-300">{overdueTasks} overdue task{overdueTasks > 1 ? 's' : ''}</span>
-                      <span className="text-[10px] font-bold text-red-400 uppercase tracking-wide">needs action</span>
+                      <span className="text-sm text-red-300">{overdueTasks} task{overdueTasks > 1 ? 's' : ''} ready to move</span>
+                      <span className="text-[10px] font-bold text-red-400 uppercase tracking-wide">today</span>
                     </div>
                   )}
                   {dumpInboxCount > 0 && (
@@ -847,8 +855,8 @@ function StartMyDayModal({
                   )}
                   {delegationAlerts > 0 && (
                     <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                      <span className="text-sm text-amber-300">{delegationAlerts} delegation{delegationAlerts > 1 ? 's' : ''} need follow-up</span>
-                      <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wide">overdue</span>
+                      <span className="text-sm text-amber-300">{delegationAlerts} delegation{delegationAlerts > 1 ? 's' : ''} ready to close</span>
+                      <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wide">check in</span>
                     </div>
                   )}
                 </div>
@@ -1029,11 +1037,67 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
   );
 }
 
+// ─── Hard Day Mode Banner ─────────────────────────────────────────────────────
+
+function HardDayBanner({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div className="relative rounded-2xl border border-gray-500/20 bg-gradient-to-br from-gray-500/10 to-transparent overflow-hidden">
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-gray-500/60 via-violet-500/30 to-gray-500/60" />
+      <div className="px-4 py-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-lg">🪫</span>
+              <p className="text-sm font-black text-white">It's late and your energy is low.</p>
+            </div>
+            <p className="text-xs text-gray-400 leading-relaxed mb-3">
+              You've done enough today. One more small thing if you want it — then rest.
+              The list will be here tomorrow.
+            </p>
+            <button onClick={onDismiss}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-600/30 hover:bg-gray-600/40 text-gray-300 text-xs font-bold transition-colors border border-gray-500/20">
+              <CheckCircle2 size={12} /> That's enough for today
+            </button>
+          </div>
+          <button onClick={onDismiss} className="text-gray-700 hover:text-gray-400 transition-colors shrink-0 mt-0.5">
+            <X size={14} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Completion Celebration Overlay ──────────────────────────────────────────
+
+function CompletionCelebration({ title, tier }: { title: string; tier: 'small' | 'medium' | 'big' }) {
+  const configs = {
+    small:  { emoji: '✓',  text: 'Done.',              sub: '',                              bg: 'from-emerald-500/20', border: 'border-emerald-500/30' },
+    medium: { emoji: '⚡', text: 'Done.',              sub: 'That one was waiting a while.', bg: 'from-violet-500/20',  border: 'border-violet-500/30'  },
+    big:    { emoji: '🎯', text: 'You moved this one.', sub: 'It was here for a week. It\'s gone now.', bg: 'from-amber-500/20', border: 'border-amber-500/30' },
+  };
+  const cfg = configs[tier];
+  return (
+    <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-full px-5 py-3.5 rounded-2xl
+      bg-gradient-to-r ${cfg.bg} to-transparent border ${cfg.border}
+      shadow-2xl backdrop-blur-sm
+      animate-in fade-in slide-in-from-bottom-4 duration-300`}>
+      <div className="flex items-center gap-3">
+        <span className="text-xl shrink-0">{cfg.emoji}</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-white truncate">{title}</p>
+          <p className="text-xs text-gray-400">{cfg.text}{cfg.sub && ` ${cfg.sub}`}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function DashboardView({
   tasks, okrs, updates, projects, meetings, quarterlyPlans, hardConversations, decisions, commitments,
-  dumpInboxCount, dumpNudgeItem, delegationAlerts, onViewChange, onEditTask, onSelectProject,
+  dumpInboxCount, dumpStaleCount = 0, dumpNudgeItem, delegationAlerts, onViewChange, onEditTask, onSelectProject,
   onFocusNow, onCompleteTask, onQuickDecision,
 }: DashboardViewProps) {
   const [reportText,    setReportText]    = useState('');
@@ -1099,6 +1163,22 @@ export function DashboardView({
 
   // Brain dump nudge dismissal
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
+  // Hard day mode banner: low energy + overdue >= 2 + after 4pm
+  const [hardDayDismissed, setHardDayDismissed] = useState(() => {
+    try { return sessionStorage.getItem('adhd-hard-day-dismissed') === '1'; } catch { return false; }
+  });
+  const dismissHardDay = () => {
+    setHardDayDismissed(true);
+    try { sessionStorage.setItem('adhd-hard-day-dismissed', '1'); } catch { /* ignore */ }
+  };
+  // Brain dump triage nudge: shown when there are stale items (> 5 days old) and count >= 3
+  const [triageNudgeDismissed, setTriageNudgeDismissed] = useState(() => {
+    try { return sessionStorage.getItem('adhd-triage-nudge-dismissed') === '1'; } catch { return false; }
+  });
+  const dismissTriageNudge = () => {
+    setTriageNudgeDismissed(true);
+    try { sessionStorage.setItem('adhd-triage-nudge-dismissed', '1'); } catch { /* ignore */ }
+  };
 
   // 7-day energy trend (hidden by default, tap to reveal)
   const energyTrend = useMemo(() => getLast7DaysEnergy(), []);
@@ -1117,10 +1197,20 @@ export function DashboardView({
     try { localStorage.setItem('adhd-decision-snooze', JSON.stringify(next)); } catch { /* ignore */ }
   };
 
-  // Task micro-reward — track completing task id for flash animation
+  // Task micro-reward — tiered completion celebration
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
+  const [completionCelebration, setCompletionCelebration] = useState<{ title: string; tier: 'small' | 'medium' | 'big' } | null>(null);
   const handleCompleteTask = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
     setCompletingTaskId(taskId);
+    if (task) {
+      const ageDays = task.createdAt
+        ? Math.floor((Date.now() - new Date(task.createdAt).getTime()) / 86400000)
+        : 0;
+      const tier: 'small' | 'medium' | 'big' = ageDays >= 7 ? 'big' : ageDays >= 3 ? 'medium' : 'small';
+      setTimeout(() => setCompletionCelebration({ title: task.title, tier }), 200);
+      setTimeout(() => setCompletionCelebration(null), tier === 'big' ? 3500 : tier === 'medium' ? 2500 : 1500);
+    }
     setTimeout(() => {
       onCompleteTask?.(taskId);
       setCompletingTaskId(null);
@@ -1203,6 +1293,28 @@ export function DashboardView({
   const dismissCarryForward = () => {
     setCarryForwardDismissed(true);
     try { sessionStorage.setItem('adhd-cf-dismissed', '1'); } catch { /* ignore */ }
+  };
+
+  // Monday carry-forward: surface #1 priority written during Friday close-out
+  const mondayCarryForward = useMemo(() => {
+    try {
+      if (new Date().getDay() !== 1) return null; // only on Mondays
+      // Find last Friday's date string
+      const d = new Date();
+      d.setDate(d.getDate() - 3); // Monday - 3 = Friday
+      const fridayStr = d.toISOString().split('T')[0];
+      const raw = localStorage.getItem(`adhd-friday-close-${fridayStr}`);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { monday?: string };
+      return parsed.monday?.trim() || null;
+    } catch { return null; }
+  }, []);
+  const [mondayCFDismissed, setMondayCFDismissed] = useState(() => {
+    try { return sessionStorage.getItem('adhd-monday-cf-dismissed') === '1'; } catch { return false; }
+  });
+  const dismissMondayCF = () => {
+    setMondayCFDismissed(true);
+    try { sessionStorage.setItem('adhd-monday-cf-dismissed', '1'); } catch { /* ignore */ }
   };
 
   // Streak (for milestone reinforcement — show once per milestone)
@@ -1443,6 +1555,10 @@ export function DashboardView({
 
   return (
     <div className="h-full overflow-y-auto space-y-5 pb-4">
+      {/* ── Tiered completion celebration overlay ── */}
+      {completionCelebration && (
+        <CompletionCelebration title={completionCelebration.title} tier={completionCelebration.tier} />
+      )}
       {/* ── Header ── */}
       <div className="flex items-end justify-between">
         <div>
@@ -1608,6 +1724,20 @@ export function DashboardView({
         </div>
       )}
 
+      {/* ── Monday carry-forward: #1 priority from Friday close-out ── */}
+      {mondayCarryForward && !mondayCFDismissed && (
+        <div className="flex items-start gap-3 px-4 py-3 rounded-2xl bg-violet-500/10 border border-violet-500/25">
+          <Sun size={14} className="text-violet-400 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-black text-violet-400 uppercase tracking-widest mb-0.5">Your #1 from Friday</p>
+            <p className="text-xs text-violet-200 leading-relaxed">{mondayCarryForward}</p>
+          </div>
+          <button onClick={dismissMondayCF} className="text-gray-700 hover:text-gray-400 transition-colors shrink-0">
+            <X size={13} />
+          </button>
+        </div>
+      )}
+
       {/* ── Carry-forward from yesterday ── */}
       {carryForward && !carryForwardDismissed && (
         <div className="flex items-start gap-3 px-4 py-3 rounded-2xl bg-sky-500/10 border border-sky-500/20">
@@ -1620,6 +1750,11 @@ export function DashboardView({
             <X size={13} />
           </button>
         </div>
+      )}
+
+      {/* ── Hard day mode banner ── */}
+      {energyLevel === 'low' && overdueTasks.length >= 2 && hour >= 16 && !hardDayDismissed && (
+        <HardDayBanner onDismiss={dismissHardDay} />
       )}
 
       {/* ── Daily Brief (always visible) ── */}
@@ -1824,6 +1959,32 @@ export function DashboardView({
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Brain Dump triage nudge: stale items > 5 days old */}
+          {dumpStaleCount >= 3 && !triageNudgeDismissed && (
+            <div className="flex items-start gap-3 px-3 py-3 rounded-xl bg-purple-500/8 border border-purple-500/20">
+              <BrainCircuit size={14} className="text-purple-400 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-bold text-purple-300 mb-0.5">
+                  {dumpStaleCount} brain dump items have been waiting 5+ days
+                </p>
+                <p className="text-[10px] text-gray-500 mb-2">5 minutes of triage now prevents weeks of backlog guilt.</p>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => onViewChange('dump')}
+                    className="px-2.5 py-1 rounded-lg bg-purple-500/20 text-purple-300 text-[11px] font-bold hover:bg-purple-500/30 transition-colors">
+                    Triage now
+                  </button>
+                  <button onClick={dismissTriageNudge}
+                    className="px-2.5 py-1 rounded-lg bg-white/[0.03] text-gray-500 text-[11px] hover:text-gray-400 transition-colors">
+                    Later
+                  </button>
+                </div>
+              </div>
+              <button onClick={dismissTriageNudge} className="text-gray-700 hover:text-gray-400 transition-colors shrink-0">
+                <X size={13} />
+              </button>
             </div>
           )}
 

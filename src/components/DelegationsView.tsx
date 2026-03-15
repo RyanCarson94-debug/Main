@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { CheckCircle2, Clock, AlertTriangle, UserCheck, Mail, Calendar, RotateCcw } from 'lucide-react';
 import type { Task } from '../types';
 
@@ -33,11 +33,18 @@ const STATUS_CONFIG = {
 
 export function DelegationsView({ tasks, onOpenDelegationModal, onMarkFollowUpDone }: DelegationsViewProps) {
   const [filter, setFilter] = useState<Filter>('all');
+  const [personFilter, setPersonFilter] = useState<string | null>(null);
   const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
 
   const delegated = tasks.filter(t => t.delegatedTo);
 
+  const people = useMemo(
+    () => Array.from(new Set(delegated.map(t => t.delegatedTo).filter(Boolean) as string[])).sort(),
+    [delegated],
+  );
+
   const filtered = delegated.filter(t => {
+    if (personFilter && t.delegatedTo !== personFilter) return false;
     const status = getFollowUpStatus(t);
     if (filter === 'needs-followup') return status !== 'done' && status !== 'no-date';
     if (filter === 'overdue') return status === 'overdue' || status === 'today';
@@ -79,6 +86,35 @@ export function DelegationsView({ tasks, onOpenDelegationModal, onMarkFollowUpDo
           </div>
         ))}
       </div>
+
+      {/* Person filter chips */}
+      {people.length > 1 && (
+        <div className="flex gap-2 mb-3 flex-wrap">
+          <button
+            onClick={() => setPersonFilter(null)}
+            className={`text-xs font-semibold px-3 py-1 rounded-full border transition-all ${
+              personFilter === null
+                ? 'bg-white/10 border-white/20 text-white'
+                : 'border-[#2A2640] text-gray-500 hover:text-gray-300 hover:border-gray-600'
+            }`}
+          >
+            Everyone
+          </button>
+          {people.map(p => (
+            <button
+              key={p}
+              onClick={() => setPersonFilter(personFilter === p ? null : p)}
+              className={`text-xs font-semibold px-3 py-1 rounded-full border transition-all ${
+                personFilter === p
+                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+                  : 'border-[#2A2640] text-gray-500 hover:text-gray-300 hover:border-gray-600'
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Filter tabs */}
       <div className="flex gap-2 mb-4">
