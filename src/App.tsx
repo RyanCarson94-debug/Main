@@ -13,7 +13,7 @@ import { UpdatesView } from './components/UpdatesView';
 import { FocusView } from './components/FocusView';
 import { BrainDumpView } from './components/BrainDumpView';
 import { LoginView } from './components/LoginView';
-import { DashboardView } from './components/DashboardView';
+import { DashboardView, FridayCloseModal } from './components/DashboardView';
 import { DecisionLogView } from './components/DecisionLogView';
 import { QuickCapture, QuickCaptureButton } from './components/QuickCapture';
 import { ViewSkeleton } from './components/ViewSkeleton';
@@ -137,6 +137,14 @@ export default function App() {
   const [loopCelebration, setLoopCelebration] = useState<string | null>(null);
   const [focusInitialTaskId, setFocusInitialTaskId] = useState<string | undefined>(undefined);
   const [oneOnOnePersonId, setOneOnOnePersonId] = useState<string | undefined>(undefined);
+  const [showFridayCloseGlobal, setShowFridayCloseGlobal] = useState(false);
+  const [fridayCloseDoneToday, setFridayCloseDoneToday] = useState(() => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const val = localStorage.getItem(`adhd-friday-close-${today}`);
+      return val === '1';
+    } catch { return false; }
+  });
   const csvImportRef = useRef<HTMLInputElement>(null);
 
   const store = useAppStore();
@@ -339,6 +347,32 @@ export default function App() {
             </button>
           </div>
         </div>
+
+        {/* Friday close-out sticky banner — global, follows user across all views */}
+        {(() => {
+          const now = new Date();
+          const isFriday = now.getDay() === 5;
+          const isAfternoon = now.getHours() >= 15;
+          return isFriday && isAfternoon && !fridayCloseDoneToday && !showFridayCloseGlobal;
+        })() && (
+          <div className="shrink-0 flex items-center justify-between px-5 py-2 bg-violet-600/15 border-b border-violet-500/20">
+            <p className="text-xs text-violet-300 flex items-center gap-2">
+              <span>📅</span> Friday afternoon — 60 seconds to close out the week.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowFridayCloseGlobal(true)}
+                className="text-xs font-bold text-white px-3 py-1 rounded-lg bg-violet-600 hover:bg-violet-500 transition-colors">
+                Close the week
+              </button>
+              <button
+                onClick={() => setFridayCloseDoneToday(true)}
+                className="text-xs text-violet-400 hover:text-violet-300 px-2">
+                Later
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Notification banner */}
         {notifBanner && (
@@ -667,6 +701,7 @@ export default function App() {
               onAddNote={store.addOneOnOneNote}
               onDeleteNote={store.deleteOneOnOneNote}
               initialPersonId={oneOnOnePersonId}
+              onAddTask={title => store.addTask({ title, quadrant: 'do-now', priority: 'medium', column: 'backlog', tags: [] })}
             />
             </Suspense>
           )}
@@ -674,6 +709,20 @@ export default function App() {
           </ViewErrorBoundary>
         </div>
       </main>
+
+      {/* Global Friday close-out modal */}
+      {showFridayCloseGlobal && (
+        <FridayCloseModal
+          onClose={() => setShowFridayCloseGlobal(false)}
+          onDone={() => {
+            setFridayCloseDoneToday(true);
+            try {
+              const today = new Date().toISOString().split('T')[0];
+              localStorage.setItem(`adhd-friday-close-${today}`, '1');
+            } catch { /* ignore */ }
+          }}
+        />
+      )}
 
       {/* Global overlays */}
       <QuickCaptureButton onClick={() => setShowQuickCapture(true)} />

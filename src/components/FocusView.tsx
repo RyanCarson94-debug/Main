@@ -128,12 +128,38 @@ function PomodoroTimer({ taskTitle }: { taskTitle: string }) {
 
   useEffect(() => {
     if (running) {
+      // Request notification permission when starting timer
+      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {/* ignore */});
+      }
       intervalRef.current = setInterval(tick, 1000);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [running, tick]);
+
+  // Update tab title with countdown while running
+  useEffect(() => {
+    if (running) {
+      document.title = `${mins}:${secs} ${isBreak ? '☕ Break' : '⚡ Focus'} — ADHD Leader`;
+    } else {
+      document.title = 'ADHD Leader';
+    }
+    return () => { document.title = 'ADHD Leader'; };
+  }, [running, mins, secs, isBreak]);
+
+  // Fire browser notification when session ends
+  useEffect(() => {
+    if (!running && sessions > 0 && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      new Notification(isBreak ? '⚡ Break over — back to focus!' : '☕ Focus session done — take a break!', {
+        body: isBreak ? 'Ready to get back into it?' : `Session ${sessions} complete. Good work.`,
+        icon: '/favicon.ico',
+        silent: false,
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessions]);
 
   const reset = () => {
     setRunning(false);

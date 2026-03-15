@@ -21,7 +21,7 @@ const STATUS_CONFIG: Record<DumpItemStatus, { label: string; color: string; bg: 
 
 interface BrainDumpViewProps {
   items: DumpItem[];
-  onAdd: (content: string) => void;
+  onAdd: (content: string, isPersonal?: boolean) => void;
   onUpdate: (id: string, updates: Partial<DumpItem>) => void;
   onDelete: (id: string) => void;
   onSetStatus: (id: string, status: DumpItemStatus) => void;
@@ -160,7 +160,8 @@ function DumpCard({
           {statusCfg.icon}
           {statusCfg.label}
         </span>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
+          {item.isPersonal && <span className="text-[11px]" title="Personal">🏠</span>}
           <span className="text-[11px] text-gray-700">{date}</span>
           <button onClick={onDelete} className="p-1 rounded text-gray-700 hover:text-red-400 hover:bg-red-500/10 transition-colors">
             <Trash2 size={12} />
@@ -249,6 +250,8 @@ export function BrainDumpView({
   const [aiError, setAiError] = useState<string | null>(null);
   const [showDone, setShowDone] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [personalMode, setPersonalMode] = useState(false);
+  const [scopeFilter, setScopeFilter] = useState<'all' | 'work' | 'personal'>('all');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-focus capture area on mount
@@ -264,7 +267,7 @@ export function BrainDumpView({
   const capture = () => {
     const lines = input.split('\n').map(l => l.trim()).filter(Boolean);
     if (lines.length === 0) return;
-    lines.forEach(line => onAdd(line));
+    lines.forEach(line => onAdd(line, personalMode || undefined));
     setInput('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
     setTab('inbox');
@@ -295,9 +298,14 @@ export function BrainDumpView({
     );
   };
 
-  const inbox = items.filter(i => i.status === 'inbox');
-  const ideas = items.filter(i => i.status === 'idea');
-  const done = items.filter(i => i.status === 'task' || i.status === 'archived');
+  const applyScope = (list: DumpItem[]) =>
+    scopeFilter === 'work'     ? list.filter(i => !i.isPersonal) :
+    scopeFilter === 'personal' ? list.filter(i =>  i.isPersonal) :
+    list;
+
+  const inbox = applyScope(items.filter(i => i.status === 'inbox'));
+  const ideas = applyScope(items.filter(i => i.status === 'idea'));
+  const done  = applyScope(items.filter(i => i.status === 'task' || i.status === 'archived'));
   const untriaged = inbox.filter(i => !i.aiSuggestion).length;
 
   const activeList = tab === 'inbox' ? inbox : tab === 'ideas' ? ideas : done;
@@ -360,12 +368,26 @@ export function BrainDumpView({
           style={{ minHeight: '80px' }}
         />
         <div className="flex items-center justify-between px-4 pb-3">
-          <p className="text-[11px] text-gray-700">
-            {input.trim()
-              ? `${input.split('\n').filter(l => l.trim()).length} item${input.split('\n').filter(l => l.trim()).length !== 1 ? 's' : ''} · ⌘↵ to capture`
-              : 'Each line becomes a separate item'
-            }
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-[11px] text-gray-700">
+              {input.trim()
+                ? `${input.split('\n').filter(l => l.trim()).length} item${input.split('\n').filter(l => l.trim()).length !== 1 ? 's' : ''} · ⌘↵`
+                : 'Each line becomes a separate item'
+              }
+            </p>
+            {/* Personal / work toggle */}
+            <button
+              onClick={() => setPersonalMode(p => !p)}
+              title={personalMode ? 'Capturing as personal — click to switch to work' : 'Capturing as work — click to switch to personal'}
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all ${
+                personalMode
+                  ? 'bg-pink-500/15 border-pink-500/30 text-pink-400'
+                  : 'bg-white/[0.03] border-white/5 text-gray-600 hover:text-gray-400'
+              }`}
+            >
+              {personalMode ? '🏠 Personal' : '💼 Work'}
+            </button>
+          </div>
           <button
             onClick={capture}
             disabled={!input.trim()}
@@ -380,6 +402,22 @@ export function BrainDumpView({
         <div className="shrink-0 flex items-start gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
           <AlertCircle size={13} className="shrink-0 text-red-400 mt-0.5" />
           <p className="text-xs text-red-400">{aiError}</p>
+        </div>
+      )}
+
+      {/* Scope filter */}
+      {items.some(i => i.isPersonal) && (
+        <div className="flex items-center gap-1 shrink-0">
+          {(['all', 'work', 'personal'] as const).map(s => (
+            <button key={s} onClick={() => setScopeFilter(s)}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all capitalize ${
+                scopeFilter === s
+                  ? 'bg-white/10 text-white border border-white/10'
+                  : 'text-gray-600 hover:text-gray-400'
+              }`}>
+              {s === 'personal' ? '🏠 Personal' : s === 'work' ? '💼 Work' : 'All'}
+            </button>
+          ))}
         </div>
       )}
 

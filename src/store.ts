@@ -423,8 +423,8 @@ export function useAppStore() {
 
   // ── Brain Dump ─────────────────────────────────────────────────────────────
 
-  const addDumpItem = (content: string) => {
-    const item: DumpItem = { id: crypto.randomUUID(), content: content.trim(), createdAt: new Date().toISOString(), status: 'inbox' };
+  const addDumpItem = (content: string, isPersonal?: boolean) => {
+    const item: DumpItem = { id: crypto.randomUUID(), content: content.trim(), createdAt: new Date().toISOString(), status: 'inbox', ...(isPersonal && { isPersonal }) };
     setDumpItems(prev => [item, ...prev]);
     return item.id;
   };

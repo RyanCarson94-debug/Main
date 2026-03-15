@@ -248,7 +248,21 @@ function QuickNavTile({ icon, label, badge, onClick }: { icon: React.ReactNode; 
 // ─── Daily Energy Check-in ────────────────────────────────────────────────────
 
 const ENERGY_KEY = 'adhd-energy-';
+const INTENTION_KEY = 'adhd-session-intention';
 type EnergyLevel = 'charged' | 'getting-by' | 'low';
+
+function getLast7DaysEnergy(): Array<{ emoji: string; label: string } | null> {
+  const EMOJI_MAP: Record<string, { emoji: string; label: string }> = {
+    'charged':    { emoji: '🔋', label: 'Charged' },
+    'getting-by': { emoji: '😐', label: 'Getting by' },
+    'low':        { emoji: '🪫', label: 'Low' },
+  };
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(Date.now() - (6 - i) * 86400000).toISOString().split('T')[0];
+    const val = localStorage.getItem(ENERGY_KEY + d);
+    return val ? (EMOJI_MAP[val] ?? null) : null;
+  });
+}
 
 function getDailyEnergy(): EnergyLevel | null {
   try {
@@ -609,7 +623,7 @@ function OnboardingModal({ onClose }: { onClose: () => void }) {
 
 // ─── Friday Quick-Close Modal ─────────────────────────────────────────────────
 
-function FridayCloseModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+export function FridayCloseModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const [win,      setWin]      = useState('');
   const [carry,    setCarry]    = useState('');
   const [monday,   setMonday]   = useState('');
@@ -1025,6 +1039,30 @@ export function DashboardView({
   const [reportError,   setReportError]   = useState('');
   const [reportVisible, setReportVisible] = useState(false);
 
+  // Session intention
+  const [intention, setIntention]           = useState<string>(() => { try { return sessionStorage.getItem(INTENTION_KEY) ?? ''; } catch { return ''; } });
+  const [intentionInput, setIntentionInput] = useState('');
+  const [intentionSet, setIntentionSet]     = useState<boolean>(() => { try { return !!sessionStorage.getItem(INTENTION_KEY); } catch { return false; } });
+  const submitIntention = () => {
+    const val = intentionInput.trim();
+    if (!val) return;
+    setIntention(val);
+    setIntentionSet(true);
+    try { sessionStorage.setItem(INTENTION_KEY, val); } catch { /* ignore */ }
+    setIntentionInput('');
+  };
+  const clearIntention = () => {
+    setIntention('');
+    setIntentionSet(false);
+    try { sessionStorage.removeItem(INTENTION_KEY); } catch { /* ignore */ }
+  };
+
+  // Brain dump nudge dismissal
+  const [nudgeDismissed, setNudgeDismissed] = useState(false);
+
+  // 7-day energy trend
+  const energyTrend = useMemo(() => getLast7DaysEnergy(), []);
+
   // Task micro-reward — track completing task id for flash animation
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
   const handleCompleteTask = (taskId: string) => {
@@ -1245,6 +1283,11 @@ export function DashboardView({
     tasks.filter(t => t.delegatedTo && t.column !== 'done'),
   [tasks]);
 
+  // Decisions with a review date that has arrived
+  const dueDecisions = useMemo(() =>
+    decisions.filter(d => d.reviewAt && d.reviewAt <= todayStr),
+  [decisions, todayStr]);
+
   // Daily Brief data
   const dailyBrief = useMemo(() => {
     const criticalTask = tasks
@@ -1386,6 +1429,16 @@ export function DashboardView({
               Start my day
             </button>
           )}
+          {/* 7-day energy trend */}
+          {energyLevel && energyTrend.some(Boolean) && (
+            <div className="flex items-center gap-0.5" title="Your last 7 days energy">
+              {energyTrend.map((e, i) => (
+                <span key={i} className={`text-sm ${e ? 'opacity-90' : 'opacity-20'}`} title={e?.label ?? 'No check-in'}>
+                  {e?.emoji ?? '·'}
+                </span>
+              ))}
+            </div>
+          )}
           {/* Energy badge (tap to reset) */}
           {energyLevel && (
             <EnergyBadge level={energyLevel} onClick={() => setEnergyLevel(null)} />
@@ -1402,6 +1455,36 @@ export function DashboardView({
           )}
         </div>
       </div>
+
+      {/* ── Session intention ── */}
+      {!intentionSet ? (
+        <div className="flex items-center gap-2 px-1">
+          <span className="text-sm shrink-0">🎯</span>
+          <input
+            type="text"
+            value={intentionInput}
+            onChange={e => setIntentionInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && submitIntention()}
+            placeholder="What are you here to do right now?"
+            className="flex-1 bg-transparent border-b border-[#2A2640] focus:border-violet-500/60 text-sm text-gray-300 placeholder-gray-600 focus:outline-none py-1 transition-colors"
+          />
+          {intentionInput.trim() && (
+            <button onClick={submitIntention}
+              className="shrink-0 text-[11px] text-violet-400 hover:text-violet-300 font-bold transition-colors">
+              Set →
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 px-1">
+          <span className="text-sm shrink-0">🎯</span>
+          <p className="flex-1 text-sm text-gray-400 font-medium truncate">{intention}</p>
+          <button onClick={clearIntention}
+            className="shrink-0 text-[10px] text-gray-700 hover:text-gray-500 transition-colors">
+            clear
+          </button>
+        </div>
+      )}
 
       {/* ── Streak milestone (shown once per milestone, then dismissible) ── */}
       {streakMilestone && (
@@ -1437,12 +1520,18 @@ export function DashboardView({
       {/* ── Energy Check-in (inline banner — non-blocking) ── */}
       {!energyLevel && (
         <div className="relative">
-          {hour < 10 && (
-            <div className="flex items-center gap-2 mb-2 px-1">
-              <span className="text-base animate-pulse">🌅</span>
-              <p className="text-xs text-amber-300 font-semibold">Start your day right — check in before diving in.</p>
-            </div>
-          )}
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <span className="text-base animate-pulse">
+              {hour < 12 ? '🌅' : hour < 17 ? '⚡' : '🌙'}
+            </span>
+            <p className="text-xs text-amber-300 font-semibold">
+              {hour < 12
+                ? 'Start your day right — check in before diving in.'
+                : hour < 17
+                  ? 'Quick check-in — how are you running this afternoon?'
+                  : 'How did today go energy-wise?'}
+            </p>
+          </div>
           <EnergyCheckIn onSelect={handleEnergySelect} />
         </div>
       )}
@@ -1495,22 +1584,22 @@ export function DashboardView({
       {/* ── Stats (adapt count to energy level) ── */}
       {energyLevel !== 'low' && (
         <div className={`grid gap-3 ${energyLevel === 'getting-by' ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'}`}>
-          <StatCard label="Do Now" count={doNowTasks.length + overdueTasks.length + dueTodayTasks.length}
-            sub="urgent tasks"
+          <StatCard label="Ready to Focus" count={doNowTasks.length + overdueTasks.length + dueTodayTasks.length}
+            sub="tasks waiting for you"
             colorClass="bg-amber-500/10 border-amber-500/20 text-amber-400"
             icon={<Zap size={16} />} onClick={() => onViewChange('eisenhower')} />
           <StatCard label="Done This Week" count={doneThisWeek}
-            sub={doneThisWeek === 0 ? "let's go" : 'great work'}
+            sub={doneThisWeek === 0 ? 'every expert started here' : doneThisWeek >= 5 ? 'momentum building' : 'solid progress'}
             colorClass="bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
             icon={<CheckCircle2 size={16} />} />
           {energyLevel !== 'getting-by' && (
             <>
-              <StatCard label="Overdue" count={overdueTasks.length}
-                sub={overdueTasks.length === 0 ? 'all clear' : 'tackle one at a time'}
+              <StatCard label="Needs Attention" count={overdueTasks.length}
+                sub={overdueTasks.length === 0 ? 'all clear' : 'choose just one to start'}
                 colorClass={overdueTasks.length > 0 ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-white/[0.03] border-white/5 text-gray-500'}
                 icon={<CalendarClock size={16} />} onClick={() => onViewChange('kanban')} />
-              <StatCard label="Projects at Risk" count={atRiskProjects.length}
-                sub={atRiskProjects.length === 0 ? 'all healthy' : 'need attention'}
+              <StatCard label="Projects" count={atRiskProjects.length}
+                sub={atRiskProjects.length === 0 ? 'all healthy' : 'worth a glance'}
                 colorClass={atRiskProjects.length > 0 ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-white/[0.03] border-white/5 text-gray-500'}
                 icon={<FolderKanban size={16} />} onClick={() => onViewChange('projects')} />
             </>
@@ -1645,15 +1734,23 @@ export function DashboardView({
         <div className="lg:col-span-2 space-y-5">
 
           {/* Brain Dump spaced retrieval nudge */}
-          {dumpNudgeItem && (
+          {dumpNudgeItem && !nudgeDismissed && (
             <div className="flex items-start gap-3 px-3 py-3 rounded-xl bg-purple-500/8 border border-purple-500/20">
               <BrainCircuit size={13} className="text-purple-400 mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-0.5">You captured this 3 days ago</p>
-                <p className="text-xs text-gray-300 truncate">"{dumpNudgeItem}"</p>
-                <button onClick={() => onViewChange('dump')} className="text-[11px] text-purple-500 hover:text-purple-300 transition-colors mt-1">
-                  Still relevant? → Review in Brain Dump
-                </button>
+                <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-0.5">You had a thought 3 days ago</p>
+                <p className="text-xs text-gray-300 truncate italic">"{dumpNudgeItem}"</p>
+                <p className="text-[11px] text-gray-500 mt-1 mb-2">Worth revisiting?</p>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => onViewChange('dump')}
+                    className="px-2.5 py-1 rounded-lg bg-purple-500/20 text-purple-300 text-[11px] font-bold hover:bg-purple-500/30 transition-colors">
+                    Yes, open Brain Dump
+                  </button>
+                  <button onClick={() => setNudgeDismissed(true)}
+                    className="px-2.5 py-1 rounded-lg bg-white/[0.03] text-gray-500 text-[11px] hover:text-gray-400 transition-colors">
+                    Not now
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1771,6 +1868,23 @@ export function DashboardView({
                 Show less ↑
               </button>
             </>
+          )}
+
+          {/* Decision review date alert */}
+          {dueDecisions.length > 0 && (
+            <section>
+              <SectionHeader icon={<ClipboardList size={13} className="text-teal-400" />} title="Decisions to Review" count={dueDecisions.length} onNavigate={() => onViewChange('decision-log')} />
+              <div className="space-y-1.5">
+                {dueDecisions.slice(0, 3).map(d => (
+                  <button key={d.id} onClick={() => onViewChange('decision-log')}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-teal-500/5 border border-teal-500/15 text-left group hover:border-teal-500/30 transition-colors">
+                    <ClipboardList size={11} className="text-teal-500 shrink-0" />
+                    <p className="flex-1 text-xs text-gray-300 truncate">{d.title}</p>
+                    <span className="text-[10px] text-teal-600 shrink-0">review due</span>
+                  </button>
+                ))}
+              </div>
+            </section>
           )}
 
           {/* Waiting On (tasks delegated to others) */}

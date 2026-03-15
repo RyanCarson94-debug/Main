@@ -147,6 +147,8 @@ function ConvCard({ conv, onClick, onDelete }: {
   const ready     = readiness(conv);
   const today     = new Date().toISOString().split('T')[0];
   const isOverdue = conv.targetDate && conv.targetDate < today && conv.status !== 'had';
+  const daysSinceCreated = Math.floor((Date.now() - new Date(conv.createdAt).getTime()) / 86400000);
+  const isAvoiding = conv.status === 'planning' && daysSinceCreated >= 14;
 
   return (
     <div onClick={onClick}
@@ -163,6 +165,7 @@ function ConvCard({ conv, onClick, onDelete }: {
               {statusCfg.label}
             </span>
             {isOverdue && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">OVERDUE</span>}
+            {isAvoiding && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-rose-500/15 text-rose-300 border border-rose-500/25" title={`In planning for ${daysSinceCreated} days`}>Avoiding?</span>}
           </div>
           <h3 className="font-semibold text-white text-sm leading-snug">{conv.title}</h3>
           {conv.person && <p className="text-xs text-gray-500 mt-0.5">with {conv.person}</p>}

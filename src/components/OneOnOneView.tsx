@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Users, ChevronRight, Sparkles, Loader2, Save,
-  Clock, CheckCircle2, Trash2, CalendarDays,
+  Clock, CheckCircle2, Trash2, CalendarDays, Plus,
 } from 'lucide-react';
 import type {
   FirstTeamMember, DirectReportProfile, UpdatePerson, Update,
@@ -82,9 +82,19 @@ function PersonCard({ person, lastNote, pendingCount, onClick }: {
 
 // ─── 1:1 Prep Panel ───────────────────────────────────────────────────────────
 
+// Parse action item lines belonging to "me" from free-text
+function parseMeActionItems(text: string): string[] {
+  return text
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => /^-\s*\[[ x]?\]\s*(me:|i:|I:)?/i.test(l) || /^-\s*(me:|i'll|I will)/i.test(l))
+    .map(l => l.replace(/^-\s*\[[ x]?\]\s*(me:|i:|I:)?\s*/i, '').replace(/^-\s*(me:|i'll|I will)\s*/i, '').trim())
+    .filter(Boolean);
+}
+
 function OneOnOnePrepPanel({
   person, lastNote, pendingUpdates, readyConvos,
-  onBack, onSaveNote, onDeleteNote, autoScroll,
+  onBack, onSaveNote, onDeleteNote, onAddTask, autoScroll,
 }: {
   person: Person;
   lastNote: OneOnOneNote | null;
@@ -93,6 +103,7 @@ function OneOnOnePrepPanel({
   onBack: () => void;
   onSaveNote: (n: Omit<OneOnOneNote, 'id' | 'createdAt'>) => void;
   onDeleteNote: (id: string) => void;
+  onAddTask?: (title: string) => void;
   autoScroll?: boolean;
 }) {
   const today = new Date().toISOString().split('T')[0];
@@ -103,6 +114,7 @@ function OneOnOnePrepPanel({
   const [aiLoading,   setAiLoading]   = useState(false);
   const [aiError,     setAiError]     = useState('');
   const [saved,       setSaved]       = useState(false);
+  const [myTaskSuggestions, setMyTaskSuggestions] = useState<string[]>([]);
 
   const notesRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -149,6 +161,11 @@ function OneOnOnePrepPanel({
       notes:      notes  || undefined,
       actionItems: actionItems || undefined,
     });
+    // Detect my action items and offer to add as tasks
+    if (onAddTask && actionItems.trim()) {
+      const mine = parseMeActionItems(actionItems);
+      if (mine.length > 0) setMyTaskSuggestions(mine);
+    }
     setSaved(true);
     setNotes('');
     setActionItems('');
@@ -281,6 +298,34 @@ function OneOnOnePrepPanel({
           {saved ? <><CheckCircle2 size={14} /> Saved!</> : <><Save size={14} /> Save 1:1 — {today}</>}
         </button>
 
+        {/* My action items → tasks prompt */}
+        {myTaskSuggestions.length > 0 && onAddTask && (
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 space-y-2">
+            <p className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+              <CheckCircle2 size={12} /> {myTaskSuggestions.length} action item{myTaskSuggestions.length > 1 ? 's' : ''} for you — add to task board?
+            </p>
+            <div className="space-y-1">
+              {myTaskSuggestions.map((t, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="flex-1 text-xs text-gray-300 truncate">{t}</span>
+                  <button
+                    onClick={() => {
+                      onAddTask(t);
+                      setMyTaskSuggestions(prev => prev.filter((_, j) => j !== i));
+                    }}
+                    className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-600/20 text-emerald-400 text-[11px] font-bold hover:bg-emerald-600/30 transition-colors">
+                    <Plus size={10} /> Add
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setMyTaskSuggestions([])}
+              className="text-[11px] text-gray-600 hover:text-gray-400 transition-colors">
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {/* Past notes for this person */}
         {lastNote && (
           <PastNoteSection note={lastNote} onDelete={onDeleteNote} />
@@ -339,6 +384,7 @@ interface OneOnOneViewProps {
   teamMembers:         FirstTeamMember[];
   directReportProfiles: DirectReportProfile[];
   updatePeople:        UpdatePerson[];
+  onAddTask?:          (title: string) => void;
   updates:             Update[];
   hardConversations:   HardConversation[];
   oneOnOneNotes:       OneOnOneNote[];
@@ -349,7 +395,7 @@ interface OneOnOneViewProps {
 
 export function OneOnOneView({
   teamMembers, directReportProfiles, updatePeople, updates,
-  hardConversations, oneOnOneNotes, onAddNote, onDeleteNote, initialPersonId,
+  hardConversations, oneOnOneNotes, onAddNote, onDeleteNote, initialPersonId, onAddTask,
 }: OneOnOneViewProps) {
   const [selectedId, setSelectedId] = useState<string | null>(initialPersonId ?? null);
 
@@ -413,6 +459,7 @@ export function OneOnOneView({
         onBack={() => setSelectedId(null)}
         onSaveNote={onAddNote}
         onDeleteNote={onDeleteNote}
+        onAddTask={onAddTask}
         autoScroll={!!initialPersonId && selectedId === initialPersonId}
       />
     );

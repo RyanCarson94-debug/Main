@@ -185,6 +185,7 @@ export interface DumpItem {
   content: string;
   createdAt: string;
   status: DumpItemStatus;
+  isPersonal?: boolean;
   convertedTaskId?: string;
   aiSuggestion?: {
     type: 'task' | 'idea' | 'discard';

@@ -157,7 +157,7 @@ export function Sidebar({
   aiCoachOpen, mobileOpen, onMobileClose, taskCounts, saveSyncStatus = 'idle',
 }: SidebarProps) {
   const navigate = (v: View) => { onViewChange(v); onMobileClose(); };
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(['Strategy', 'Reference']));
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(['People', 'Strategy', 'Reference']));
   const toggleGroup = (label: string) =>
     setCollapsed(prev => { const n = new Set(prev); if (n.has(label)) n.delete(label); else n.add(label); return n; });
 
@@ -373,24 +373,29 @@ export function Sidebar({
         </div>
         {/* Streak */}
         {streak > 0 && (
-          <div className="flex items-center gap-2 px-2.5 py-1.5 mb-1">
-            <Flame size={13} className={isRestToday ? 'text-blue-400' : streak >= 7 ? 'text-orange-400' : streak >= 3 ? 'text-amber-400' : 'text-gray-600'} />
-            <span className="text-[12px] text-gray-600 flex-1">
-              {isRestToday ? (
-                <span className="text-blue-400 font-bold">Rest day 💙</span>
-              ) : isWelcomeBack ? (
-                <span className="text-emerald-400 font-bold">Welcome back</span>
-              ) : (
-                <>
-                  <span className={`font-bold ${streak >= 7 ? 'text-orange-400' : streak >= 3 ? 'text-amber-400' : 'text-gray-500'}`}>{streak}</span>
-                  {' '}day streak
-                </>
-              )}
-            </span>
+          <div className="px-2.5 mb-1 space-y-1">
+            <div className="flex items-center gap-2">
+              <Flame size={13} className={isRestToday ? 'text-blue-400' : streak >= 7 ? 'text-orange-400' : streak >= 3 ? 'text-amber-400' : 'text-gray-600'} />
+              <span className="text-[12px] text-gray-600 flex-1">
+                {isRestToday ? (
+                  <span className="text-blue-400 font-bold">Rest day 💙</span>
+                ) : isWelcomeBack ? (
+                  <span className="text-emerald-400 font-bold">Welcome back</span>
+                ) : (
+                  <>
+                    <span className={`font-bold ${streak >= 7 ? 'text-orange-400' : streak >= 3 ? 'text-amber-400' : 'text-gray-500'}`}>{streak}</span>
+                    {' '}day streak
+                  </>
+                )}
+              </span>
+            </div>
             {!isRestToday && (
-              <button onClick={handleRestDay} title="Declare a rest day — streak protected"
-                className="text-[10px] text-gray-700 hover:text-blue-400 transition-colors px-1 py-0.5 rounded hover:bg-blue-500/10">
-                rest
+              <button
+                onClick={handleRestDay}
+                title="Protect your streak — rest days count too"
+                className="w-full flex items-center justify-center gap-1.5 py-1 rounded-lg border border-blue-500/20 bg-blue-500/5 text-[11px] text-blue-500 hover:bg-blue-500/15 hover:text-blue-300 hover:border-blue-500/40 transition-all font-medium"
+              >
+                💙 Rest day — protect streak
               </button>
             )}
           </div>
