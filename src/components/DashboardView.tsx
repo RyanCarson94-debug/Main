@@ -145,6 +145,61 @@ function AlertRow({ label, color, onClick }: { label: string; color: keyof typeo
   );
 }
 
+function NeedsAttentionSection({ overdueTasks, delegationAlerts, pendingUpdatesCount, dumpInboxCount, onViewChange }: {
+  overdueTasks: Task[];
+  delegationAlerts: number;
+  pendingUpdatesCount: number;
+  dumpInboxCount: number;
+  onViewChange: (v: View) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const alerts: { label: string; color: keyof typeof ALERT_COLORS; onClick: () => void }[] = [];
+  if (overdueTasks.length > 0) alerts.push({
+    label: `${overdueTasks.length} task${overdueTasks.length > 1 ? 's' : ''} waiting on you`,
+    color: 'red', onClick: () => onViewChange('kanban'),
+  });
+  if (delegationAlerts > 0) alerts.push({
+    label: `${delegationAlerts} loop${delegationAlerts > 1 ? 's' : ''} ready to close`,
+    color: 'amber', onClick: () => onViewChange('delegations'),
+  });
+  if (pendingUpdatesCount > 0) alerts.push({
+    label: `${pendingUpdatesCount} person${pendingUpdatesCount > 1 ? 's' : ''} waiting for a briefing`,
+    color: 'blue', onClick: () => onViewChange('updates'),
+  });
+  if (dumpInboxCount > 0) alerts.push({
+    label: `${dumpInboxCount} thought${dumpInboxCount > 1 ? 's' : ''} captured, ready to triage`,
+    color: 'purple', onClick: () => onViewChange('dump'),
+  });
+
+  if (alerts.length === 0) return null;
+
+  const visible = expanded ? alerts : alerts.slice(0, 1);
+  const hidden  = alerts.length - 1;
+
+  return (
+    <section>
+      <SectionHeader icon={<AlertTriangle size={13} className="text-amber-400" />} title="Here to tackle" />
+      <p className="text-[11px] text-gray-600 mb-2 px-0.5">Pick one and start.</p>
+      <div className="space-y-1.5">
+        {visible.map((a, i) => <AlertRow key={i} label={a.label} color={a.color} onClick={a.onClick} />)}
+        {!expanded && hidden > 0 && (
+          <button onClick={() => setExpanded(true)}
+            className="w-full text-center text-xs text-gray-600 hover:text-amber-400 py-1.5 transition-colors">
+            +{hidden} more thing{hidden > 1 ? 's' : ''} →
+          </button>
+        )}
+        {expanded && hidden > 0 && (
+          <button onClick={() => setExpanded(false)}
+            className="w-full text-center text-xs text-gray-600 hover:text-gray-400 py-1.5 transition-colors">
+            Show less
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function QuickNavTile({ icon, label, badge, onClick }: { icon: React.ReactNode; label: string; badge?: number; onClick: () => void }) {
   return (
     <button onClick={onClick}
@@ -222,22 +277,27 @@ function EnergyBadge({ level, onClick }: { level: EnergyLevel; onClick: () => vo
 
 // ─── Daily Brief (3-card) ─────────────────────────────────────────────────────
 
-function DailyBrief({ criticalTask, whoNeedsYou, openCommitment, onViewChange, onEditTask }: {
+function DailyBrief({ criticalTask, whoNeedsYou, openCommitment, energyLevel, onViewChange, onEditTask }: {
   criticalTask?: Task;
   whoNeedsYou?: string;
   openCommitment?: Commitment;
+  energyLevel: EnergyLevel | null;
   onViewChange: (v: View) => void;
   onEditTask: (t: Task) => void;
 }) {
+  const isLow = energyLevel === 'low';
   return (
     <div className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/5 to-transparent overflow-hidden">
       <div className="px-4 py-3">
         <div className="flex items-center gap-2 mb-3">
           <Zap size={13} className="text-violet-400" />
-          <p className="text-[11px] font-black text-violet-400 uppercase tracking-widest">Your Daily Brief</p>
-          <p className="text-[10px] text-gray-600">— three things that matter today</p>
+          <p className="text-[11px] font-black text-violet-400 uppercase tracking-widest">
+            {isLow ? 'One Thing Today' : 'Your Daily Brief'}
+          </p>
+          {!isLow && <p className="text-[10px] text-gray-600">— three things that matter today</p>}
+          {isLow && <p className="text-[10px] text-gray-500">— low energy mode, just one focus</p>}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className={`grid grid-cols-1 ${isLow ? '' : 'sm:grid-cols-3'} gap-2`}>
           {/* Card 1: ONE task */}
           <button onClick={() => criticalTask ? onEditTask(criticalTask) : onViewChange('eisenhower')}
             className="text-left p-3 rounded-xl bg-[#1E1C28] border border-[#2A2640] hover:border-violet-500/40 transition-all group">
@@ -256,35 +316,39 @@ function DailyBrief({ criticalTask, whoNeedsYou, openCommitment, onViewChange, o
           </button>
 
           {/* Card 2: Who needs you */}
-          <button onClick={() => onViewChange('updates')}
-            className="text-left p-3 rounded-xl bg-[#1E1C28] border border-[#2A2640] hover:border-sky-500/40 transition-all group">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <User size={11} className="text-sky-400" />
-              <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest">Who needs you</span>
-            </div>
-            <p className="text-xs font-semibold text-white leading-snug group-hover:text-sky-200 transition-colors line-clamp-2">
-              {whoNeedsYou ?? 'No pending briefings'}
-            </p>
-          </button>
+          {!isLow && (
+            <button onClick={() => onViewChange('updates')}
+              className="text-left p-3 rounded-xl bg-[#1E1C28] border border-[#2A2640] hover:border-sky-500/40 transition-all group">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <User size={11} className="text-sky-400" />
+                <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest">Who needs you</span>
+              </div>
+              <p className="text-xs font-semibold text-white leading-snug group-hover:text-sky-200 transition-colors line-clamp-2">
+                {whoNeedsYou ?? 'No pending briefings'}
+              </p>
+            </button>
+          )}
 
           {/* Card 3: Open commitment */}
-          <button onClick={() => onViewChange('decision-log')}
-            className="text-left p-3 rounded-xl bg-[#1E1C28] border border-[#2A2640] hover:border-rose-500/40 transition-all group">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <ClipboardList size={11} className="text-rose-400" />
-              <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest">You promised</span>
-            </div>
-            <p className="text-xs font-semibold text-white leading-snug group-hover:text-rose-200 transition-colors line-clamp-2">
-              {openCommitment
-                ? `"${openCommitment.what}"${openCommitment.to ? ` → ${openCommitment.to}` : ''}`
-                : 'No open commitments'}
-            </p>
-            {openCommitment?.dueDate && (
-              <span className="text-[10px] text-gray-600 mt-1 inline-block">
-                due {new Date(openCommitment.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-              </span>
-            )}
-          </button>
+          {!isLow && (
+            <button onClick={() => onViewChange('decision-log')}
+              className="text-left p-3 rounded-xl bg-[#1E1C28] border border-[#2A2640] hover:border-rose-500/40 transition-all group">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <ClipboardList size={11} className="text-rose-400" />
+                <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest">You promised</span>
+              </div>
+              <p className="text-xs font-semibold text-white leading-snug group-hover:text-rose-200 transition-colors line-clamp-2">
+                {openCommitment
+                  ? `"${openCommitment.what}"${openCommitment.to ? ` → ${openCommitment.to}` : ''}`
+                  : 'No open commitments'}
+              </p>
+              {openCommitment?.dueDate && (
+                <span className="text-[10px] text-gray-600 mt-1 inline-block">
+                  due {new Date(openCommitment.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                </span>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -294,6 +358,12 @@ function DailyBrief({ criticalTask, whoNeedsYou, openCommitment, onViewChange, o
 // ─── End-of-Day Capture ───────────────────────────────────────────────────────
 
 const EOD_KEY = 'adhd-eod-';
+
+function getEodSubText(): string {
+  const day = new Date().getDay(); // 0=Sun, 1=Mon … 6=Sat
+  const nextNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Monday', 'Monday'];
+  return `60 seconds. Prevents ${nextNames[day]} morning ambush.`;
+}
 
 function EndOfDayModal({ onClose }: { onClose: () => void }) {
   const [carryForward, setCarryForward] = useState('');
@@ -330,7 +400,7 @@ function EndOfDayModal({ onClose }: { onClose: () => void }) {
                 <Sunset size={16} className="text-amber-400" />
                 <p className="text-sm font-black text-white">End of day — park it</p>
               </div>
-              <p className="text-xs text-gray-500 mb-4">60 seconds. Prevents Monday morning ambush.</p>
+              <p className="text-xs text-gray-500 mb-4">{getEodSubText()}</p>
               <div className="space-y-3">
                 <div>
                   <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">
@@ -400,7 +470,7 @@ const ROLE_OPTIONS: { role: LeaderRole; emoji: string; label: string; sub: strin
     emoji: '🏛️',
     label: 'Senior Leader',
     sub: 'Strategy, stakeholders, leadership OS',
-    views: ['People Dashboard', 'OKRs', 'Decision Log', 'Quarterly Planning'],
+    views: ['Dashboard', 'Brain Dump', 'People Dashboard', 'Decision Log'],
   },
 ];
 
@@ -411,6 +481,7 @@ function OnboardingModal({ onClose }: { onClose: () => void }) {
   const chosen = ROLE_OPTIONS.find(o => o.role === selectedRole);
 
   const handleSelect = (role: LeaderRole) => {
+    try { localStorage.setItem('adhd-onboarding-role', role); } catch { /* ignore */ }
     setSelectedRole(role);
     setStep('tips');
   };
@@ -1059,14 +1130,16 @@ export function DashboardView({
           {energyLevel && (
             <EnergyBadge level={energyLevel} onClick={() => setEnergyLevel(null)} />
           )}
-          <button
-            onClick={reportVisible ? () => setReportVisible(false) : handleGetBriefed}
-            disabled={reportLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/15 text-violet-400 text-xs font-bold transition-colors disabled:opacity-50"
-          >
-            <Sparkles size={13} className={reportLoading ? 'animate-pulse' : ''} />
-            {reportLoading ? 'Analysing…' : reportVisible ? 'Hide brief' : 'Get briefed'}
-          </button>
+          {energyLevel !== 'low' && energyLevel !== 'getting-by' && (
+            <button
+              onClick={reportVisible ? () => setReportVisible(false) : handleGetBriefed}
+              disabled={reportLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/15 text-violet-400 text-xs font-bold transition-colors disabled:opacity-50"
+            >
+              <Sparkles size={13} className={reportLoading ? 'animate-pulse' : ''} />
+              {reportLoading ? 'Analysing…' : reportVisible ? 'Hide brief' : 'Get briefed'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -1075,26 +1148,25 @@ export function DashboardView({
         <QuarterBanner plan={currentQuarterPlan} onClick={() => onViewChange('quarterly-planning')} />
       )}
 
-      {/* ── Energy Check-in ── */}
+      {/* ── Energy Check-in (inline banner — non-blocking) ── */}
       {!energyLevel && (
         <div className="relative">
           <EnergyCheckIn onSelect={handleEnergySelect} />
         </div>
       )}
 
-      {/* ── Daily Brief ── */}
-      {energyLevel && (
-        <DailyBrief
-          criticalTask={dailyBrief.criticalTask}
-          whoNeedsYou={dailyBrief.whoNeedsYou}
-          openCommitment={dailyBrief.openCommitment}
-          onViewChange={onViewChange}
-          onEditTask={onEditTask}
-        />
-      )}
+      {/* ── Daily Brief (always visible) ── */}
+      <DailyBrief
+        criticalTask={dailyBrief.criticalTask}
+        whoNeedsYou={dailyBrief.whoNeedsYou}
+        openCommitment={dailyBrief.openCommitment}
+        energyLevel={energyLevel}
+        onViewChange={onViewChange}
+        onEditTask={onEditTask}
+      />
 
-      {/* ── Focus Recommendation ── */}
-      {!focusRecDismissed && (focusRecLoading || focusRec) && (
+      {/* ── Focus Recommendation (hidden when low/getting-by energy) ── */}
+      {!focusRecDismissed && energyLevel === 'charged' && (focusRecLoading || focusRec) && (
         <FocusRecommendationCard
           task={focusRec?.task}
           reason={focusRec?.reason}
@@ -1212,24 +1284,13 @@ export function DashboardView({
 
           {/* Needs Attention */}
           {totalAlerts > 0 && (
-            <section>
-              <SectionHeader icon={<AlertTriangle size={13} className="text-amber-400" />} title="Here to tackle" />
-              <p className="text-[11px] text-gray-600 mb-2 px-0.5">You've got this — pick one and start.</p>
-              <div className="space-y-1.5">
-                {overdueTasks.length > 0 && (
-                  <AlertRow label={`${overdueTasks.length} task${overdueTasks.length > 1 ? 's' : ''} waiting on you`} color="red" onClick={() => onViewChange('kanban')} />
-                )}
-                {delegationAlerts > 0 && (
-                  <AlertRow label={`${delegationAlerts} loop${delegationAlerts > 1 ? 's' : ''} ready to close`} color="amber" onClick={() => onViewChange('delegations')} />
-                )}
-                {pendingUpdatesCount > 0 && (
-                  <AlertRow label={`${pendingUpdatesCount} person${pendingUpdatesCount > 1 ? 's' : ''} waiting for a briefing`} color="blue" onClick={() => onViewChange('updates')} />
-                )}
-                {dumpInboxCount > 0 && (
-                  <AlertRow label={`${dumpInboxCount} thought${dumpInboxCount > 1 ? 's' : ''} captured, ready to triage`} color="purple" onClick={() => onViewChange('dump')} />
-                )}
-              </div>
-            </section>
+            <NeedsAttentionSection
+              overdueTasks={overdueTasks}
+              delegationAlerts={delegationAlerts}
+              pendingUpdatesCount={pendingUpdatesCount}
+              dumpInboxCount={dumpInboxCount}
+              onViewChange={onViewChange}
+            />
           )}
 
           {/* OKR Snapshot */}

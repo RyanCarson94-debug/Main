@@ -238,12 +238,16 @@ function StepList({
   onToggle,
   onDelete,
   onAdd,
+  onPin,
+  pinnedText,
 }: {
   taskId: string;
   steps: FocusStep[];
   onToggle: (stepId: string) => void;
   onDelete: (stepId: string) => void;
   onAdd: (text: string, estimate?: number) => void;
+  onPin?: (text: string) => void;
+  pinnedText?: string | null;
 }) {
   const [newText, setNewText] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -303,6 +307,19 @@ function StepList({
               <span className="text-[11px] text-gray-600">~{step.estimateMinutes} min</span>
             )}
           </div>
+          {!step.done && onPin && (
+            <button
+              onClick={() => onPin(step.text)}
+              title="Pin as Start here"
+              className={`shrink-0 p-1 rounded transition-colors ${
+                pinnedText === step.text
+                  ? 'text-emerald-400'
+                  : 'text-gray-700 hover:text-emerald-400'
+              }`}
+            >
+              <Zap size={11} />
+            </button>
+          )}
           <button
             onClick={() => onDelete(step.id)}
             className="shrink-0 p-1 rounded text-gray-700 hover:text-red-400 hover:bg-red-500/10 transition-colors"
@@ -666,7 +683,9 @@ export function FocusView({
                     <div className="flex items-start gap-2.5 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 shrink-0">
                       <Zap size={13} className="shrink-0 text-emerald-400 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-0.5">Start here</p>
+                        <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-0.5">
+                          Start here <span className="text-gray-600 font-normal normal-case tracking-normal">— tap ⚡ on any step to change</span>
+                        </p>
                         <p className="text-xs text-emerald-200 leading-relaxed">{suggestedFirstStep}</p>
                       </div>
                       <button onClick={() => setSuggestedFirstStep(null)}
@@ -698,6 +717,8 @@ export function FocusView({
                       onToggle={stepId => onToggleStep(selectedTask.id, stepId)}
                       onDelete={stepId => onDeleteStep(selectedTask.id, stepId)}
                       onAdd={(text, est) => onAddStep(selectedTask.id, text, est)}
+                      onPin={text => setSuggestedFirstStep(text)}
+                      pinnedText={suggestedFirstStep}
                     />
                   )}
                 </div>

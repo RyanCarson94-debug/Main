@@ -59,9 +59,9 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'People',
     items: [
-      { id: 'people-dashboard',   label: 'People Dashboard',   icon: <Users size={14} /> },
       { id: 'updates',            label: '1:1 Briefings',      icon: <Bell size={14} />,                badge: c => c.pendingUpdates },
       { id: 'one-on-one',         label: '1:1 Notes',          icon: <MessageCircle size={14} /> },
+      { id: 'people-dashboard',   label: 'People Dashboard',   icon: <Users size={14} /> },
       { id: 'first-team',         label: 'First Team',         icon: <UserCog size={14} /> },
       { id: 'hard-conversations', label: 'Hard Conversations', icon: <MessageSquareWarning size={14} /> },
       { id: 'direct-reports',     label: 'Direct Reports',     icon: <Star size={14} /> },
@@ -89,6 +89,29 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ];
+
+// ─── Starting kit helper ──────────────────────────────────────────────────────
+
+const ROLE_KIT: Record<string, { id: View; label: string }[]> = {
+  ic: [
+    { id: 'focus',       label: 'Focus Mode' },
+    { id: 'dump',        label: 'Brain Dump' },
+    { id: 'eisenhower',  label: 'Eisenhower Matrix' },
+    { id: 'day-planner', label: 'Day Planner' },
+  ],
+  lead: [
+    { id: 'dashboard',         label: 'Dashboard' },
+    { id: 'delegations',       label: 'Delegations' },
+    { id: 'one-on-one',        label: '1:1 Notes' },
+    { id: 'hard-conversations', label: 'Hard Conversations' },
+  ],
+  senior: [
+    { id: 'dashboard',        label: 'Dashboard' },
+    { id: 'dump',             label: 'Brain Dump' },
+    { id: 'people-dashboard', label: 'People Dashboard' },
+    { id: 'decision-log',     label: 'Decision Log' },
+  ],
+};
 
 // ─── Streak helper ────────────────────────────────────────────────────────────
 
@@ -126,6 +149,15 @@ export function Sidebar({
     setCollapsed(prev => { const n = new Set(prev); if (n.has(label)) n.delete(label); else n.add(label); return n; });
 
   const [{ count: streak, isWelcomeBack }] = useState(() => getStreak());
+
+  // Starting kit (role-based onboarding shortcut section)
+  const [kitRole]      = useState<string | null>(() => { try { return localStorage.getItem('adhd-onboarding-role'); } catch { return null; } });
+  const [kitDismissed, setKitDismissed] = useState<boolean>(() => { try { return localStorage.getItem('adhd-kit-dismissed') === '1'; } catch { return false; } });
+  const kitViews = kitRole ? (ROLE_KIT[kitRole] ?? null) : null;
+  const dismissKit = () => {
+    setKitDismissed(true);
+    try { localStorage.setItem('adhd-kit-dismissed', '1'); } catch { /* ignore */ }
+  };
 
   const inner = (
     <aside className="w-[200px] shrink-0 flex flex-col h-full border-r border-[#2A2640] bg-[#1A1826]">
@@ -179,6 +211,31 @@ export function Sidebar({
               <span className="font-semibold text-white">{taskCounts.doNow}</span> urgent
               {taskCounts.inProgress > 0 && <> · <span className="font-semibold text-white">{taskCounts.inProgress}</span> active</>}
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Starting kit (dismissible, shown after onboarding role selection) */}
+      {kitViews && !kitDismissed && (
+        <div className="mx-3 mt-2 p-3 rounded-xl border border-violet-500/20 bg-violet-500/5 shrink-0">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-black text-violet-400 uppercase tracking-widest">Starting Kit</p>
+            <button onClick={dismissKit} className="text-gray-700 hover:text-gray-500 transition-colors">
+              <X size={11} />
+            </button>
+          </div>
+          <div className="space-y-px">
+            {kitViews.map(item => (
+              <button key={item.id} onClick={() => navigate(item.id)}
+                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors ${
+                  view === item.id
+                    ? 'bg-violet-500/20 text-white font-semibold'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/[0.04]'
+                }`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-violet-500/60 shrink-0" />
+                {item.label}
+              </button>
+            ))}
           </div>
         </div>
       )}
