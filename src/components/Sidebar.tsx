@@ -21,6 +21,7 @@ interface SidebarProps {
   mobileOpen: boolean;
   onMobileClose: () => void;
   saveSyncStatus?: SaveSyncStatus;
+  onForceCloudPull?: () => void;
   taskCounts: {
     doNow: number;
     inProgress: number;
@@ -154,7 +155,7 @@ function getStreak(): { count: number; isWelcomeBack: boolean; isRestToday: bool
 
 export function Sidebar({
   view, onViewChange, onLogout, onSearch, onToggleAICoach, onShowShortcuts,
-  aiCoachOpen, mobileOpen, onMobileClose, taskCounts, saveSyncStatus = 'idle',
+  aiCoachOpen, mobileOpen, onMobileClose, taskCounts, saveSyncStatus = 'idle', onForceCloudPull,
 }: SidebarProps) {
   const navigate = (v: View) => { onViewChange(v); onMobileClose(); };
   const [collapsed, setCollapsed] = useState<Set<string>>(() => {
@@ -379,6 +380,15 @@ export function Sidebar({
               <Cloud size={11} className="text-gray-700" />
               <span className="text-[11px] text-gray-700">Cloud sync on</span>
             </>
+          )}
+          {onForceCloudPull && saveSyncStatus !== 'saving' && (
+            <button
+              onClick={onForceCloudPull}
+              title="Pull latest data from cloud — use if this device is out of sync"
+              className="ml-auto text-[10px] text-gray-600 hover:text-violet-400 transition-colors underline underline-offset-2"
+            >
+              Pull
+            </button>
           )}
         </div>
         {/* Streak */}

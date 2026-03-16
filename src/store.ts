@@ -263,6 +263,27 @@ export function useAppStore() {
     return unsub;
   }, [applyCloudPayload]);
 
+  // Force-pull: bypass the timestamp guard and always apply cloud data.
+  // Use this when a device is out of sync (e.g. phone missed updates from desktop).
+  const forceCloudPull = useCallback(async (): Promise<boolean> => {
+    setSaveSyncStatus('saving');
+    try {
+      localStorage.removeItem(LAST_CLOUD_SAVE_KEY);
+      const cloud = await loadFromCloud();
+      if (!cloud) { setSaveSyncStatus('error'); return false; }
+      applyCloudPayload(cloud.payload as Record<string, unknown>);
+      saveToStorage(LAST_CLOUD_SAVE_KEY, cloud.saved_at);
+      if (isMounted.current) {
+        setSaveSyncStatus('saved');
+        setTimeout(() => { if (isMounted.current) setSaveSyncStatus('idle'); }, 2500);
+      }
+      return true;
+    } catch {
+      if (isMounted.current) setSaveSyncStatus('error');
+      return false;
+    }
+  }, [applyCloudPayload]);
+
   // Debounced cloud save (800ms) — also updates localStorage cache
   const triggerCloudSave = useCallback(() => {
     if (cloudSaveTimer.current) clearTimeout(cloudSaveTimer.current);
@@ -845,6 +866,7 @@ export function useAppStore() {
 
   return {
     saveSyncStatus,
+    forceCloudPull,
     tasks, okrs, swotItems, teamMembers, updatePeople, updates, focusMap, dumpItems,
     decisions, commitments, weeklyReviews, northStar,
     addTask, updateTask, deleteTask, moveTaskColumn, moveTaskQuadrant,

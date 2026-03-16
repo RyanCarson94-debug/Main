@@ -321,6 +321,7 @@ export default function App() {
         onMobileClose={() => setShowMobileNav(false)}
         taskCounts={taskCounts}
         saveSyncStatus={store.saveSyncStatus}
+        onForceCloudPull={store.forceCloudPull}
       />
 
       <main className={`flex-1 overflow-hidden flex flex-col transition-all ${showAICoach ? 'md:mr-[380px]' : ''}`}>
