@@ -40,9 +40,13 @@ export async function loadFromCloud(): Promise<{ payload: object; saved_at: stri
       .select('payload, saved_at')
       .eq('id', ROW_ID)
       .single();
-    if (error || !data) return null;
+    if (error || !data) {
+      if (error) console.warn('[sync] loadFromCloud error:', error.code, error.message);
+      return null;
+    }
     return data as { payload: object; saved_at: string };
-  } catch {
+  } catch (err) {
+    console.warn('[sync] loadFromCloud exception:', err);
     return null;
   }
 }

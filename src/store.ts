@@ -267,21 +267,29 @@ export function useAppStore() {
   // Use this when a device is out of sync (e.g. phone missed updates from desktop).
   const forceCloudPull = useCallback(async (): Promise<boolean> => {
     setSaveSyncStatus('saving');
-    try {
-      localStorage.removeItem(LAST_CLOUD_SAVE_KEY);
-      const cloud = await loadFromCloud();
-      if (!cloud) { setSaveSyncStatus('error'); return false; }
-      applyCloudPayload(cloud.payload as Record<string, unknown>);
-      saveToStorage(LAST_CLOUD_SAVE_KEY, cloud.saved_at);
-      if (isMounted.current) {
-        setSaveSyncStatus('saved');
-        setTimeout(() => { if (isMounted.current) setSaveSyncStatus('idle'); }, 2500);
+    localStorage.removeItem(LAST_CLOUD_SAVE_KEY);
+    // Retry up to 3 times with 1 s gap — handles transient mobile network hiccups
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const cloud = await loadFromCloud();
+        if (cloud) {
+          applyCloudPayload(cloud.payload as Record<string, unknown>);
+          saveToStorage(LAST_CLOUD_SAVE_KEY, cloud.saved_at);
+          if (isMounted.current) {
+            setSaveSyncStatus('saved');
+            setTimeout(() => { if (isMounted.current) setSaveSyncStatus('idle'); }, 2500);
+          }
+          console.info('[sync] Force pull succeeded on attempt', attempt);
+          return true;
+        }
+        console.warn(`[sync] Force pull attempt ${attempt}: no data returned`);
+      } catch (err) {
+        console.warn(`[sync] Force pull attempt ${attempt} threw:`, err);
       }
-      return true;
-    } catch {
-      if (isMounted.current) setSaveSyncStatus('error');
-      return false;
+      if (attempt < 3) await new Promise(res => setTimeout(res, 1000));
     }
+    if (isMounted.current) setSaveSyncStatus('error');
+    return false;
   }, [applyCloudPayload]);
 
   // Debounced cloud save (800ms) — also updates localStorage cache
