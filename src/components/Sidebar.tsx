@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   LayoutDashboard, Grid2x2, Target, BarChart2, Users, Zap, UserCheck,
   BookOpen, Bell, BrainCircuit, Home, Compass, BookMarked, CalendarCheck,
   LogOut, Network, Search, UserCog, Bot, Keyboard, CalendarDays, X, Video,
   FolderKanban, MessageSquareWarning, Telescope, ScrollText, BadgeCheck,
   ChevronDown, ChevronRight, Flame, FileText, Cloud, CloudOff, Loader,
-  MessageCircle, Star,
+  MessageCircle, Star, Upload,
 } from 'lucide-react';
 import type { View } from '../types';
 import type { SaveSyncStatus } from '../store';
+import { importAllDataJSON } from '../utils/export';
 
 interface SidebarProps {
   view: View;
@@ -158,6 +159,19 @@ export function Sidebar({
   aiCoachOpen, mobileOpen, onMobileClose, taskCounts, saveSyncStatus = 'idle', onForceCloudPull,
 }: SidebarProps) {
   const navigate = (v: View) => { onViewChange(v); onMobileClose(); };
+  const importFileRef = useRef<HTMLInputElement>(null);
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      await importAllDataJSON(file);
+      window.location.reload();
+    } catch {
+      alert('Import failed — make sure you chose an adhd-leader-backup-*.json file');
+    } finally {
+      if (importFileRef.current) importFileRef.current.value = '';
+    }
+  };
   const [collapsed, setCollapsed] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem('adhd-sidebar-collapsed');
@@ -427,6 +441,21 @@ export function Sidebar({
           <Keyboard size={14} />
           <span>Shortcuts</span>
           <kbd className="ml-auto text-[10px] text-gray-700 px-1 py-0.5 rounded bg-white/5 border border-[#2A2640]">?</kbd>
+        </button>
+        <input
+          ref={importFileRef}
+          type="file"
+          accept=".json"
+          className="hidden"
+          onChange={handleImportFile}
+        />
+        <button
+          onClick={() => importFileRef.current?.click()}
+          className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] text-gray-700 hover:text-gray-400 hover:bg-white/[0.04] transition-colors"
+          title="Import a JSON backup file"
+        >
+          <Upload size={14} />
+          <span>Import backup</span>
         </button>
         <button
           onClick={onLogout}

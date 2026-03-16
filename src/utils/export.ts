@@ -193,6 +193,32 @@ export function exportAllDataJSON() {
   );
 }
 
+export function importAllDataJSON(file: File): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const snapshot = JSON.parse(e.target?.result as string) as Record<string, unknown>;
+        let restored = 0;
+        for (const key of EXPORT_KEYS) {
+          if (snapshot[key] != null) {
+            localStorage.setItem(key, JSON.stringify(snapshot[key]));
+            restored++;
+          }
+        }
+        // Clear the cloud-save timestamp so the app re-evaluates on next load
+        localStorage.removeItem('adhd-leader-cloud-saved-at');
+        console.info(`[import] Restored ${restored} keys from backup`);
+        resolve();
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file);
+  });
+}
+
 // ─── ICS / iCalendar export ───────────────────────────────────────────────────
 
 function icsLine(text: string): string {
