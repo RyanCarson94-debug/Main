@@ -59,6 +59,7 @@ Respond ONLY with a JSON object keyed by item id. No markdown, no explanation. E
     const parsed = JSON.parse(jsonMatch[0]) as Record<string, DumpItem['aiSuggestion']>;
     onDone(parsed);
   } catch (err) {
+    console.error('[triage] error:', err);
     if (err instanceof Anthropic.AuthenticationError) {
       onError('Invalid API key. Add VITE_ANTHROPIC_API_KEY to your .env file.');
     } else if (err instanceof Anthropic.RateLimitError) {
